@@ -21,6 +21,7 @@ export const GET = async (
       { status: 200 }
     );
   } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
@@ -73,6 +74,7 @@ export const PUT = async (
       { status: 200 }
     );
   } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
@@ -103,6 +105,7 @@ export const DELETE = async (
       { status: 200 }
     );
   } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
