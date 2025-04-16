@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String              @id @default(cuid())
+  fullName                String
+  email                   String              @unique
+  password                String
+  phoneNumber             String
+  address                 String?
+  role                    Role
+  orders                  Order[]
+  approvedPayments        Payment[]           @relation("ApprovedPayments")
+  approvedRefunds         RefundRequest[]     @relation("ApprovedRefunds")
+}
+
+model Order {
+  id                      String              @id @default(cuid())
+  userId                  String
+  user                    User                @relation(fields: [userId], references: [id])
+  orderType               OrderType
+  orderDate               DateTime
+  orderStatus             OrderStatus
+  payment                 Payment?
+  transportation          TransportationOrder?
+  packageOrder            PackageOrder?
+  review                  Review?
+}
+
+model Payment {
+  id                      String              @id @default(cuid())
+  orderId                 String              @unique
+  order                   Order               @relation(fields: [orderId], references: [id])
+  senderName              String
+  transferDate            DateTime
+  proofUrl                String
+  paymentStatus           PaymentStatus
+  totalPrice              Decimal             @db.Decimal(10, 2)
+  approvedByAdminId       String?
+  approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
+  refundRequest           RefundRequest?
+}
+
+model RefundRequest {
+  id                      String              @id @default(cuid())
+  paymentId               String              @unique
+  payment                 Payment             @relation(fields: [paymentId], references: [id])
+  reason                  String
+  requestDate             DateTime
+  refundStatus            RefundStatus
+  approvedByAdminId       String?
+  approvedByAdmin         User?               @relation("ApprovedRefunds", fields: [approvedByAdminId], references: [id])
+}
+
+model TransportationOrder {
+  id                      String              @id @default(cuid())
+  orderId                 String              @unique
+  order                   Order               @relation(fields: [orderId], references: [id])
+  departureDate           DateTime
+  pickupTime              DateTime
+  pickupLocation          String
+  destination             String
+  passengerCount          Int
+  vehicleCount            Int
+  roundTrip               Boolean
+  transportId             String
+  transport               Transport           @relation(fields: [transportId], references: [id])
+  totalDistance           Float
+}
+
+model Review {
+  id                      String              @id @default(cuid())
+  orderId                 String              @unique
+  order                   Order               @relation(fields: [orderId], references: [id])
+  rating                  Int
+  content                 String
+}
+
+model PackageOrder {
+  id                      String              @id @default(cuid())
+  orderId                 String              @unique
+  order                   Order               @relation(fields: [orderId], references: [id])
+  packageId               String
+  package                 TourPackage         @relation(fields: [packageId], references: [id])
+}
+
+model Transport {
+  id                      String              @id @default(cuid())
+  vehicleTypeId           String
+  vehicleType             VehicleType         @relation(fields: [vehicleTypeId], references: [id])
+  seatCount               Int
+  ratePerKm               Decimal             @db.Decimal(10, 2)
+  additionalDetails       String?
+  tours                   TourPackage[]
+  transportOrders         TransportationOrder[]
+}
+
+model VehicleType {
+  id                      String              @id @default(cuid())
+  name                    String
+  vehicles                Transport[]
+}
+
+model TourPackage {
+  id                      String              @id @default(cuid())
+  transportId             String
+  transport               Transport           @relation(fields: [transportId], references: [id])
+  name                    String
+  destination             String
+  durationDays            Int
+  price                   Decimal             @db.Decimal(10, 2)
+  advantages              String
+  services                String
+  photoUrl                String
+  packageOrders           PackageOrder[]
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderType {
+  TRANSPORT
+  TOUR
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
