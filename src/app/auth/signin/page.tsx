@@ -53,7 +53,6 @@ const SigninPage = () => {
     } else {
       router.push("/dashboard");
     }
-    console.log({ response });
   };
   return (
     <div className="h-[100dvh] w-full flex justify-center items-center px-4 py-4">

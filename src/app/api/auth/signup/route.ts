@@ -5,10 +5,8 @@ import { Role } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
-    console.log("Hitted");
     const body = await request.json();
     const { fullName, email, password, phoneNumber } = body;
-    console.log({ body });
 
     if (!fullName || !email || !password || !phoneNumber) {
       return NextResponse.json(
