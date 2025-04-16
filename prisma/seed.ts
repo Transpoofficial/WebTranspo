@@ -8,7 +8,6 @@ async function main() {
 
   const users = [
     {
-      name: "Super Admin",
       email: "superadmin@example.com",
       role: Role.SUPER_ADMIN,
       password: hashedPassword,
@@ -16,7 +15,6 @@ async function main() {
       phoneNumber: "1234567890",
     },
     {
-      name: "Admin",
       email: "admin@example.com",
       role: Role.ADMIN,
       password: hashedPassword,
@@ -24,7 +22,6 @@ async function main() {
       phoneNumber: "0987654321",
     },
     {
-      name: "User",
       email: "user@example.com",
       role: Role.CUSTOMER,
       password: hashedPassword,
