@@ -31,7 +31,9 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const { seatCount, ratePerKm, additionalDetails, vehicleTypeId } = body;
     // resume the code
-    if (!seatCount || !ratePerKm || !vehicleTypeId) {
+    if (seatCount === null || seatCount === undefined || 
+        ratePerKm === null || ratePerKm === undefined || 
+        vehicleTypeId === null || vehicleTypeId === undefined) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
