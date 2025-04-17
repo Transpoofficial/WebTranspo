@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Transpo Web Application
 
-## Getting Started
+This is a private web application project built using [Next.js](https://nextjs.org) as the framework and [Prisma](https://www.prisma.io/) as the ORM. The project is managed with [pnpm](https://pnpm.io/) as the package manager.
 
-First, run the development server:
+---
+
+## 🛠️ Getting Started
+
+Follow these steps to run the project locally:
+
+### 1. Install Dependencies
+
+Ensure you have `pnpm` installed on your system. Then, run the following command to install the required dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Set Up the Database with Prisma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses Prisma for database management. Complete the following steps to set it up:
 
-## Learn More
+1. **Generate the Prisma Client**  
+   Run the following command to generate the Prisma client:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   pnpm prisma generate
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Apply Database Migrations**  
+   Apply any existing migrations to your database:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   pnpm prisma migrate dev
+   ```
 
-## Deploy on Vercel
+3. **Seed the Database**  
+   Populate the database with initial data by running the seed script:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   pnpm prisma db seed
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+### 3. Start the Development Server
+
+Run the development server with the following command:
+
+```bash
+pnpm dev
+```
+
+---
+
+### 4. Open the Application
+
+Once the server is running, open your browser and navigate to:
+
+[http://localhost:3000](http://localhost:3000)
+
+---
+
+## 🤝 Internal Contribution Guide
+
+This is a private repository. Follow the steps below to contribute to the project:
+
+1. **Choose a Task**
+
+   - Visit the project board and select a task from the `Backlog` column.
+   - If no suitable task exists, create a new one.
+
+2. **Move the Task**
+
+   - Move the task to the `Ready` column when you plan to work on it.
+
+3. **Create an Issue**
+
+   - Create an issue linked to the task.
+
+4. **Create a Branch**
+
+   - From the issue, create a new branch using the following naming conventions:
+     - `feature/<short-description>` (for new features)
+     - `fix/<short-description>` (for bug fixes)
+     - `chore/<short-description>` (for maintenance tasks)
+
+5. **Start Coding**
+
+   - Begin development in the new branch and move the task to the `In Progress` column.
+
+6. **Open a Pull Request**
+
+   - Once development is complete, open a pull request and move the task to the `In Review` column.
+
+7. **Address Revisions**
+
+   - If revisions are requested, apply the changes and update the pull request.
+
+8. **Complete the Task**
+   - Once the pull request is approved, merge it and move the task to the `Done` column.
+
+---
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API.
+- [Prisma Documentation](https://www.prisma.io/docs) - Learn how to use Prisma in your project.
+- [Learn Next.js](https://nextjs.org/learn) - An interactive Next.js tutorial.
+
+---
+
+Happy coding! 🎉
