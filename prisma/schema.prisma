@@ -24,6 +24,8 @@ model User {
   orders                  Order[]
   approvedPayments        Payment[]           @relation("ApprovedPayments")
   approvedRefunds         RefundRequest[]     @relation("ApprovedRefunds")
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt @default(now())
 }
 
 model Order {
@@ -37,6 +39,8 @@ model Order {
   transportation          TransportationOrder?
   packageOrder            PackageOrder?
   review                  Review?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 }
 
 model Payment {
@@ -51,6 +55,8 @@ model Payment {
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
   refundRequest           RefundRequest?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 }
 
 model RefundRequest {
@@ -62,6 +68,8 @@ model RefundRequest {
   refundStatus            RefundStatus
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedRefunds", fields: [approvedByAdminId], references: [id])
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model TransportationOrder {
@@ -76,8 +84,10 @@ model TransportationOrder {
   vehicleCount            Int
   roundTrip               Boolean
   transportId             String
-  transport               Transport           @relation(fields: [transportId], references: [id])
+  transport               Vehicle             @relation(fields: [transportId], references: [id])
   totalDistance           Float
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
 }
 
 model Review {
@@ -86,6 +96,8 @@ model Review {
   order                   Order               @relation(fields: [orderId], references: [id])
   rating                  Int
   content                 String
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model PackageOrder {
@@ -94,9 +106,11 @@ model PackageOrder {
   order                   Order               @relation(fields: [orderId], references: [id])
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
-model Transport {
+model Vehicle {
   id                      String              @id @default(cuid())
   vehicleTypeId           String
   vehicleType             VehicleType         @relation(fields: [vehicleTypeId], references: [id])
@@ -105,18 +119,22 @@ model Transport {
   additionalDetails       String?
   tours                   TourPackage[]
   transportOrders         TransportationOrder[]
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model VehicleType {
   id                      String              @id @default(cuid())
   name                    String
-  vehicles                Transport[]
+  vehicles                Vehicle[]
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model TourPackage {
   id                      String              @id @default(cuid())
   transportId             String
-  transport               Transport           @relation(fields: [transportId], references: [id])
+  transport               Vehicle           @relation(fields: [transportId], references: [id])
   name                    String
   destination             String
   durationDays            Int
@@ -125,6 +143,8 @@ model TourPackage {
   services                String
   photoUrl                String
   packageOrders           PackageOrder[]
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 enum Role {
