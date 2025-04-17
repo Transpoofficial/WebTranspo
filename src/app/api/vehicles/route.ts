@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { checkAuth } from "@/lib/auth";
 
-export const GET = async (req: Request) => {
+export const GET = async (req: NextRequest) => {
   try {
     let vehicles = await prisma.vehicle.findMany({});
     if (vehicles.length !== 0) {
@@ -24,8 +25,9 @@ export const GET = async (req: Request) => {
   }
 };
 
-export const POST = async (req: Request) => {
+export const POST = async (req: NextRequest) => {
   try {
+    await checkAuth(req);
     const body = await req.json();
     const { seatCount, ratePerKm, additionalDetails, vehicleTypeId } = body;
     // resume the code

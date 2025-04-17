@@ -1,7 +1,8 @@
+import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export const GET = async (req: Request) => {
+export const GET = async (req: NextRequest) => {
   try {
     const vehicleTypes = await prisma.vehicleType.findMany();
     return NextResponse.json(
@@ -17,8 +18,9 @@ export const GET = async (req: Request) => {
   }
 };
 
-export const POST = async (req: Request) => {
+export const POST = async (req: NextRequest) => {
   try {
+    await checkAuth(req);
     const body = await req.json();
     const { name } = body;
 

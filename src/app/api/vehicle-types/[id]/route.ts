@@ -1,8 +1,9 @@
+import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
@@ -30,10 +31,11 @@ export const GET = async (
 };
 
 export const PUT = async (
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await checkAuth(req);
     const { id } = await params;
     const body = await req.json();
     const { name } = body;
@@ -83,10 +85,11 @@ export const PUT = async (
 };
 
 export const DELETE = async (
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await checkAuth(req);
     const { id } = await params;
     const vehicleType = await prisma.vehicleType.findUnique({
       where: { id: id },
