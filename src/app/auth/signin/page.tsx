@@ -39,7 +39,6 @@ const SigninPage = () => {
   });
 
   const onSubmit = async (values: SigninValues) => {
-    console.log({ values });
     setLoading(true);
     const response = await signIn("credentials", {
       redirect: false,
