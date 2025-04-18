@@ -42,13 +42,9 @@ export const PUT = async (
     const vehicleId = params.id;
     const body = await req.json();
     const { seatCount, ratePerKm, additionalDetails, vehicleTypeId } = body;
-<<<<<<< HEAD
-    if (!seatCount || !ratePerKm || !vehicleTypeId) {
-=======
     if (seatCount === null || seatCount === undefined || 
         ratePerKm === null || ratePerKm === undefined || 
         vehicleTypeId === null || vehicleTypeId === undefined) {
->>>>>>> 5335d6b2fad8eca90ee8a1c18346882f4ebe2c46
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
