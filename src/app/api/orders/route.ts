@@ -50,7 +50,7 @@ export const POST = async (req: NextRequest) => {
     // Main Data
     let { orderType } = body;
     orderType = orderType.toUpperCase() === "TRANSPORT" ? "TRANSPORT" : "TOUR";
-    const { derpartureDate, pickupTime, timezone } = body;
+    const { departureDate, pickupTime, timezone } = body;
 
     // Transportation Order Data
     const {
@@ -66,11 +66,11 @@ export const POST = async (req: NextRequest) => {
     const { packageId } = body;
 
     // Basic Validation
-    if (!orderType || !derpartureDate || !timezone) {
+    if (!orderType || !departureDate || !timezone) {
       return NextResponse.json(
         {
           message:
-            "Missing required fields: orderType, derpartureDate, or timezone",
+            "Missing required fields: orderType, departureDate, or timezone",
           data: [],
         },
         { status: 400 }
@@ -112,8 +112,8 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const formatedDerpartureDate = DateTime.fromFormat(
-      `${derpartureDate} ${pickupTime}`,
+    const formatedDepartureDate = DateTime.fromFormat(
+      `${departureDate} ${pickupTime}`,
       "yyyy-MM-dd HH:mm",
       {
         zone: timezone,
@@ -147,7 +147,7 @@ export const POST = async (req: NextRequest) => {
 
       const transportationOrders = await prisma.transportationOrder.create({
         data: {
-          departureDate: formatedDerpartureDate.toUTC().toJSDate(),
+          departureDate: formatedDepartureDate.toUTC().toJSDate(),
           pickupLocation,
           destination,
           vehicleCount: parseInt(vehicleCount),
@@ -197,7 +197,7 @@ export const POST = async (req: NextRequest) => {
         data: {
           orderId: createdOrder.id,
           packageId,
-          derpartureDate: formatedDerpartureDate.toUTC().toJSDate(),
+          departureDate: formatedDepartureDate.toUTC().toJSDate(),
         },
       });
     }

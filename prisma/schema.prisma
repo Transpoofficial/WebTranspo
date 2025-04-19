@@ -112,7 +112,7 @@ model PackageOrder {
   order                   Order               @relation(fields: [orderId], references: [id])
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
-  derpartureDate          DateTime
+  departureDate           DateTime
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
