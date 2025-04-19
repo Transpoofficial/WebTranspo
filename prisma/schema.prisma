@@ -33,14 +33,13 @@ model Order {
   userId                  String
   user                    User                @relation(fields: [userId], references: [id])
   orderType               OrderType
-  orderDate               DateTime
   orderStatus             OrderStatus
   payment                 Payment?
   transportation          TransportationOrder?
   packageOrder            PackageOrder?
   review                  Review?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model Payment {
@@ -49,7 +48,7 @@ model Payment {
   order                   Order               @relation(fields: [orderId], references: [id])
   senderName              String
   transferDate            DateTime
-  proofUrl                String
+  proofUrl                String?
   paymentStatus           PaymentStatus
   totalPrice              Decimal             @db.Decimal(10, 2)
   approvedByAdminId       String?
@@ -77,17 +76,24 @@ model TransportationOrder {
   orderId                 String              @unique
   order                   Order               @relation(fields: [orderId], references: [id])
   departureDate           DateTime
-  pickupTime              DateTime
   pickupLocation          String
   destination             String
-  passengerCount          Int
   vehicleCount            Int
   roundTrip               Boolean
-  transportId             String
-  transport               Vehicle             @relation(fields: [transportId], references: [id])
   totalDistance           Float
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
+  vehicles                Vehicle[]           // One-to-many relation to Vehicle
+  destinations            DestinationTransportation[] // One-to-many relation to DestinationTransportation
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+}
+
+model DestinationTransportation {
+  id                      String              @id @default(cuid())
+  transportationOrderId   String
+  transportationOrder     TransportationOrder @relation(fields: [transportationOrderId], references: [id])
+  destinationName         String              // this column can be change to destinationId/locationId if the google maps API is available
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model Review {
@@ -106,6 +112,7 @@ model PackageOrder {
   order                   Order               @relation(fields: [orderId], references: [id])
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
+  departureDate           DateTime
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -117,8 +124,9 @@ model Vehicle {
   seatCount               Int
   ratePerKm               Decimal             @db.Decimal(10, 2)
   additionalDetails       String?
+  transportationOrderId   String?             // Foreign key to TransportationOrder (nullable)
+  transportationOrder     TransportationOrder? @relation(fields: [transportationOrderId], references: [id])
   tours                   TourPackage[]
-  transportOrders         TransportationOrder[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -133,8 +141,8 @@ model VehicleType {
 
 model TourPackage {
   id                      String              @id @default(cuid())
-  transportId             String
-  transport               Vehicle           @relation(fields: [transportId], references: [id])
+  vehicleId               String              
+  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id])
   name                    String
   destination             String
   durationDays            Int

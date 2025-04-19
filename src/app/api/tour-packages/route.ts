@@ -22,7 +22,7 @@ export const POST = async (req: NextRequest) => {
   try {
     const formData = await req.formData();
     const name = formData.get("name") as string;
-    const transportId = formData.get("transportId") as string;
+    const vehicleId = formData.get("vehicleId") as string;
     const destination = formData.get("destination") as string;
     const durationDays = formData.get("durationDays") as string;
     const advantages = formData.get("advantages") as string;
@@ -30,7 +30,7 @@ export const POST = async (req: NextRequest) => {
     const price = formData.get("price") as string;
     if (
       !name ||
-      !transportId ||
+      !vehicleId ||
       !destination ||
       durationDays === null ||
       durationDays === undefined ||
@@ -78,7 +78,7 @@ export const POST = async (req: NextRequest) => {
     const createdPackage = await prisma.tourPackage.create({
       data: {
         name,
-        transportId,
+        vehicleId,
         destination,
         durationDays: parseInt(durationDays),
         advantages,
