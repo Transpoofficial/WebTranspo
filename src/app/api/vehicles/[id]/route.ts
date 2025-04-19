@@ -35,16 +35,21 @@ export const GET = async (
 
 export const PUT = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     await checkAuth(req);
-    const vehicleId = params.id;
+    const { id: vehicleId } = await params;
     const body = await req.json();
     const { seatCount, ratePerKm, additionalDetails, vehicleTypeId } = body;
-    if (seatCount === null || seatCount === undefined || 
-        ratePerKm === null || ratePerKm === undefined || 
-        vehicleTypeId === null || vehicleTypeId === undefined) {
+    if (
+      seatCount === null ||
+      seatCount === undefined ||
+      ratePerKm === null ||
+      ratePerKm === undefined ||
+      vehicleTypeId === null ||
+      vehicleTypeId === undefined
+    ) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
