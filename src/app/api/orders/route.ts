@@ -157,7 +157,7 @@ export const POST = async (req: NextRequest) => {
         },
       });
 
-      if (availableVehicles.length < vehicleCount) {
+      if (availableVehicles.length < parseInt(vehicleCount)) {
         // Rollback the order creation if not enough vehicles are available
         await prisma.order.delete({
           where: { id: createdOrder.id },
