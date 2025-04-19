@@ -78,7 +78,6 @@ model TransportationOrder {
   departureDate           DateTime
   pickupLocation          String
   destination             String
-  passengerCount          Int
   vehicleCount            Int
   roundTrip               Boolean
   totalDistance           Float
@@ -142,8 +141,8 @@ model VehicleType {
 
 model TourPackage {
   id                      String              @id @default(cuid())
-  transportId             String
-  transport               Vehicle           @relation(fields: [transportId], references: [id])
+  vehicleId               String              
+  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id])
   name                    String
   destination             String
   durationDays            Int

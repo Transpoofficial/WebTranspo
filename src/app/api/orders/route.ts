@@ -56,12 +56,10 @@ export const POST = async (req: NextRequest) => {
     const {
       pickupLocation,
       destination,
-      passengerCount,
       vehicleCount,
       roundTrip,
       vehicleTypeId, // Collect the vehicle type based on user selection
       totalDistance,
-      // destinations,
     } = body;
 
     // Package Order Data
@@ -85,7 +83,6 @@ export const POST = async (req: NextRequest) => {
         !destination ||
         !vehicleTypeId ||
         !totalDistance ||
-        passengerCount === undefined ||
         vehicleCount === undefined ||
         roundTrip === undefined ||
         roundTrip === null ||
@@ -153,7 +150,6 @@ export const POST = async (req: NextRequest) => {
           departureDate: formatedDerpartureDate.toUTC().toJSDate(),
           pickupLocation,
           destination,
-          passengerCount: parseInt(passengerCount),
           vehicleCount: parseInt(vehicleCount),
           roundTrip: roundTrip === "true" ? true : false,
           totalDistance: parseFloat(totalDistance),
