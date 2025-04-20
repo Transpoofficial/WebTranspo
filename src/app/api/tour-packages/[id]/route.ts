@@ -101,9 +101,10 @@ export const PUT = async (
             { status: 500 }
           );
         }
-        const oldFileName = tourPackage.photoUrl.split("/").pop();
+        // Delete the old file from Supabase storage if it exists
+        const oldFileName = tourPackage.photoUrl.split("/").slice(8).join("/");
         if (oldFileName) {
-          const { error } = await supabase.storage
+          const { data, error } = await supabase.storage
             .from("testing")
             .remove([oldFileName]);
           if (error) {
@@ -173,7 +174,7 @@ export const DELETE = async (
     if (tourPackage?.photoUrl) {
       const { error } = await supabase.storage
         .from("testing")
-        .remove([tourPackage.photoUrl.split("/").pop() || ""]);
+        .remove([tourPackage.photoUrl.split("/").slice(8).join("/")]);
       if (error) {
         console.error("Supabase delete error:", error);
         return NextResponse.json(
