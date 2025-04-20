@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { supabase } from "@/lib/supabaseClient";
+import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
+import { ResultUploadFiles } from "@/../types/supabase";
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -25,8 +27,12 @@ export const POST = async (req: NextRequest) => {
     const vehicleId = formData.get("vehicleId") as string;
     const destination = formData.get("destination") as string;
     const durationDays = formData.get("durationDays") as string;
-    const advantages = formData.get("advantages") as string;
-    const services = formData.get("services") as string;
+    const advantagesArray = JSON.parse(
+      formData.get("advantages") as string
+    ) as Advantages;
+    const servicesArray = JSON.parse(
+      formData.get("services") as string
+    ) as Services;
     const price = formData.get("price") as string;
     if (
       !name ||
@@ -34,56 +40,51 @@ export const POST = async (req: NextRequest) => {
       !destination ||
       durationDays === null ||
       durationDays === undefined ||
-      !advantages ||
-      !services ||
+      !advantagesArray ||
+      !Array.isArray(advantagesArray) ||
+      advantagesArray.length === 0 ||
+      !servicesArray ||
+      !Array.isArray(servicesArray) ||
+      servicesArray.length === 0 ||
       price === null ||
       price === undefined
     ) {
       return NextResponse.json(
-        { message: "Missing required fields", data: [] },
+        { message: "Missing or invalid required fields", data: [] },
         { status: 400 }
       );
     }
 
-    const file = formData.get("photo") as File;
-    if (!file) {
+    const files = formData.getAll("photos") as File[];
+    if (!files || files.length === 0) {
       return NextResponse.json(
-        { message: "File is required", data: [] },
+        { message: "At least one file is required", data: [] },
         { status: 400 }
       );
     }
-
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `uploads/tourPackage/${fileName}`;
-
-    const buffer = await file.arrayBuffer();
-    const { error } = await supabase.storage
-      .from("testing")
-      .upload(filePath, new Uint8Array(buffer), {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("Supabase upload error:", error);
+    const results: ResultUploadFiles = await uploadFiles(
+      "testing",
+      files,
+      "tourPackage"
+    );
+    if (results.some((result) => result.success === false)) {
       return NextResponse.json(
-        { error: "Upload failed", data: [] },
+        { message: "One or more file uploads failed", data: [] },
         { status: 500 }
       );
     }
-
-    const { data } = supabase.storage.from("testing").getPublicUrl(filePath);
-
+    const photoUrl: PhotoUrl = results.map((result) => ({
+      url: result.photoUrl.data.publicUrl,
+    }));
     const createdPackage = await prisma.tourPackage.create({
       data: {
         name,
         vehicleId,
         destination,
         durationDays: parseInt(durationDays),
-        advantages,
-        services,
-        photoUrl: data.publicUrl,
+        advantages: advantagesArray,
+        services: servicesArray,
+        photoUrl,
         price: parseFloat(price),
       },
     });
