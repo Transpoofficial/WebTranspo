@@ -170,6 +170,7 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   CANCELED
+  COMPLETED
   REFUNDED
 }
 
