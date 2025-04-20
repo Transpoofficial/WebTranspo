@@ -12,7 +12,7 @@ export async function uploadFiles(
   bucketName: string,
   files: File[],
   dir: string
-): Promise<any[]> {
+): Promise<ResultUploadFiles> {
   const results: ResultUploadFiles = [];
   for (const file of files) {
     const fileExt = file.name.split(".").pop();
@@ -51,7 +51,7 @@ export async function uploadFiles(
 export async function removeFiles(
   bucketName: string,
   photoUrl: string[]
-): Promise<any[]> {
+): Promise<ResultRemoveFiles> {
   const results: ResultRemoveFiles = [];
   if (!photoUrl || photoUrl.length === 0) {
     return [];
