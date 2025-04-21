@@ -147,9 +147,9 @@ model TourPackage {
   destination             String
   durationDays            Int
   price                   Decimal             @db.Decimal(10, 2)
-  advantages              String
-  services                String
-  photoUrl                String
+  advantages              Json
+  services                Json
+  photoUrl                Json
   packageOrders           PackageOrder[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
@@ -170,6 +170,7 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   CANCELED
+  COMPLETED
   REFUNDED
 }
 

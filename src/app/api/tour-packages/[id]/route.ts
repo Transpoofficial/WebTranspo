@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { supabase } from "@/lib/supabaseClient";
 import { NextRequest, NextResponse } from "next/server";
+import { removeFiles, uploadFiles } from "@/utils/supabase";
+import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
+import { ResultUploadFiles } from "@/../types/supabase";
 
 export const GET = async (
   req: NextRequest,
@@ -17,7 +19,7 @@ export const GET = async (
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id: id },
       include: {
-        transport: {
+        vehicle: {
           include: {
             vehicleType: true,
           },
@@ -47,25 +49,35 @@ export const PUT = async (
     const replacePhoto = searchParams.get("replace-photo") === "true";
     const formData = await req.formData();
     const name = formData.get("name") as string;
-    const transportId = formData.get("transportId") as string;
+    const vehicleId = formData.get("vehicleId") as string;
     const destination = formData.get("destination") as string;
     const durationDays = formData.get("durationDays") as string;
-    const advantages = formData.get("advantages") as string;
-    const services = formData.get("services") as string;
+    const advantagesArray = JSON.parse(
+      formData.get("advantages") as string
+    ) as Advantages;
+    const servicesArray = JSON.parse(
+      formData.get("services") as string
+    ) as Services;
     const price = formData.get("price") as string;
+
+    // Validate required fields
     if (
       !name ||
-      !transportId ||
+      !vehicleId ||
       !destination ||
       durationDays === null ||
       durationDays === undefined ||
-      !advantages ||
-      !services ||
+      !advantagesArray ||
+      !Array.isArray(advantagesArray) ||
+      advantagesArray.length === 0 ||
+      !servicesArray ||
+      !Array.isArray(servicesArray) ||
+      servicesArray.length === 0 ||
       price === null ||
       price === undefined
     ) {
       return NextResponse.json(
-        { message: "Missing required fields", data: [] },
+        { message: "Missing or invalid required fields", data: [] },
         { status: 400 }
       );
     }
@@ -80,56 +92,55 @@ export const PUT = async (
       );
     }
 
-    let filePath = null;
-    let data;
-    if (replacePhoto) {
-      const file = formData.get("photo") as File;
-      if (file) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        filePath = `uploads/tourPackage/${fileName}`;
-        const buffer = await file.arrayBuffer();
-        const { error } = await supabase.storage
-          .from("testing")
-          .upload(filePath, Buffer.from(buffer), {
-            contentType: file.type,
-          });
-        if (error) {
-          console.error("Supabase upload error:", error);
+    const files = formData.getAll("photos") as File[];
+    let updatedPhotoUrl: PhotoUrl = tourPackage.photoUrl as PhotoUrl;
+    if (files && files.length > 0) {
+      // Upload files to Supabase storage
+      const results: ResultUploadFiles = await uploadFiles(
+        "testing",
+        files,
+        "tourPackage"
+      );
+      if (results.some((result) => result.success === false)) {
+        return NextResponse.json(
+          { message: "One or more file uploads failed", data: [] },
+          { status: 500 }
+        );
+      }
+
+      // Storing the new URLs
+      const newPhotoUrl: PhotoUrl = results.map((result) => ({
+        url: result.photoUrl.data.publicUrl,
+      }));
+      if (replacePhoto) {
+        // Remove old photos from Supabase storage
+        const removeResults = await removeFiles(
+          "testing",
+          // updatedPhotoUrl is still an array of old URLs
+          updatedPhotoUrl.map((photo) => photo.url)
+        );
+        if (removeResults.some((result) => result.success === false)) {
           return NextResponse.json(
-            { error: "Upload failed", data: [] },
+            { message: "One or more file deletions failed", data: [] },
             { status: 500 }
           );
         }
-        const oldFileName = tourPackage.photoUrl.split("/").pop();
-        if (oldFileName) {
-          const { error } = await supabase.storage
-            .from("testing")
-            .remove([oldFileName]);
-          if (error) {
-            console.error("Supabase delete error:", error);
-            return NextResponse.json(
-              { error: "Delete failed", data: [] },
-              { status: 500 }
-            );
-          }
-        } else {
-          console.error("Invalid photo URL:", tourPackage.photoUrl);
-        }
-        data = supabase.storage.from("testing").getPublicUrl(filePath);
+        updatedPhotoUrl = [...newPhotoUrl];
+      } else {
+        updatedPhotoUrl.push(...newPhotoUrl);
       }
     }
     tourPackage = await prisma.tourPackage.update({
       where: { id: id },
       data: {
         name,
-        transportId,
+        vehicleId,
         destination,
         durationDays: Number(durationDays),
-        advantages,
-        services,
+        advantages: advantagesArray,
+        services: servicesArray,
         price: Number(price),
-        photoUrl: replacePhoto ? data?.data.publicUrl || undefined : undefined,
+        photoUrl: updatedPhotoUrl,
       },
     });
     return NextResponse.json(
@@ -171,19 +182,20 @@ export const DELETE = async (
     });
     // Delete the photo from Supabase storage if it exists
     if (tourPackage?.photoUrl) {
-      const { error } = await supabase.storage
-        .from("testing")
-        .remove([tourPackage.photoUrl.split("/").pop() || ""]);
-      if (error) {
-        console.error("Supabase delete error:", error);
+      const oldPhotoUrl = tourPackage.photoUrl as PhotoUrl;
+      const removeResults = await removeFiles(
+        "testing",
+        oldPhotoUrl.map((photo) => photo.url)
+      );
+      if (removeResults.some((result) => result.success === false)) {
         return NextResponse.json(
-          { error: "Delete failed", data: [] },
+          { message: "One or more file deletions failed", data: [] },
           { status: 500 }
         );
       }
     }
     return NextResponse.json(
-      { message: "Tour package deleted successfully", data: tourPackage },
+      { message: "Tour package deleted successfully", data: [] },
       { status: 200 }
     );
   } catch (error) {
