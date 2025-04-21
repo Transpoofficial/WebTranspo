@@ -54,6 +54,16 @@ export const POST = async (req: NextRequest) => {
         { status: 400 }
       );
     }
+    // Check if vehicleId exists in the database
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    });
+    if (!vehicle) {
+      return NextResponse.json(
+        { message: "Vehicle not found", data: [] },
+        { status: 404 }
+      );
+    }
 
     const files = formData.getAll("photos") as File[];
     if (!files || files.length === 0) {

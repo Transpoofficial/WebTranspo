@@ -195,7 +195,7 @@ export const DELETE = async (
       }
     }
     return NextResponse.json(
-      { message: "Tour package deleted successfully", data: tourPackage },
+      { message: "Tour package deleted successfully", data: [] },
       { status: 200 }
     );
   } catch (error) {
