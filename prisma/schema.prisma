@@ -54,8 +54,8 @@ model Payment {
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
   refundRequest           RefundRequest?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
 }
 
 model RefundRequest {
