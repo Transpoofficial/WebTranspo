@@ -14,17 +14,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 
 const SignupPage = () => {
   const router = useRouter();
@@ -72,141 +65,144 @@ const SignupPage = () => {
     }
   };
   return (
-    <div className="h-[100dvh] w-full flex justify-center items-center px-4 py-4">
-      <Card className="flex-grow max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle>Create Your Account</CardTitle>
-          <CardDescription>
-            Sign up to access more features and benefits.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* <p>Card Content</p>
-           */}
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4 md:space-y-8"
-            >
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      This is your public display name.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="example@example.com" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      We'll never share your email with anyone else.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0832182126121" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Enter a valid phone number to stay connected.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Choose a strong password to keep your account secure.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Re-enter your password to confirm.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {error && (
-                <p className="mb-4 md:mb-8 text-sm md:text-base text-red-500">
-                  {error}
-                </p>
-              )}
-              <Button
-                disabled={loading}
-                className="cursor-pointer w-full"
-                type="submit"
+    <>
+      <div className="grid grid-cols-12 h-[100dvh]">
+        <div className="hidden md:block md:col-span-7">
+          <Image
+            src="/bg.png"
+            alt=""
+            className="w-full h-full object-cover"
+            width="100"
+            height="100"
+          />
+        </div>
+
+        <div className="col-span-12 md:col-span-5">
+          <div className="h-full w-full flex flex-col justify-center items-center px-4 py-4">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="w-full max-w-lg space-y-4 md:space-y-8"
               >
-                {loading ? (
-                  <span className="border-y-2 border-white w-4 h-4 rounded-full animate-spin" />
-                ) : (
-                  <p>Sign Up</p>
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        This is your public display name.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="example@example.com" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        We'll never share your email with anyone else.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0832182126121" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter a valid phone number to stay connected.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Choose a strong password to keep your account secure.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Re-enter your password to confirm.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <p className="mb-4 md:mb-8 text-sm md:text-base text-red-500">
+                    {error}
+                  </p>
                 )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter>
-          <div className="w-full text-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <a href="/auth/signin" className="text-primary underline">
-                Sign In
-              </a>
-            </p>
+                <Button
+                  disabled={loading}
+                  className="cursor-pointer w-full"
+                  type="submit"
+                >
+                  {loading ? (
+                    <span className="border-y-2 border-white w-4 h-4 rounded-full animate-spin" />
+                  ) : (
+                    <p>Sign Up</p>
+                  )}
+                </Button>
+              </form>
+            </Form>
+
+            <div className="w-full text-center mt-4">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <a href="/auth/signin" className="text-primary underline">
+                  Sign In
+                </a>
+              </p>
+            </div>
           </div>
-        </CardFooter>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </>
   );
 };
 
