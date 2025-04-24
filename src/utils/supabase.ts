@@ -15,6 +15,25 @@ export async function uploadFiles(
 ): Promise<ResultUploadFiles> {
   const results: ResultUploadFiles = [];
   for (const file of files) {
+    // Validate file type and size
+    const allowedFileTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+    if (!allowedFileTypes.includes(file.type)) {
+      console.error(`Invalid file type: ${file.type}`);
+      results.push({
+        photoUrl: { data: { publicUrl: "" } },
+        success: false,
+      });
+      continue;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      console.error(`File size exceeds the limit of 5MB: ${file.name}`);
+      results.push({
+        photoUrl: { data: { publicUrl: "" } },
+        success: false,
+      });
+      continue;
+    }
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `uploads/${dir}/${fileName}`;
