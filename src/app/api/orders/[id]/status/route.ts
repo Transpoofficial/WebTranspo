@@ -8,10 +8,10 @@ export const PUT = async (
 ) => {
   try {
     // Check current user role
-    const token = await checkAuth(req, ["SUPER_ADMIN", "ADMIN"]);
+    await checkAuth(req, ["SUPER_ADMIN", "ADMIN"]);
     const { id } = await params;
     const body = await req.json();
-    let { orderStatus } = body;
+    const { orderStatus } = body;
     if (!id || !orderStatus) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },

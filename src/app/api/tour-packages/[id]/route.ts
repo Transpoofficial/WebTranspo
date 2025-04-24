@@ -168,7 +168,7 @@ export const DELETE = async (
         { status: 400 }
       );
     }
-    let tourPackage = await prisma.tourPackage.findFirst({
+    const tourPackage = await prisma.tourPackage.findFirst({
       where: { id: id },
     });
     if (!tourPackage) {

@@ -38,7 +38,7 @@ export async function uploadFiles(
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `uploads/${dir}/${fileName}`;
     const buffer = await file.arrayBuffer();
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, new Uint8Array(buffer), {
         contentType: file.type,
@@ -83,7 +83,7 @@ export async function removeFiles(
       continue;
     }
     // Assuming the file path is in the format "uploads/{dir}/{fileName}"
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucketName)
       .remove([filePath]);
     if (error) {
