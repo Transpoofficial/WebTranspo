@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { checkAuth } from "@/lib/auth";
 
 export const GET = async (req: NextRequest) => {

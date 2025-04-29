@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "./prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { NextAuthOptions } from "next-auth";
 
