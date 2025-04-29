@@ -26,6 +26,21 @@ jobs:
         with:
           node-version: 20
 
+      - name: Check for required secrets
+        run: |
+          missing_secrets=0
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "Error: Secret SUPABASE_SERVICE_ROLE_KEY is not set."
+            missing_secrets=1
+          fi
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "Error: Secret SUPABASE_URL is not set."
+            missing_secrets=1
+          fi
+          if [ $missing_secrets -eq 1 ]; then
+            exit 1
+          fi
+
       - name: Install dependencies
         run: pnpm install
 
