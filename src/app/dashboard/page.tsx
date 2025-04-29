@@ -16,7 +16,7 @@ const DashboardPage = () => {
     if (!session) {
       router.push("/auth/signin");
     }
-  }, [session]);
+  }, [session, router]);
 
   return (
     <div>

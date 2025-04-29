@@ -124,7 +124,7 @@ const SigninPage = () => {
 
             <div className="w-full text-center mt-4">
               <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <a href="/auth/signup" className="text-primary underline">
                   Sign up
                 </a>

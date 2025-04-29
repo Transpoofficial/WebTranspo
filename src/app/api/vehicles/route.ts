@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth";
 
-export const GET = async (req: NextRequest) => {
+export const GET = async () => {
   try {
     let vehicles = await prisma.vehicle.findMany({});
     if (vehicles.length !== 0) {
