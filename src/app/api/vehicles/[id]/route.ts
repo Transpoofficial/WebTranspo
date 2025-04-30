@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const vehicleId = params.id;
+    const { id: vehicleId } = await params;
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
       include: {
@@ -88,11 +88,11 @@ export const PUT = async (
 
 export const DELETE = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     await checkAuth(req);
-    const vehicleId = params.id;
+    const { id: vehicleId } = await params;
     let vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
     });
