@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   AudioWaveform,
   BookOpen,
-  Bot,
+  Car,
   ChartColumn,
   Command,
   Frame,
@@ -77,23 +77,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        title: "Models",
-        url: "#",
-        icon: Bot,
-        items: [
-          {
-            title: "Genesis",
-            url: "#",
-          },
-          {
-            title: "Explorer",
-            url: "#",
-          },
-          {
-            title: "Quantum",
-            url: "#",
-          },
-        ],
+        title: "Vehicle",
+        url: "/admin/vehicle",
+        icon: Car,
       },
       {
         title: "Documentation",
