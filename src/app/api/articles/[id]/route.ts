@@ -137,7 +137,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const token = await checkAuth(req, ["ADMIN", "SUPER_ADMIN"]);
+    await checkAuth(req, ["ADMIN", "SUPER_ADMIN"]);
     const { id } = await params;
     if (!id) {
       return NextResponse.json(
