@@ -24,9 +24,22 @@ model User {
   orders                  Order[]
   approvedPayments        Payment[]           @relation("ApprovedPayments")
   approvedRefunds         RefundRequest[]     @relation("ApprovedRefunds")
+  articles                Article[]           @relation("AuthorArticles")
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt @default(now())
 }
+
+model Article {
+  id                      String              @id @default(cuid())
+  title                   String
+  content                 String
+  authorId                String
+  author                  User                @relation("AuthorArticles",fields: [authorId], references: [id])
+  mainImgUrl              String
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+}
+
 
 model Order {
   id                      String              @id @default(cuid())
