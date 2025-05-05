@@ -2,7 +2,7 @@ import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-export const GET = async (req: NextRequest) => {
+export const GET = async () => {
   try {
     const reviews = await prisma.review.findMany({
       include: {

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
 import { ResultUploadFiles } from "@/../types/supabase";
 
-export const GET = async (req: NextRequest) => {
+export const GET = async () => {
   try {
     const packages = await prisma.tourPackage.findMany({});
     return NextResponse.json(
