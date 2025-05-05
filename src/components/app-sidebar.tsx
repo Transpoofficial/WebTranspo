@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   AudioWaveform,
-  BookOpen,
   Car,
   ChartColumn,
   Command,
@@ -13,6 +12,7 @@ import {
   Map,
   PieChart,
   Settings2,
+  User,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -77,32 +77,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        title: "Vehicle",
+        title: "Kendaraan",
         url: "/admin/vehicle",
         icon: Car,
       },
       {
-        title: "Documentation",
-        url: "#",
-        icon: BookOpen,
-        items: [
-          {
-            title: "Introduction",
-            url: "#",
-          },
-          {
-            title: "Get Started",
-            url: "#",
-          },
-          {
-            title: "Tutorials",
-            url: "#",
-          },
-          {
-            title: "Changelog",
-            url: "#",
-          },
-        ],
+        title: "Pengguna",
+        url: "/admin/user",
+        icon: User,
       },
       {
         title: "Settings",
