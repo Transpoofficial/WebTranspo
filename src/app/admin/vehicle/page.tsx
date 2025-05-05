@@ -9,8 +9,8 @@ const Vehicle = () => {
   return (
     <>
       <h2 className="text-3xl font-bold tracking-tight first:mt-0">
-      Kendaraan
-    </h2>
+        Kendaraan
+      </h2>
 
       <div className="flex justify-end mt-4">
         <AddVehicleMenu />
