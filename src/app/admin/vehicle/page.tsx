@@ -8,16 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Vehicle = () => {
   return (
     <>
-      <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+      <h2 className="text-3xl font-bold tracking-tight first:mt-0">
         Kendaraan
-      </h1>
+      </h2>
 
-      <div className="flex justify-end mt-6">
+      <div className="flex justify-end mt-4">
         <AddVehicleMenu />
       </div>
 
       {/* Desktop and Tablet View */}
-      <div className="hidden md:block mt-4">
+      <div className="hidden md:block mt-2">
         <div className="flex items-start">
           <div className="w-1/3">
             <VehicleTypeTable />
@@ -32,7 +32,7 @@ const Vehicle = () => {
       </div>
 
       {/* Mobile View */}
-      <Tabs defaultValue="vehicleType" className="block md:hidden mt-4">
+      <Tabs defaultValue="vehicleType" className="block md:hidden mt-2">
         <TabsList className="mb-2.5">
           <TabsTrigger value="vehicleType">Tipe kendaraan</TabsTrigger>
           <TabsTrigger value="vehicle">Kendaraan</TabsTrigger>
