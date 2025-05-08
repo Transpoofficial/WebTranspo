@@ -17,7 +17,7 @@ const Vehicle = () => {
       </div>
 
       {/* Desktop and Tablet View */}
-      <div className="hidden md:block mt-2">
+      <div className="hidden md:block mt-4">
         <div className="flex items-start">
           <div className="w-1/3">
             <VehicleTypeTable />
