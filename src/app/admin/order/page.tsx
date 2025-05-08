@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/menubar";
 
 const Order = () => {
-
   // Table data
   const data = [
     {
@@ -45,6 +44,10 @@ const Order = () => {
       payment: { total: 100000, paid: 100000 },
       status: "pending",
       createdAt: "Rabu, 6 Mei 2025",
+      review: {
+        rating: 4,
+        description: "Good experience, but there is room for improvement.",
+      },
     },
   ];
 

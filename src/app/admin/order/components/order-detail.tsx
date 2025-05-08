@@ -7,8 +7,14 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, FlagTriangleRight, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  FlagTriangleRight,
+  StarIcon,
+  UsersRound,
+} from "lucide-react";
 import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface OrderDetailProps {
   id: string;
@@ -39,9 +45,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
               {/* Payment Status */}
               <div className="flex flex-col gap-y-4">
                 <p className="text-xs text-[#6A6A6A]">Status pembayaran</p>
-                <Badge className="block first-letter:uppercase">
-                  approved
-                </Badge>
+                <Badge className="block first-letter:uppercase">approved</Badge>
               </div>
 
               {/* Order Status */}
@@ -137,7 +141,6 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
                   </p>
 
                   <div className="inline-flex items-center">
-
                     <span className="inline-flex items-center gap-x-1.5 text-xs text-[#6A6A6A]">
                       <UsersRound size={14} /> 8 orang dewasa
                     </span>
@@ -193,6 +196,54 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
                       currency: "IDR",
                     })}
                   </p>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-8" />
+
+            {/* Review */}
+            <div className="flex flex-col gap-y-4">
+              <p className="text-xs text-[#6A6A6A]">Review</p>
+
+              <div>
+                {/* User */}
+                <div className="flex items-center gap-x-2">
+                  <Avatar>
+                    <AvatarImage
+                      src="https://github.com/shadcn.png"
+                      alt="@shadcn"
+                    />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+
+                  <div className="inline-flex flex-col">
+                    <p className="text-xs md:text-sm font-medium">
+                      Fathan Alfariel Adhyaksa
+                    </p>
+                    <p className="text-xs text-[#6A6A6A]">
+                      8 Mei 2025 pukul 19.33
+                    </p>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div className="flex items-center gap-0.5 mt-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <StarIcon
+                      key={star}
+                      className={`w-4 h-4 ${
+                        star <= 4
+                          ? "stroke-yellow-500 fill-yellow-500"
+                          : "stroke-gray-300 fill-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Comment */}
+                <div className="mt-2 text-xs md:text-sm">
+                Good experience, but there is room for improvement.
                 </div>
               </div>
             </div>
