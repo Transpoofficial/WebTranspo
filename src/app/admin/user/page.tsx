@@ -13,7 +13,7 @@ const User = () => {
         <AddUserDialog />
       </div>
 
-      <div className="hidden md:block mt-2">
+      <div className="mt-2">
         <UserTable />
       </div>
     </>
