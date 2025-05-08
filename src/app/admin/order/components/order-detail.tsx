@@ -45,7 +45,9 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
               {/* Payment Status */}
               <div className="flex flex-col gap-y-4">
                 <p className="text-xs text-[#6A6A6A]">Status pembayaran</p>
-                <Badge className="block first-letter:uppercase">approved</Badge>
+                <Badge className="block first-letter:uppercase">
+                  approved
+                </Badge>
               </div>
 
               {/* Order Status */}
@@ -199,7 +201,7 @@ const OrderDetail: React.FC<OrderDetailProps> = ({
                 </div>
               </div>
             </div>
-
+            
             <Separator className="my-8" />
 
             {/* Review */}
