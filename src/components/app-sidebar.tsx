@@ -5,6 +5,7 @@ import {
   AudioWaveform,
   Car,
   ChartColumn,
+  ClipboardList,
   Command,
   Frame,
   GalleryVerticalEnd,
@@ -85,6 +86,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Pengguna",
         url: "/admin/user",
         icon: User,
+      },
+      {
+        title: "Pesanan",
+        url: "/admin/order",
+        icon: ClipboardList,
       },
       {
         title: "Settings",
