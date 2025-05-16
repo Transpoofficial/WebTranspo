@@ -20,6 +20,12 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.1.0)
+      '@googlemaps/markerclusterer':
+        specifier: ^2.5.3
+        version: 2.5.3
+      '@googlemaps/polyline-codec':
+        specifier: ^1.0.28
+        version: 1.0.28
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.0.1(react-hook-form@7.55.0(react@19.1.0))
@@ -77,6 +83,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.49.4
         version: 2.49.4
+      '@vis.gl/react-google-maps':
+        specifier: ^1.5.2
+        version: 1.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -438,6 +447,12 @@ packages:
   '@googlemaps/markerclusterer@2.5.3':
     resolution: {integrity: sha512-x7lX0R5yYOoiNectr10wLgCBasNcXFHiADIBdmn7jQllF2B5ENQw5XtZK+hIw4xnV0Df0xhN4LN98XqA5jaiOw==}
 
+<<<<<<< HEAD
+=======
+  '@googlemaps/polyline-codec@1.0.28':
+    resolution: {integrity: sha512-m7rh8sbxlrHvebXEweBHX8r1uPtToPRYxWDD6p6k2YG8hyhBe0Wi6xRUVFpxpEseMNgF+OBotFQC5senj8K7TQ==}
+
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@hookform/resolvers@5.0.1':
     resolution: {integrity: sha512-u/+Jp83luQNx9AdyW2fIPGY6Y7NG68eN2ZW8FOJYL+M0i4s49+refdJdOp/A9n9HFQtQs3HIDHQvX3ZET2o7YA==}
     peerDependencies:
@@ -1325,6 +1340,7 @@ packages:
   '@react-google-maps/marker-clusterer@2.20.0':
     resolution: {integrity: sha512-tieX9Va5w1yP88vMgfH1pHTacDQ9TgDTjox3tLlisKDXRQWdjw+QeVVghhf5XqqIxXHgPdcGwBvKY6UP+SIvLw==}
 
+<<<<<<< HEAD
   '@react-leaflet/core@3.0.0':
     resolution: {integrity: sha512-3EWmekh4Nz+pGcr+xjf0KNyYfC3U2JjnkWsh0zcqaexYqmmB5ZhH37kz41JXGmKzpaMZCnPofBBm64i+YrEvGQ==}
     peerDependencies:
@@ -1332,6 +1348,8 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
 
+=======
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
@@ -1490,9 +1508,12 @@ packages:
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
 
+<<<<<<< HEAD
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
 
+=======
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@types/google.maps@3.58.1':
     resolution: {integrity: sha512-X9QTSvGJ0nCfMzYOnaVs/k6/4L+7F5uCS+4iUmkLEls6J9S/Phv+m/i3mDeyc49ZBgwab3EFO1HEoBY7k98EGQ==}
 
@@ -1651,6 +1672,12 @@ packages:
     resolution: {integrity: sha512-wAvXp4k7jhioi4SebXW/yfzzYwsUCr9kIX4gCsUFKpCTUf8Mi7vScJXI3S+kupSUf0LbVHudR8qBbe2wFMSNUw==}
     cpu: [x64]
     os: [win32]
+
+  '@vis.gl/react-google-maps@1.5.2':
+    resolution: {integrity: sha512-0Ypmde7M73GgV4TgcaUTNKXsbcXWToPVuawMNrVg7htXmhpEfLARHwhtmP6N1da3od195ZKC8ShXzC6Vm+zYHQ==}
+    peerDependencies:
+      react: '>=16.8.0 || ^19.0 || ^19.0.0-rc'
+      react-dom: '>=16.8.0 || ^19.0 || ^19.0.0-rc'
 
   acorn-jsx@5.3.2:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -3360,6 +3387,11 @@ snapshots:
       fast-deep-equal: 3.1.3
       supercluster: 8.0.1
 
+<<<<<<< HEAD
+=======
+  '@googlemaps/polyline-codec@1.0.28': {}
+
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@hookform/resolvers@5.0.1(react-hook-form@7.55.0(react@19.1.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
@@ -4220,12 +4252,15 @@ snapshots:
 
   '@react-google-maps/marker-clusterer@2.20.0': {}
 
+<<<<<<< HEAD
   '@react-leaflet/core@3.0.0(leaflet@1.9.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       leaflet: 1.9.4
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+=======
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@rtsao/scc@1.1.0': {}
 
   '@rushstack/eslint-patch@1.11.0': {}
@@ -4377,8 +4412,11 @@ snapshots:
 
   '@types/estree@1.0.7': {}
 
+<<<<<<< HEAD
   '@types/geojson@7946.0.16': {}
 
+=======
+>>>>>>> 4a24ecfc5677d50a7220356d0ea9e8a3ee4e1888
   '@types/google.maps@3.58.1': {}
 
   '@types/json-schema@7.0.15': {}
@@ -4535,6 +4573,13 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.5.0':
     optional: true
+
+  '@vis.gl/react-google-maps@1.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@types/google.maps': 3.58.1
+      fast-deep-equal: 3.1.3
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   acorn-jsx@5.3.2(acorn@8.14.1):
     dependencies:
