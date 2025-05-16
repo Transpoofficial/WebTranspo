@@ -1,5 +1,3 @@
-import Header from "@/components/header";
-import Tabs from "@/components/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
   BanknoteArrowUp,
@@ -27,24 +25,15 @@ import {
 } from "@/components/ui/carousel";
 import Footer from "@/components/footer";
 import Image from "next/image";
+import Map2 from "./components/map-2";
 
 const Home = () => {
   return (
     <>
-      <Header />
+      {/* <Header /> */}
 
       <main>
-        <div className="hidden md:block py-8 max-w-6xl mx-auto bg-white shadow-lg rounded-4xl">
-          {/* Tabs */}
-          <Tabs />
-        </div>
-
-        {/* Tour Package */}
-        <div className="block md:hidden mt-6 px-4">
-        <h1 className="text-3xl text-left font-bold">
-            Paket Wisata
-          </h1>
-        </div>
+        <Map2 />
 
         {/* Advantages */}
         <div className="mt-10 md:mt-24 px-4 md:px-10">
