@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import AngkotTab from "./angkot_tab";
 import ElfTab from "./elf_tab";
-import TourPackages from "./tour_packages";
+import TourPackages from "../app/components/tour_packages";
 import HiaceTab from "./hiace_tab";
 
 const Tabs = () => {
