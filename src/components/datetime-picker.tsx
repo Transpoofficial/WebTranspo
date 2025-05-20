@@ -26,14 +26,15 @@ function DatetimePicker({
   const hourRef = React.useRef<HTMLInputElement>(null);
   const { selected: selectedDate } = props as { selected: Date };
 
-  const setDate = (dateInput: Date) => {
+  const setDate = (dateInput: Date | undefined) => {
+    if (!dateInput) return;
     const date = new Date(selectedDate);
     date.setDate(dateInput.getDate());
     date.setMonth(dateInput.getMonth());
     date.setFullYear(dateInput.getFullYear());
     setGlobalDate(date);
   };
-
+  
   const setTime = (dateInput: Date | undefined) => {
     if (!dateInput) return;
     const time = new Date(selectedDate);
@@ -47,7 +48,7 @@ function DatetimePicker({
       <DayPicker
         mode="single"
         selected={selectedDate}
-        onSelect={setDate as any}
+        onSelect={setDate}
         showOutsideDays={showOutsideDays}
         className={cn("py-3 w-full", className)} // Ensure the outer container is full width
         classNames={{
@@ -86,8 +87,8 @@ function DatetimePicker({
           ...classNames,
         }}
         components={{
-          IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-          IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+          IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+          IconRight: () => <ChevronRight className="h-4 w-4" />,
         }}
         {...props}
       />
