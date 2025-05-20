@@ -51,13 +51,16 @@ const Home = () => {
       <main>
         {/* Carousel */}
         <div className="relative">
-          <Image
-            className="w-full h-96 object-cover"
-            src="/bg.png"
-            alt="bg.png"
+          <img
+            className="w-full h-120 object-cover"
+            src="https://asset-2.tstatic.net/suryamalang/foto/bank/images/Sopir-Angkot-menggelar-aksi-unjuk-rasa-di-depan-Balai-Kota-Malang-Jawa-Timur.jpg"
+            alt="bg.jpg"
             width={100}
             height={100}
           />
+          
+          {/* Backdrop */}
+          <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
           <div className="absolute top-1/2 left-1/2 -translate-1/2">
             <div className="flex items-center gap-x-2">
@@ -70,18 +73,18 @@ const Home = () => {
               />
 
               <div className="md:pt-3">
-                <h1 className="text-white text-4xl font-extrabold uppercase tracking-tight lg:text-5xl">
+                <h1 className="text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl">
                   TRANSPO
                 </h1>
 
                 <div className="hidden md:block">
                   <h1
-                    className={`mt-1 ${hurricane.className} md:whitespace-nowrap text-white text-4xl font-extrabold uppercase tracking-tight lg:text-5xl`}
+                    className={`mt-1 ${hurricane.className} md:whitespace-nowrap text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl`}
                   >
                     Dari Malang Raya untuk Indonesia
                   </h1>
 
-                  <h4 className="text-white text-xl font-semibold tracking-tight mt-2">
+                  <h4 className="text-white text-xl md:text-2xl font-semibold tracking-tight mt-2">
                     Transpo adalah startup inovatif yang menyediakan layanan
                     transportasi publik berbasis teknologi untuk mempermudah
                     mobilisasi wisatawan dan masyarakat dengan solusi
@@ -109,7 +112,7 @@ const Home = () => {
         </div>
 
         {/* Choose Transportation*/}
-        <div className="mt-10 md:mt-24 px-4 md:px-10">
+        <div className="container mt-10 md:mt-24 px-4 md:px-10 mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-center">
             Pilih layanan sesuai kebutuhanmu
           </h1>
@@ -118,21 +121,21 @@ const Home = () => {
           <div className="mt-6 md:mt-12">
             <Tabs defaultValue="angkot" className="w-full">
               <TabsList className="w-full min-h-max">
-                <TabsTrigger value="angkot" className="flex-col min-h-max">
+                <TabsTrigger value="angkot" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
                   <CarFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Angkot</span>
                 </TabsTrigger>
-                <TabsTrigger value="hiace" className="flex-col min-h-max">
+                <TabsTrigger value="hiace" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
                   <BusFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">HIACE</span>
                 </TabsTrigger>
-                <TabsTrigger value="elf" className="flex-col min-h-max">
+                <TabsTrigger value="elf" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="paket_wisata"
-                  className="flex-col min-h-max"
+                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <TreePalm className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">
@@ -157,7 +160,7 @@ const Home = () => {
         </div>
 
         {/* How to Order */}
-        <div className="flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10">
+        <div className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold">
             Cara Pesan <span className="text-[#0897B1]">Transpo</span>
           </h1>
@@ -235,7 +238,7 @@ const Home = () => {
         </div>
 
         {/* Advantages */}
-        <div className="mt-10 md:mt-24 px-4 md:px-10">
+        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
           <h1 className="block md:hidden text-3xl md:text-4xl text-center md:text-left font-bold">
             Kelebihan
           </h1>
@@ -250,6 +253,7 @@ const Home = () => {
                 height={100}
               />
             </div>
+            
             <div className="col-span-12 md:col-span-7 mt-6 md:mt-0">
               <h1 className="hidden md:block text-3xl md:text-4xl text-center md:text-left font-bold">
                 Kelebihan
@@ -258,14 +262,14 @@ const Home = () => {
               <ul className="md:mt-6 flex flex-col gap-y-3">
                 <li className="flex items-start gap-x-4">
                   <div className="w-auto">
-                    <MapPinned className="w-8 h-8 md:w-10 md:h-10" />
+                    <MapPinned color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
                   </div>
 
                   <div className="flex flex-col justify-start max-w-full">
-                    <h5 className="text-base md:text-lg font-medium">
+                    <h5 className="text-base md:text-xl font-medium">
                       Aksesibilas Mudah
                     </h5>
-                    <p className="text-sm md:text-base whitespace-wrap">
+                    <p className="text-base md:text-xl whitespace-wrap">
                       Layanan berbasis teknologi dengan fitur transparasi harga,
                       titik jemput, strategis dan kemudahan pemesanan.
                     </p>
@@ -274,14 +278,14 @@ const Home = () => {
 
                 <li className="flex items-center gap-x-4">
                   <div className="w-auto">
-                    <Handshake className="w-8 h-8 md:w-10 md:h-10" />
+                    <Handshake color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
                   </div>
 
                   <div className="flex flex-col justify-start">
-                    <h5 className="text-base md:text-lg font-medium">
+                    <h5 className="text-base md:text-xl font-medium">
                       Pemberdayaan Lokal
                     </h5>
-                    <p className="text-sm md:text-base">
+                    <p className="text-base md:text-xl">
                       Melibatkan pengemudi dan tempat wisata lokal untuk
                       pemberdayaan ekonomi.
                     </p>
@@ -290,14 +294,14 @@ const Home = () => {
 
                 <li className="flex items-center gap-x-4">
                   <div className="w-auto">
-                    <UsersRound className="w-8 h-8 md:w-10 md:h-10" />
+                    <UsersRound color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
                   </div>
 
                   <div className="flex flex-col justify-start">
-                    <h5 className="text-lg font-medium">
+                    <h5 className="text-base md:text-xl font-medium">
                       Fleksibilitas Layanan
                     </h5>
-                    <p className="text-base">
+                    <p className="text-base md:text-xl">
                       Menyediakan opsi sewa untuk kebutuhan kelompok ataupun
                       acara khusus.
                     </p>
@@ -309,7 +313,7 @@ const Home = () => {
         </div>
 
         {/* Articles */}
-        <div className="mt-10 md:mt-24 px-4 md:px-10">
+        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
           <h1 className="text-3xl md:text-4xl text-center font-bold">
             Artikel
           </h1>
@@ -424,7 +428,7 @@ const Home = () => {
         </div>
 
         {/* Review */}
-        <div className="max-w-7xl mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
           <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
 
           <Carousel
@@ -455,7 +459,7 @@ const Home = () => {
         </div>
 
         {/* Contact */}
-        <div className="my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
+        <div className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
           <div className="col-span-12 md:col-span-6">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">

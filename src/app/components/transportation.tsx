@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 const Transportation = () => {
   return (
     <>
-      <Card>
+      <Card className="bg-[#0897B1]">
         <CardContent className="flex flex-col md:flex-row items-stretch gap-x-6">
           <img
             className="min-w-full md:min-w-lg h-96 object-cover rounded-2xl shadow-lg"
@@ -21,18 +21,18 @@ const Transportation = () => {
 
           <div className="flex flex-col gap-y-2 w-full mt-4">
             <div className="flex items-center gap-x-2">
-              <CarFront className="!w-8 !h-8" />
-              <h3 className="text-2xl font-bold tracking-tight">
+              <CarFront className="!w-10 !h-10" color="#FFFFFF" />
+              <h2 className="text-3xl font-bold tracking-tight text-white">
                 Angkot
-              </h3>
+              </h2>
             </div>
 
             <div className="grow flex flex-col justify-between">
               <div>
-                <p className="leading-7 text-sm md:text-base">
+                <p className="leading-7 text-base md:text-xl text-white">
                   Informasi kendaraan:
                 </p>
-                <ul className="mt-1 mb-6 ml-6 list-disc text-sm md:text-base">
+                <ul className="mt-1 mb-6 ml-6 list-disc text-base md:text-xl text-white">
                   <li>Muat hingga 10 orang, cocok untuk rombongan kecil.</li>
                   <li>Harga sewa ekonomis, mulai dari Rp100.000 per hari.</li>
                   <li>Ideal untuk city tour Malang-Batu atau antar-jemput kegiatan kampus.</li>
@@ -42,7 +42,7 @@ const Transportation = () => {
                 </ul>
               </div>
 
-              <Button size="lg" className="text-base w-min">Pesan sekarang</Button>
+              <Button size="lg" className="py-8 px-8 text-xl w-min text-[#0897B1] bg-white hover:bg-gray-100 shadow-lg">Pesan sekarang</Button>
             </div>
           </div>
         </CardContent>
