@@ -1,19 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth";
+import { getPaginationParams } from "@/utils/pagination";
 
-export const GET = async () => {
+export const GET = async (req: NextRequest) => {
   try {
-    let vehicles = await prisma.vehicle.findMany({});
-    if (vehicles.length !== 0) {
-      vehicles = await prisma.vehicle.findMany({
-        include: {
-          vehicleType: true,
-        },
-      });
-    }
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.vehicle.count();
+
+    const vehicles = await prisma.vehicle.findMany({
+      skip,
+      take: limit,
+      include: {
+        vehicleType: true,
+      },
+    });
+
     return NextResponse.json(
-      { message: "Vehicles retrieved successfully", data: vehicles },
+      {
+        message: "Vehicles retrieved successfully",
+        data: vehicles,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + vehicles.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
