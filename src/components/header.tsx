@@ -4,9 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetFooter,
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -46,11 +44,6 @@ const Header = () => {
                     Kontak
                   </Button>
                 </div>
-                <SheetFooter>
-                  <SheetClose asChild>
-                    <Button type="submit">Save changes</Button>
-                  </SheetClose>
-                </SheetFooter>
               </SheetContent>
             </Sheet>
 

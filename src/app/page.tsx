@@ -62,8 +62,8 @@ const Home = () => {
           {/* Backdrop */}
           <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
-          <div className="absolute top-1/2 left-1/2 -translate-1/2">
-            <div className="flex items-center gap-x-2">
+          <div className="absolute top-1/2 left-1/2 -translate-1/2 w-full container">
+            <div className="flex items-start gap-x-2">
               <Image
                 className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
                 src="/logo_3.png"
@@ -79,7 +79,7 @@ const Home = () => {
 
                 <div className="hidden md:block">
                   <h1
-                    className={`mt-1 ${hurricane.className} md:whitespace-nowrap text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl`}
+                    className={`mt-1 ${hurricane.className} text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl`}
                   >
                     Dari Malang Raya untuk Indonesia
                   </h1>
@@ -96,7 +96,7 @@ const Home = () => {
 
             <div className="block md:hidden">
               <h1
-                className={`mt-1 ${hurricane.className} md:whitespace-nowrap text-white text-3xl font-extrabold uppercase tracking-tight lg:text-5xl`}
+                className={`mt-1 ${hurricane.className} text-white text-3xl font-extrabold uppercase tracking-tight lg:text-5xl`}
               >
                 Dari Malang Raya untuk Indonesia
               </h1>
