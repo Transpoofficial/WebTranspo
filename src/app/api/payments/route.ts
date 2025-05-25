@@ -3,13 +3,32 @@ import { prisma } from "@/lib/prisma";
 import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { ResultUploadFiles } from "../../../../types/supabase";
+import { getPaginationParams } from "@/utils/pagination";
 
 export const GET = async (req: NextRequest) => {
   try {
     await checkAuth(req);
-    const payments = await prisma.payment.findMany({});
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.payment.count();
+
+    const payments = await prisma.payment.findMany({
+      skip,
+      take: limit,
+    });
+
     return NextResponse.json(
-      { message: "Payments retrieved successfully", data: payments },
+      {
+        message: "Payments retrieved successfully",
+        data: payments,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + payments.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
