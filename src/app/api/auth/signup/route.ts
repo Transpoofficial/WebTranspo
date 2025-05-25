@@ -33,7 +33,6 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: Role.CUSTOMER,
         // !TODO: Remove this when phone number is implemented
-        phoneNumber: "123123",
       },
     });
     return NextResponse.json(
