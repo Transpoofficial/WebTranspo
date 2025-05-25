@@ -47,6 +47,14 @@ const SigninPage = () => {
       router.push("/dashboard");
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    await signIn("google", {
+      callbackUrl: "/dashboard",
+    });
+    setLoading(false);
+  };
   return (
     <>
       <div className="grid min-h-svh lg:grid-cols-2">
@@ -74,9 +82,7 @@ const SigninPage = () => {
                   className="flex flex-col gap-6"
                 >
                   <div className="flex flex-col items-center gap-2 text-center">
-                    <h1 className="text-2xl font-bold">
-                      Masuk ke akun Anda
-                    </h1>
+                    <h1 className="text-2xl font-bold">Masuk ke akun Anda</h1>
                     <p className="text-balance text-sm text-muted-foreground">
                       Masukkan email Anda di bawah untuk masuk ke akun Anda
                     </p>
@@ -112,12 +118,12 @@ const SigninPage = () => {
                           <FormItem>
                             <div className="flex items-center">
                               <FormLabel>Password</FormLabel>
-                              <a
+                              <Link
                                 href="#"
                                 className="ml-auto text-sm underline-offset-4 hover:underline"
                               >
-                                Forgot your password?
-                              </a>
+                                Lupa password?
+                              </Link>
                             </div>
 
                             <FormControl>
@@ -147,18 +153,23 @@ const SigninPage = () => {
                       {loading ? (
                         <span className="border-y-2 border-white w-4 h-4 rounded-full animate-spin" />
                       ) : (
-                        <p>Sign In</p>
+                        <p>Masuk</p>
                       )}
                     </Button>
 
                     <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                       <span className="relative z-10 bg-background px-2 text-muted-foreground">
-                        Or continue with
+                        Atau lanjutkan dengan
                       </span>
                     </div>
 
                     {/* Button for sign in with Google */}
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      variant="outline"
+                      className="w-full"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -168,14 +179,17 @@ const SigninPage = () => {
                           fill="currentColor"
                         />
                       </svg>
-                      Sign in with Google
+                      Masuk dengan Google
                     </Button>
                   </div>
                   <div className="text-center text-sm">
-                    Don&apos;t have an account?{" "}
-                    <a href="/auth/signup" className="underline underline-offset-4">
-                      Sign up
-                    </a>
+                    Belum punya akun?{" "}
+                    <Link
+                      href="/auth/signup"
+                      className="underline underline-offset-4"
+                    >
+                      Daftar
+                    </Link>
                   </div>
                 </form>
               </Form>
