@@ -1,3 +1,5 @@
+'use client';
+
 import { Separator } from "@/components/ui/separator";
 import {
   BanknoteArrowUp,
@@ -37,6 +39,7 @@ import Hiace from "./components/hiace";
 import Elf from "./components/elf";
 import TourPackages from "./components/tour_packages";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useRef } from "react";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -44,17 +47,38 @@ const hurricane = Hurricane({
 });
 
 const Home = () => {
+  const advantageRef = useRef<HTMLDivElement | null>(null);
+  const howToOrderRef = useRef<HTMLDivElement | null>(null);
+  const faqAndContactRef = useRef<HTMLDivElement | null>(null);
+  const reviewRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToAdvantage = () => {
+    advantageRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const scrollToHowToOrder = () => {
+    howToOrderRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const scrollToFAQAndContact = () => {
+    faqAndContactRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const scrollToReview = () => {
+    reviewRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
   return (
     <>
-      <Header />
+      <Header scrollToAdvantage={scrollToAdvantage} scrollToHowToOrder={scrollToHowToOrder} scrollToFAQAndContact={scrollToFAQAndContact} scrollToReview={scrollToReview} />
 
       <main>
         {/* Carousel */}
         <div className="relative">
-          <img
+          <Image
             className="w-full h-120 object-cover"
-            src="https://asset-2.tstatic.net/suryamalang/foto/bank/images/Sopir-Angkot-menggelar-aksi-unjuk-rasa-di-depan-Balai-Kota-Malang-Jawa-Timur.jpg"
-            alt="bg.jpg"
+            src="/images/angkot/angkot_4.jpg"
+            alt="angkot_4.jpg"
             width={100}
             height={100}
           />
@@ -66,7 +90,7 @@ const Home = () => {
             <div className="flex items-start gap-x-2">
               <Image
                 className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
-                src="/logo_3.png"
+                src="/images/logo/logo_3.png"
                 alt="logo_3.png"
                 width={100}
                 height={100}
@@ -160,7 +184,7 @@ const Home = () => {
         </div>
 
         {/* How to Order */}
-        <div className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto">
+        <div ref={howToOrderRef} className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold">
             Cara Pesan <span className="text-[#0897B1]">Transpo</span>
           </h1>
@@ -238,7 +262,7 @@ const Home = () => {
         </div>
 
         {/* Advantages */}
-        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div ref={advantageRef} className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
           <h1 className="block md:hidden text-3xl md:text-4xl text-center md:text-left font-bold">
             Kelebihan
           </h1>
@@ -246,11 +270,11 @@ const Home = () => {
           <div className="grid grid-cols-12 gap-x-0 md:gap-x-12 mt-6 md:mt-0">
             <div className="col-span-12 md:col-span-5">
               <Image
-                className="w-full h-full object-cover rounded-3xl"
-                src="/bg.png"
-                alt="bg.png"
-                width={100}
-                height={100}
+                className="w-full h-full md:min-h-96 md:h-96 object-cover rounded-3xl"
+                src="/images/angkot/angkot_5.png"
+                alt="angkot_5.png"
+                width={500}
+                height={500}
               />
             </div>
             
@@ -321,10 +345,12 @@ const Home = () => {
           <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
             <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
               <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
+                <Image
+                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                  src="/images/angkot/angkot_2.png"
+                  alt="angkot_1.jpeg"
+                  width={500}
+                  height={500}
                 />
                 <div className="mt-2 text-lg font-semibold">
                   Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
@@ -336,10 +362,12 @@ const Home = () => {
             </Card>
             <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
               <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
+                <Image
+                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                  src="/images/angkot/angkot_2.png"
+                  alt="angkot_1.jpeg"
+                  width={500}
+                  height={500}
                 />
                 <div className="mt-2 text-lg font-semibold">
                   Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
@@ -351,10 +379,12 @@ const Home = () => {
             </Card>
             <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
               <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
+                <Image
+                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                  src="/images/angkot/angkot_2.png"
+                  alt="angkot_1.jpeg"
+                  width={500}
+                  height={500}
                 />
                 <div className="mt-2 text-lg font-semibold">
                   Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
@@ -366,10 +396,12 @@ const Home = () => {
             </Card>
             <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
               <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
+                <Image
+                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                  src="/images/angkot/angkot_2.png"
+                  alt="angkot_1.jpeg"
+                  width={500}
+                  height={500}
                 />
                 <div className="mt-2 text-lg font-semibold">
                   Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
@@ -381,40 +413,12 @@ const Home = () => {
             </Card>
             <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
               <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <img
-                  className="object-cover rounded-xl"
-                  src="https://th.bing.com/th/id/OIP.P0Itl0Phqo7Y3tNdx0PnSwHaDt?cb=iwc2&rs=1&pid=ImgDetMain"
-                  alt="article_1.jpg"
+                <Image
+                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                  src="/images/angkot/angkot_2.png"
+                  alt="angkot_1.jpeg"
+                  width={500}
+                  height={500}
                 />
                 <div className="mt-2 text-lg font-semibold">
                   Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
@@ -428,7 +432,7 @@ const Home = () => {
         </div>
 
         {/* Review */}
-        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div ref={reviewRef} className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
           <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
 
           <Carousel
@@ -459,7 +463,7 @@ const Home = () => {
         </div>
 
         {/* Contact */}
-        <div className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
+        <div ref={faqAndContactRef} className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
           <div className="col-span-12 md:col-span-6">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">

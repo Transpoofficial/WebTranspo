@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import React from 'react'
-
-const page = () => {
-  return (
-    <div>Hai</div>
-  )
-}
-
-export default page
-=======
 "use client";
 
 import {
@@ -222,4 +211,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
->>>>>>> feature/integration-google-maps-api

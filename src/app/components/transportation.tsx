@@ -5,18 +5,19 @@ import {
 } from "@/components/ui/card";
 import { CarFront } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const Transportation = () => {
   return (
     <>
       <Card className="bg-[#0897B1]">
         <CardContent className="flex flex-col md:flex-row items-stretch gap-x-6">
-          <img
-            className="min-w-full md:min-w-lg h-96 object-cover rounded-2xl shadow-lg"
-            src="https://www.blok-a.com/wp-content/uploads/2022/12/whatsapp-image-2022-12-28-at-08.06.53.jpeg"
-            alt="angkot.jpeg"
-            width={100}
-            height={100}
+          <Image
+            className="min-w-full md:min-w-lg min-h-52 h-52 max-h-52 md:min-h-96 md:h-96 md:max-h-96 object-cover rounded-2xl shadow-lg"
+            src="/images/angkot/angkot_1.jpeg"
+            alt="angkot_1.jpeg"
+            width={500}
+            height={500}
           />
 
           <div className="flex flex-col gap-y-2 w-full mt-4">

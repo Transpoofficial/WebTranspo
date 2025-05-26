@@ -2,6 +2,7 @@ import React from "react";
 import { CalendarDays, UsersRound } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
 
 const TourPackages = () => {
   return (
@@ -13,10 +14,12 @@ const TourPackages = () => {
               <button className="cursor-pointer">
                 {/* Card Image */}
                 <div className="mb-2.5">
-                  <img
-                    src="https://superlive.id/storage/superadventure/2018/12/12/d26d01b760a1.jpg"
-                    alt="card_img"
+                  <Image
+                    src="/images/paket_wisata/paket_wisata_1.jpg"
+                    alt="paket_wisata_1.jpg"
                     className="aspect-3/2 object-cover rounded-xl"
+                    width={500}
+                    height={500}
                   />
                 </div>
 
@@ -52,10 +55,12 @@ const TourPackages = () => {
               <button className="cursor-pointer">
                 {/* Card Image */}
                 <div className="mb-2.5">
-                  <img
-                    src="https://superlive.id/storage/superadventure/2018/12/12/d26d01b760a1.jpg"
-                    alt="card_img"
+                  <Image
+                    src="/images/paket_wisata/paket_wisata_1.jpg"
+                    alt="paket_wisata_1.jpg"
                     className="aspect-3/2 object-cover rounded-xl"
+                    width={500}
+                    height={500}
                   />
                 </div>
 
@@ -91,10 +96,12 @@ const TourPackages = () => {
               <button className="cursor-pointer">
                 {/* Card Image */}
                 <div className="mb-2.5">
-                  <img
-                    src="https://superlive.id/storage/superadventure/2018/12/12/d26d01b760a1.jpg"
-                    alt="card_img"
+                  <Image
+                    src="/images/paket_wisata/paket_wisata_1.jpg"
+                    alt="paket_wisata_1.jpg"
                     className="aspect-3/2 object-cover rounded-xl"
+                    width={500}
+                    height={500}
                   />
                 </div>
 
@@ -130,10 +137,12 @@ const TourPackages = () => {
               <button className="cursor-pointer">
                 {/* Card Image */}
                 <div className="mb-2.5">
-                  <img
-                    src="https://superlive.id/storage/superadventure/2018/12/12/d26d01b760a1.jpg"
-                    alt="card_img"
+                  <Image
+                    src="/images/paket_wisata/paket_wisata_1.jpg"
+                    alt="paket_wisata_1.jpg"
                     className="aspect-3/2 object-cover rounded-xl"
+                    width={500}
+                    height={500}
                   />
                 </div>
 

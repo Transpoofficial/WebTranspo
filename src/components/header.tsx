@@ -2,13 +2,21 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const Header = () => {
+interface HeaderProps {
+  scrollToAdvantage: () => void;
+  scrollToHowToOrder: () => void;
+  scrollToFAQAndContact: () => void;
+  scrollToReview: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({
+  scrollToAdvantage,
+  scrollToHowToOrder,
+  scrollToFAQAndContact,
+  scrollToReview,
+}) => {
   return (
     <>
       <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none">
@@ -49,7 +57,7 @@ const Header = () => {
 
             <Image
               className="w-14 h-14"
-              src={"/logo_3.png"}
+              src={"/images/logo/logo_3.png"}
               alt="logo_3.png"
               width={100}
               height={100}
@@ -62,6 +70,7 @@ const Header = () => {
 
           <div className="hidden md:flex items-center">
             <Button
+              onClick={scrollToAdvantage}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -69,6 +78,7 @@ const Header = () => {
               Kelebihan
             </Button>
             <Button
+              onClick={scrollToHowToOrder}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -76,6 +86,7 @@ const Header = () => {
               Cara kerja
             </Button>
             <Button
+              onClick={scrollToFAQAndContact}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -83,6 +94,7 @@ const Header = () => {
               FAQ
             </Button>
             <Button
+              onClick={scrollToReview}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -90,6 +102,7 @@ const Header = () => {
               Review
             </Button>
             <Button
+              onClick={scrollToFAQAndContact}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"

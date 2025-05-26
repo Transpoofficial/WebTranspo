@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "Transpo",
   description: "Transpo",
   icons: {
-    icon: '/logo_3.png',
+    icon: '/images/logo_3.png',
   },
 };
 

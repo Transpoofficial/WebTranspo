@@ -81,7 +81,7 @@ const SignupPage = () => {
             <Link href="/" className="flex items-center gap-2 font-medium">
               <Image
                 className="h-6 w-6"
-                src={"/logo_3.png"}
+                src={"/images/logo/logo_3.png"}
                 alt="logo_3.png"
                 width={100}
                 height={100}
@@ -245,10 +245,12 @@ const SignupPage = () => {
 
         {/* Signup Image */}
         <div className="relative hidden bg-muted lg:block">
-          <img
-            src="https://asset-2.tstatic.net/suryamalang/foto/bank/images/Sopir-Angkot-menggelar-aksi-unjuk-rasa-di-depan-Balai-Kota-Malang-Jawa-Timur.jpg "
-            alt="Image"
+          <Image
+            src="/images/angkot/angkot_6.jpg"
+            alt="angkot_6.jpg"
             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            width={500}
+            height={500}
           />
         </div>
       </div>

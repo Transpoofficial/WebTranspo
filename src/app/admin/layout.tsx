@@ -1,15 +1,4 @@
 import React, { ReactNode } from "react";
-<<<<<<< HEAD
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-=======
->>>>>>> feature/integration-google-maps-api
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -28,28 +17,9 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
-<<<<<<< HEAD
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">
-                      Building Your Application
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-=======
             </div>
           </header>
           <main className="flex flex-1 flex-col p-4 pt-0">
->>>>>>> feature/integration-google-maps-api
             {children}
           </main>
         </SidebarInset>
