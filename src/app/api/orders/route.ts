@@ -2,10 +2,18 @@ import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
+import { getPaginationParams } from "@/utils/pagination";
 
-export const GET = async () => {
+export const GET = async (req: NextRequest) => {
   try {
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.order.count();
+
     const orders = await prisma.order.findMany({
+      skip,
+      take: limit,
       include: {
         user: true,
         transportation: {
@@ -16,8 +24,18 @@ export const GET = async () => {
         packageOrder: true,
       },
     });
+
     return NextResponse.json(
-      { message: "Order retrieved successfully", data: orders },
+      {
+        message: "Order retrieved successfully",
+        data: orders,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + orders.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
