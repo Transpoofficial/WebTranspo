@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+<<<<<<< HEAD
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,6 +8,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+=======
+>>>>>>> 9f36405cac0055fe29bd07eebcd754b55fa9ddae
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -25,6 +28,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
+<<<<<<< HEAD
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
@@ -41,6 +45,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             </div>
           </header>
           <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+=======
+            </div>
+          </header>
+          <main className="flex flex-1 flex-col p-4 pt-0">
+>>>>>>> 9f36405cac0055fe29bd07eebcd754b55fa9ddae
             {children}
           </main>
         </SidebarInset>
