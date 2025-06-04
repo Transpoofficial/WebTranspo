@@ -6,10 +6,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "sonner";
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
   return (
     <>
+      <Toaster position="bottom-right" />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
