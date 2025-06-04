@@ -8,17 +8,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import VehicleTypeDialog from "./vehicle-type-dialog";
+import VehicleTypeCreateDialog from "./vehicle-type-create-dialog";
 import VehicleDialog from "./vehicle-dialog";
 
 const AddVehicleMenu = () => {
-  const [isVehicleTypeDialogOpen, setIsVehicleTypeDialogOpen] =
+  const [isVehicleTypeCreateDialogOpen, setIsVehicleTypeCreateDialogOpen] =
     useState<boolean>(false);
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] =
     useState<boolean>(false);
 
-  const handleOpenVehicleTypeDialog = (): void => {
-    setIsVehicleTypeDialogOpen(true);
+  const handleOpenVehicleTypeCreateDialog = (): void => {
+    setIsVehicleTypeCreateDialogOpen(true);
   };
 
   const handleOpenVehicleDialog = (): void => {
@@ -34,7 +34,7 @@ const AddVehicleMenu = () => {
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             className="cursor-pointer"
-            onClick={handleOpenVehicleTypeDialog}
+            onClick={handleOpenVehicleTypeCreateDialog}
           >
             Tipe kendaraan
           </DropdownMenuItem>
@@ -45,9 +45,9 @@ const AddVehicleMenu = () => {
       </DropdownMenu>
 
       {/* Vehicle type dialog */}
-      <VehicleTypeDialog
-        isVehicleTypeDialogOpen={isVehicleTypeDialogOpen}
-        setIsVehicleTypeDialogOpen={setIsVehicleTypeDialogOpen}
+      <VehicleTypeCreateDialog
+        isVehicleTypeCreateDialogOpen={isVehicleTypeCreateDialogOpen}
+        setIsVehicleTypeCreateDialogOpen={setIsVehicleTypeCreateDialogOpen}
       />
 
       {/* Vehicle dialog */}

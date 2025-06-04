@@ -9,28 +9,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { Ellipsis } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import VehicleTypeUpdateDialog from "./vehicle-type-update-dialog";
+
+interface VehicleType {
+  id: string;
+  name: string;
+}
 
 const VehicleTypeTable = () => {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null); // track which row's dropdown is open
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [openUpdateDialog, setOpenUpdateDialog] = useState<string | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
 
   const handleLongPressStart = (id: string) => {
     longPressTimer.current = setTimeout(() => {
-      setOpenDropdown(id); // open the dropdown for the specific row
+      setOpenDropdown(id);
     }, 800);
   };
 
@@ -42,23 +48,56 @@ const VehicleTypeTable = () => {
   };
 
   const handleDropdownToggle = (id: string) => {
-    setOpenDropdown((prev) => (prev === id ? null : id)); // toggle dropdown for this row
+    setOpenDropdown((prev) => (prev === id ? null : id));
   };
 
-  // Table data
-  const data = [
-    {
-      id: "1",
-      name: "Fathan",
+  const { data, isLoading, error } = useQuery<{
+    data: VehicleType[];
+  }>({
+    queryKey: ["vehicle-types"],
+    queryFn: async () => {
+      const response = await axios.get("/api/vehicle-types");
+      return response.data;
     },
-    {
-      id: "2",
-      name: "Fathan",
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await axios.delete(`/api/vehicle-types/${id}`);
     },
-  ];
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vehicle-types"] });
+      toast.success("Tipe kendaraan berhasil dihapus");
+      setOpenDropdown(null);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Gagal menghapus tipe kendaraan"
+      );
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus tipe kendaraan ini?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    setOpenUpdateDialog(id);
+  };
+
+  if (error) {
+    toast.error("Gagal memuat data tipe kendaraan.");
+    return null;
+  }
 
   return (
     <>
+      <h4 className="hidden md:block scroll-m-20 text-xl font-semibold tracking-tight mb-2.5">
+        Tipe kendaraan
+      </h4>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -67,66 +106,86 @@ const VehicleTypeTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, index) => {
-            return (
-              <ContextMenu key={index}>
-                <ContextMenuTrigger asChild>
-                  <TableRow
-                    onMouseDown={() => handleLongPressStart(row.id)}
-                    onMouseUp={handleLongPressEnd}
-                    onMouseLeave={handleLongPressEnd} // Batalkan jika mouse keluar dari row
-                    onTouchStart={() => handleLongPressStart(row.id)}
-                    onTouchEnd={handleLongPressEnd}
-                    className="relative transition duration-200 active:scale-99 cursor-pointer"
-                  >
-                    <TableCell className="font-medium">
-                      {index + 1}
+          {isLoading ? (
+            <TableRow>
+              <TableCell className="font-medium">
+                <Skeleton className="h-[37px] w-full" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-[37px] w-full" />
+              </TableCell>
+            </TableRow>
+          ) : (
+            data?.data?.map((row, index) => {
+              return (
+                <React.Fragment key={index}>
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        onMouseDown={() => handleLongPressStart(row.id)}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={() => handleLongPressStart(row.id)}
+                        onTouchEnd={handleLongPressEnd}
+                        className="relative transition duration-200 active:scale-99 cursor-pointer"
+                      >
+                        <TableCell className="font-medium">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>{row.name}</TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => handleEdit(row.id)}>
+                        Edit
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        onClick={() => handleDelete(row.id)}
+                        className="text-red-600"
+                      >
+                        Hapus
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
 
-                      {/* Action Menu */}
-                      <div className="absolute top-0 left-0">
-                        {/* Dropdown menu for Mobile */}
-                        <DropdownMenu
-                          open={openDropdown === row.id} // Open dropdown for the active row
-                          onOpenChange={() => handleDropdownToggle(row.id)} // Toggle dropdown visibility
+                  <Drawer
+                    open={openDropdown === row.id}
+                    onOpenChange={() => handleDropdownToggle(row.id)}
+                  >
+                    <DrawerContent>
+                      <div className="flex flex-col gap-y-2 p-4">
+                        <Button
+                          variant="ghost"
+                          className="justify-start"
+                          onClick={() => handleEdit(row.id)}
                         >
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0"
-                            >
-                              <Ellipsis />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            side="bottom"
-                            align="start"
-                            className="z-50"
-                          >
-                            <DropdownMenuItem
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          Edit
+                        </Button>
+                        <Button
+                          disabled={deleteMutation.isPending}
+                          onClick={() => handleDelete(row.id)}
+                          variant="ghost"
+                          className="justify-start text-red-600"
+                        >
+                          {deleteMutation.isPending ? (
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            "Hapus"
+                          )}
+                        </Button>
                       </div>
-                    </TableCell>
-                    <TableCell>{row.name}</TableCell>
-                  </TableRow>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem>Edit</ContextMenuItem>
-                  <ContextMenuItem>Hapus</ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            );
-          })}
+                    </DrawerContent>
+                  </Drawer>
+
+                  <VehicleTypeUpdateDialog
+                    openUpdateDialog={openUpdateDialog === row.id}
+                    setOpenUpdateDialog={setOpenUpdateDialog}
+                    vehicleType={row}
+                  />
+                </React.Fragment>
+              );
+            })
+          )}
         </TableBody>
       </Table>
     </>
