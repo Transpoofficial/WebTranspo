@@ -120,3 +120,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add these custom styles to your globals.css */
+
+.step-circles {
+  position: relative;
+}
+
+.step-circles::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  border-top: 2px dashed #e5e7eb;
+  transform: translateY(-50%);
+}
+
+.step-circle-active {
+  background-color: #1aa1b1;
+  color: white;
+}
+
+.step-circle-inactive {
+  border: 2px solid #d1d5db;
+  color: #9ca3af;
+}
+
+.step-dot-active {
+  background-color: #1aa1b1;
+}
+
+.step-dot-inactive {
+  background-color: #d1d5db;
+}
