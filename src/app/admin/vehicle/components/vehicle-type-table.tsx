@@ -70,7 +70,7 @@ const VehicleTypeTable = () => {
       toast.success("Tipe kendaraan berhasil dihapus");
       setOpenDropdown(null);
     },
-    onError: (error: any) => {
+    onError: (error: import("axios").AxiosError<{ message?: string }>) => {
       toast.error(
         error.response?.data?.message || "Gagal menghapus tipe kendaraan"
       );
@@ -78,12 +78,11 @@ const VehicleTypeTable = () => {
   });
 
   const handleDelete = (id: string) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus tipe kendaraan ini?")) {
-      deleteMutation.mutate(id);
-    }
+    deleteMutation.mutate(id);
   };
 
   const handleEdit = (id: string) => {
+    setOpenDropdown(null);
     setOpenUpdateDialog(id);
   };
 
@@ -94,14 +93,10 @@ const VehicleTypeTable = () => {
 
   return (
     <>
-      <h4 className="hidden md:block scroll-m-20 text-xl font-semibold tracking-tight mb-2.5">
-        Tipe kendaraan
-      </h4>
-
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-2/12">#</TableHead>
+            <TableHead className="w-1/12">#</TableHead>
             <TableHead>Type</TableHead>
           </TableRow>
         </TableHeader>
@@ -115,7 +110,7 @@ const VehicleTypeTable = () => {
                 <Skeleton className="h-[37px] w-full" />
               </TableCell>
             </TableRow>
-          ) : (
+          ) : data?.data?.length !== 0 ? (
             data?.data?.map((row, index) => {
               return (
                 <React.Fragment key={index}>
@@ -168,7 +163,7 @@ const VehicleTypeTable = () => {
                           className="justify-start text-red-600"
                         >
                           {deleteMutation.isPending ? (
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
                           ) : (
                             "Hapus"
                           )}
@@ -180,11 +175,17 @@ const VehicleTypeTable = () => {
                   <VehicleTypeUpdateDialog
                     openUpdateDialog={openUpdateDialog === row.id}
                     setOpenUpdateDialog={setOpenUpdateDialog}
-                    vehicleType={row}
+                    vehicleTypeId={row.id}
                   />
                 </React.Fragment>
               );
             })
+          ) : (
+            <TableRow>
+              <TableCell colSpan={2} className="py-3 text-center">
+                No results.
+              </TableCell>
+            </TableRow>
           )}
         </TableBody>
       </Table>

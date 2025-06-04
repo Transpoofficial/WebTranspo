@@ -59,7 +59,7 @@ const VehicleTypeCreateDialog: React.FC<VehicleTypeCreateDialogProps> = ({
       setIsVehicleTypeCreateDialogOpen(false);
       form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: import("axios").AxiosError<{ message?: string }>) => {
       toast.error(error.response?.data?.message || "Uh oh! Terjadi kesalahan, silakan coba lagi.");
     },
     onSettled: () => {

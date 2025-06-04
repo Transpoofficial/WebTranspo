@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -25,16 +25,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface VehicleType {
-  id: string;
-  name: string;
+  message: string;
+  data: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 interface VehicleTypeUpdateDialogProps {
   openUpdateDialog: boolean;
   setOpenUpdateDialog: React.Dispatch<React.SetStateAction<string | null>>;
-  vehicleType: VehicleType;
+  vehicleTypeId: string;
 }
 
 const vehicleTypeSchema = z.object({
@@ -46,24 +52,44 @@ type VehicleTypeInput = z.infer<typeof vehicleTypeSchema>;
 const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
   openUpdateDialog,
   setOpenUpdateDialog,
-  vehicleType,
+  vehicleTypeId,
 }) => {
   const queryClient = useQueryClient();
 
   const form = useForm<VehicleTypeInput>({
     resolver: zodResolver(vehicleTypeSchema),
     defaultValues: {
-      name: vehicleType.name || "",
+      name: "",
     },
   });
 
+  // Fetch vehicle type data based on ID
+  const {
+    data: vehicleType,
+    isLoading,
+    error,
+  } = useQuery<VehicleType>({
+    queryKey: ["vehicle-type", vehicleTypeId],
+    queryFn: async () => {
+      const response = await axios.get(`/api/vehicle-types/${vehicleTypeId}`);
+      return response.data;
+    },
+    enabled: openUpdateDialog && !!vehicleTypeId, // Only fetch when dialog is open and ID is provided
+  });
+
+  // Update form when vehicle type data is fetched
   useEffect(() => {
-    form.reset({ name: vehicleType.name });
+    if (vehicleType) {
+      form.reset({ name: vehicleType?.data?.name });
+    }
   }, [vehicleType, form]);
 
   const vehicleTypeMutation = useMutation({
     mutationFn: async (data: VehicleTypeInput) => {
-      const response = await axios.put(`/api/vehicle-types/${vehicleType.id}`, data);
+      const response = await axios.put(
+        `/api/vehicle-types/${vehicleTypeId}`,
+        data
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -72,14 +98,23 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
       setOpenUpdateDialog(null);
       form.reset();
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Uh oh! Terjadi kesalahan, silakan coba lagi.");
+    onError: (error: import("axios").AxiosError<{ message?: string }>) => {
+      toast.error(
+        error.response?.data?.message ||
+          "Uh oh! Terjadi kesalahan, silakan coba lagi."
+      );
     },
   });
 
   const onSubmit = (data: VehicleTypeInput) => {
     vehicleTypeMutation.mutate(data);
   };
+
+  if (error) {
+    toast.error("Gagal memuat data tipe kendaraan.");
+    setOpenUpdateDialog(null);
+    return null;
+  }
 
   return (
     <Dialog
@@ -97,19 +132,26 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
             </DialogHeader>
 
             <div className="flex flex-col gap-y-2 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipe kendaraan</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Masukkan tipe kendaraan" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isLoading ? (
+                <Skeleton className="h-[58px] w-full" />
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipe kendaraan</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Masukkan tipe kendaraan"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <DialogFooter>
