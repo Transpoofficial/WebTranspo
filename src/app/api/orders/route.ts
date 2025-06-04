@@ -2,10 +2,18 @@ import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
+import { getPaginationParams } from "@/utils/pagination";
 
 export const GET = async (req: NextRequest) => {
   try {
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.order.count();
+
     const orders = await prisma.order.findMany({
+      skip,
+      take: limit,
       include: {
         user: true,
         transportation: {
@@ -16,8 +24,18 @@ export const GET = async (req: NextRequest) => {
         packageOrder: true,
       },
     });
+
     return NextResponse.json(
-      { message: "Order retrieved successfully", data: orders },
+      {
+        message: "Order retrieved successfully",
+        data: orders,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + orders.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -32,7 +50,21 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   try {
     const formData = await req.formData();
-    const body: any = {};
+    interface OrderRequestBody {
+      orderType?: string;
+      departureDate?: string;
+      pickupTime?: string;
+      timezone?: string;
+      pickupLocation?: string;
+      destination?: string;
+      vehicleCount?: string;
+      roundTrip?: string;
+      vehicleTypeId?: string;
+      totalDistance?: string;
+      packageId?: string;
+    }
+
+    const body: OrderRequestBody = {};
     const destinations: string[] = [];
     // Collect form data into body object
     formData.forEach((value, key) => {
@@ -41,7 +73,7 @@ export const POST = async (req: NextRequest) => {
         const index = parseInt(match[1], 10); // Extract the index from the key
         destinations[index] = value as string; // Insert the value into the array at the corresponding index
       } else {
-        body[key] = value; // Other keys are added to the body object
+        body[key as keyof OrderRequestBody] = value as string; // Other keys are added to the body object
       }
     });
 
@@ -49,7 +81,7 @@ export const POST = async (req: NextRequest) => {
     const token = await checkAuth(req);
     // Main Data
     let { orderType } = body;
-    orderType = orderType.toUpperCase() === "TRANSPORT" ? "TRANSPORT" : "TOUR";
+    orderType = orderType?.toUpperCase() === "TRANSPORT" ? "TRANSPORT" : "TOUR";
     const { departureDate, pickupTime, timezone } = body;
 
     // Transportation Order Data
@@ -133,9 +165,9 @@ export const POST = async (req: NextRequest) => {
           vehicleTypeId: vehicleTypeId,
           transportationOrderId: null,
         },
-        take: parseInt(vehicleCount),
+        take: parseInt(vehicleCount || "0"),
       });
-      if (availableVehicles.length < parseInt(vehicleCount)) {
+      if (availableVehicles.length < parseInt(vehicleCount || "0")) {
         return NextResponse.json(
           {
             message: "Not enough vehicles available",
@@ -148,16 +180,16 @@ export const POST = async (req: NextRequest) => {
       const transportationOrders = await prisma.transportationOrder.create({
         data: {
           departureDate: formatedDepartureDate.toUTC().toJSDate(),
-          pickupLocation,
-          destination,
-          vehicleCount: parseInt(vehicleCount),
+          pickupLocation: pickupLocation || "",
+          destination: destination || "",
+          vehicleCount: parseInt(vehicleCount || "0"),
           roundTrip: roundTrip === "true" ? true : false,
-          totalDistance: parseFloat(totalDistance),
+          totalDistance: parseFloat(totalDistance || "0.0"),
           orderId: createdOrder.id,
         },
       });
 
-      if (availableVehicles.length < parseInt(vehicleCount)) {
+      if (availableVehicles.length < parseInt(vehicleCount || "0")) {
         // Rollback the order creation if not enough vehicles are available
         await prisma.order.delete({
           where: { id: createdOrder.id },
@@ -183,7 +215,7 @@ export const POST = async (req: NextRequest) => {
         )
       );
       await Promise.all(
-        destinations.map((destination: any) =>
+        destinations.map((destination: string) =>
           prisma.destinationTransportation.create({
             data: {
               destinationName: destination,
@@ -196,7 +228,7 @@ export const POST = async (req: NextRequest) => {
       await prisma.packageOrder.create({
         data: {
           orderId: createdOrder.id,
-          packageId,
+          packageId: packageId || "",
           departureDate: formatedDepartureDate.toUTC().toJSDate(),
         },
       });

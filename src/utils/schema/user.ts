@@ -10,7 +10,6 @@ export const signupSchema = z
     confirmPassword: z
       .string()
       .min(6, { message: "Confirm Password is required" }),
-    phoneNumber: z.string({ message: "Phone number is required" }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

@@ -1,12 +1,31 @@
 import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPaginationParams } from "@/utils/pagination";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (req: NextRequest) => {
   try {
-    const vehicleTypes = await prisma.vehicleType.findMany();
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count for pagination metadata
+    const totalCount = await prisma.vehicleType.count();
+
+    const vehicleTypes = await prisma.vehicleType.findMany({
+      skip,
+      take: limit,
+    });
+
     return NextResponse.json(
-      { message: "Vehicle types retrieved successfully", data: vehicleTypes },
+      {
+        message: "Vehicle types retrieved successfully",
+        data: vehicleTypes,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + vehicleTypes.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
