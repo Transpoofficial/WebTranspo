@@ -139,7 +139,6 @@ model Vehicle {
   additionalDetails       String?
   transportationOrderId   String?             // Foreign key to TransportationOrder (nullable)
   transportationOrder     TransportationOrder? @relation(fields: [transportationOrderId], references: [id])
-  tours                   TourPackage[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -148,6 +147,7 @@ model VehicleType {
   id                      String              @id @default(cuid())
   name                    String
   vehicles                Vehicle[]
+  tours                   TourPackage[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -155,7 +155,7 @@ model VehicleType {
 model TourPackage {
   id                      String              @id @default(cuid())
   vehicleId               String              
-  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id])
+  vehicle                 VehicleType             @relation(fields: [vehicleId], references: [id])
   name                    String
   destination             String
   durationDays            Int

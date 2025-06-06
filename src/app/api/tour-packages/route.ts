@@ -74,7 +74,7 @@ export const POST = async (req: NextRequest) => {
       );
     }
     // Check if vehicleId exists in the database
-    const vehicle = await prisma.vehicle.findUnique({
+    const vehicle = await prisma.vehicleType.findUnique({
       where: { id: vehicleId },
     });
     if (!vehicle) {

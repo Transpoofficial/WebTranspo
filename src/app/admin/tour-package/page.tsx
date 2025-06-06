@@ -1,39 +1,39 @@
 "use client";
-import React from "react";
-// import VehicleTypeTable from "./components/vehicle-type-table";
+import React, { useState } from "react";
+import TourPackageTable from "./components/tour-package-table";
 import { Button } from "@/components/ui/button";
-// import VehicleTypeCreateDialog from "./components/vehicle-type-create-dialog";
+import TourPackageCreateDialog from "./components/tour-package-create-dialog";
 
 const TourPackage = () => {
-  // const [isVehicleTypeCreateDialogOpen, setIsVehicleTypeCreateDialogOpen] =
-  //   useState<boolean>(false);
+  const [isTourPackageCreateDialogOpen, setIsTourPackageCreateDialogOpen] =
+    useState<boolean>(false);
 
-  // const handleOpenVehicleTypeCreateDialog = (): void => {
-  //   setIsVehicleTypeCreateDialogOpen(true);
-  // };
+  const handleOpenTourPackageCreateDialog = (): void => {
+    setIsTourPackageCreateDialogOpen(true);
+  };
 
   return (
     <>
       <h2 className="text-3xl font-bold tracking-tight first:mt-0">
-        Paket wisata
+        Paket Wisata
       </h2>
 
       <div className="flex justify-end mt-4 mb-1">
         <Button
-          // onClick={handleOpenVehicleTypeCreateDialog}
+          onClick={handleOpenTourPackageCreateDialog}
           className="cursor-pointer"
         >
           Tambah paket wisata
         </Button>
       </div>
 
-      {/* Vehicle type dialog */}
-      {/* <VehicleTypeCreateDialog
-        isVehicleTypeCreateDialogOpen={isVehicleTypeCreateDialogOpen}
-        setIsVehicleTypeCreateDialogOpen={setIsVehicleTypeCreateDialogOpen}
+      {/* Tour package dialog */}
+      <TourPackageCreateDialog
+        isTourPackageCreateDialogOpen={isTourPackageCreateDialogOpen}
+        setIsTourPackageCreateDialogOpen={setIsTourPackageCreateDialogOpen}
       />
 
-      <VehicleTypeTable /> */}
+      <TourPackageTable />
     </>
   );
 };

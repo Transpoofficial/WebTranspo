@@ -89,7 +89,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    await checkAuth(req);
+    // await checkAuth(req);
     const { id } = await params;
     const vehicleType = await prisma.vehicleType.findUnique({
       where: { id: id },

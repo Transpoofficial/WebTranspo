@@ -19,11 +19,7 @@ export const GET = async (
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id: id },
       include: {
-        vehicle: {
-          include: {
-            vehicleType: true,
-          },
-        },
+        vehicle: true
       },
     });
     return NextResponse.json(
