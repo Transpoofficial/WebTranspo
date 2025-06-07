@@ -14,7 +14,6 @@ import {
   MapPinned,
   Phone,
   Quote,
-  TreePalm,
   UsersRound,
 } from "lucide-react";
 import {
@@ -37,7 +36,6 @@ import { Hurricane } from "next/font/google";
 import Transportation from "./components/transportation";
 import Hiace from "./components/hiace";
 import Elf from "./components/elf";
-import TourPackages from "./components/tour_packages";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useRef } from "react";
 

@@ -1,8 +1,19 @@
+"use client";
+
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { signOut, useSession } from "next-auth/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface HeaderProps {
   scrollToAdvantage: () => void;
@@ -17,6 +28,13 @@ const Header: React.FC<HeaderProps> = ({
   scrollToFAQAndContact,
   scrollToReview,
 }) => {
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
+
+  const handleSignOut = () => {
+    signOut();
+  };
+
   return (
     <>
       <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none">
@@ -111,20 +129,44 @@ const Header: React.FC<HeaderProps> = ({
             </Button>
           </div>
 
-          <div className="flex items-center gap-x-2">
-            <Link
-              href={"/auth/signin"}
-              className={buttonVariants({ variant: "default" })}
-            >
-              Login
-            </Link>
-            <Link
-              href={"/auth/signup"}
-              className={buttonVariants({ variant: "outline" })}
-            >
-              Register
-            </Link>
-          </div>
+          {isLoading ? (
+            <Skeleton className="h-[36px] w-[168px]" />
+          ) : session ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="text-white hover:text-white hover:bg-zinc-700/[.4]"
+                >
+                  Hai, {session.user?.fullName}
+                  <ChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem>Profil</DropdownMenuItem>
+                <DropdownMenuItem>Pesanan</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-x-2">
+              <Link
+                href={"/auth/signin"}
+                className={buttonVariants({ variant: "default" })}
+              >
+                Login
+              </Link>
+              <Link
+                href={"/auth/signup"}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Register
+              </Link>
+            </div>
+          )}
         </div>
       </header>
     </>
