@@ -10,10 +10,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HeaderProps {
   scrollToAdvantage: () => void;
@@ -143,6 +144,25 @@ const Header: React.FC<HeaderProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold line-clamp-1">
+                        {session.user?.fullName}
+                      </span>
+                      <span className="truncate text-xs line-clamp-1">
+                        {session.user?.email}
+                      </span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {session.user?.role === "ADMIN" ||
+                  (session.user?.role === "SUPER_ADMIN" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">Halaman admin</Link>
+                    </DropdownMenuItem>
+                  ))}
                 <DropdownMenuItem>Profil</DropdownMenuItem>
                 <DropdownMenuItem>Pesanan</DropdownMenuItem>
                 <DropdownMenuSeparator />

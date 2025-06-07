@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import { signinSchema, SigninValues } from "@/utils/schema/user";
 import Image from "next/image";
 import Link from "next/link";
@@ -44,7 +45,14 @@ const SigninPage = () => {
           "An error occurred while signing in. Please try again."
       );
     } else {
-      router.push("/");
+      const session = await getSession();
+
+      const role = session?.user?.role;
+      if (role === "ADMIN" || role === "SUPER_ADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     }
   };
 
