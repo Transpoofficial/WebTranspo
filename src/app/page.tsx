@@ -157,15 +157,6 @@ const Home = () => {
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="paket_wisata"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
-                >
-                  <TreePalm className="!w-8 !h-8" />
-                  <span className="font-bold uppercase text-base">
-                    Paket wisata
-                  </span>
-                </TabsTrigger>
               </TabsList>
               <TabsContent value="angkot">
                 <Transportation />
@@ -175,9 +166,6 @@ const Home = () => {
               </TabsContent>
               <TabsContent value="elf">
                 <Elf />
-              </TabsContent>
-              <TabsContent value="paket_wisata">
-                <TourPackages />
               </TabsContent>
             </Tabs>
           </div>

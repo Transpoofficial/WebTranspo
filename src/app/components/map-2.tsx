@@ -1,6 +1,11 @@
 "use client";
-
-import { useLoadScript, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
+/* eslint-disable */
+import {
+  useLoadScript,
+  GoogleMap,
+  Marker,
+  DirectionsRenderer,
+} from "@react-google-maps/api";
 import type { NextPage } from "next";
 import React, {
   useMemo,
@@ -128,7 +133,12 @@ const Map2: NextPage = () => {
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: libraries as ("places" | "geometry" | "drawing" | "visualization")[],
+    libraries: libraries as (
+      | "places"
+      | "geometry"
+      | "drawing"
+      | "visualization"
+    )[],
   });
 
   const [trips, setTrips] = useState<Trip[]>([
@@ -335,13 +345,17 @@ const Map2: NextPage = () => {
           id: newTripId,
           locations: [
             {
-              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(
+                Math.random() * 1000
+              )}`,
               lat: 0,
               lng: 0,
               address: "",
             },
             {
-              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(
+                Math.random() * 1000
+              )}`,
               lat: 0,
               lng: 0,
               address: "",
@@ -408,19 +422,20 @@ const Map2: NextPage = () => {
           continue;
         }
 
-        const waypoints = validLocations
-          .slice(1, -1)
-          .map((loc) => ({
-            location: { lat: loc.lat, lng: loc.lng },
-            stopover: true,
-          }));
+        const waypoints = validLocations.slice(1, -1).map((loc) => ({
+          location: { lat: loc.lat, lng: loc.lng },
+          stopover: true,
+        }));
 
         try {
           const result = await new Promise<google.maps.DirectionsResult>(
             (resolve, reject) => {
               directionsService.route(
                 {
-                  origin: { lat: validLocations[0].lat, lng: validLocations[0].lng },
+                  origin: {
+                    lat: validLocations[0].lat,
+                    lng: validLocations[0].lng,
+                  },
                   destination: {
                     lat: validLocations[validLocations.length - 1].lat,
                     lng: validLocations[validLocations.length - 1].lng,
@@ -464,7 +479,10 @@ const Map2: NextPage = () => {
           }
           renderer.setDirections(result);
         } catch (error) {
-          console.error(`Failed to calculate route for trip ${trip.id}:`, error);
+          console.error(
+            `Failed to calculate route for trip ${trip.id}:`,
+            error
+          );
         }
       }
 
@@ -585,7 +603,10 @@ const Map2: NextPage = () => {
                         </p>
                         {tripDirections && (
                           <p className="text-xs text-muted-foreground">
-                            Jarak: {formatDistance(tripDirections.totalDistance)} | Waktu: {formatDuration(tripDirections.totalDuration)}
+                            Jarak:{" "}
+                            {formatDistance(tripDirections.totalDistance)} |
+                            Waktu:{" "}
+                            {formatDuration(tripDirections.totalDuration)}
                           </p>
                         )}
                       </div>
@@ -666,7 +687,10 @@ const Map2: NextPage = () => {
                                       )
                                     }
                                   >
-                                    <Trash className="w-4 h-4" color="#DC2626" />
+                                    <Trash
+                                      className="w-4 h-4"
+                                      color="#DC2626"
+                                    />
                                   </button>
                                 )}
                               </div>
