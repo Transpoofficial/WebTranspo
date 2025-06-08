@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, Image as ImageIcon, AlertCircle } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -29,6 +29,7 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   // Format price as Rupiah
   const formatRupiah = (price: number) => {
@@ -41,13 +42,38 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
       .replace("Rp", "Rp.");
   };
 
+  // Validate file before accepting
+  const validateFile = (file: File): boolean => {
+    // Check file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+    if (!allowedTypes.includes(file.type)) {
+      setFileError(`Format file tidak didukung. Gunakan JPG atau PNG.`);
+      return false;
+    }
+
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setFileError(`Ukuran file terlalu besar. Maksimum 5MB.`);
+      return false;
+    }
+
+    // Clear any previous errors
+    setFileError(null);
+    return true;
+  };
+
   // Handle file drop
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) {
+    if (file && validateFile(file)) {
       setProofFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setPreviewUrl(previewUrl);
+      // Create preview URL
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+
+      // Clean up previous preview URL if it exists
+      return () => URL.revokeObjectURL(objectUrl);
     }
   }, []);
 
@@ -56,7 +82,7 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
     accept: {
       "image/*": [".jpeg", ".png", ".jpg"],
     },
-    maxSize: 5242880, // 5MB
+    maxSize: 5 * 1024 * 1024, // 5MB
     maxFiles: 1,
   });
 
@@ -64,7 +90,8 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!senderName) {
+    // Form validation
+    if (!senderName.trim()) {
       toast.error("Nama pengirim harus diisi");
       return;
     }
@@ -96,7 +123,11 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
 
       if (response.status === 200) {
         toast.success("Bukti pembayaran berhasil diunggah!");
-        router.push("/dashboard/orders");
+
+        // Navigate to the orders page after successful upload
+        setTimeout(() => {
+          router.push("/dashboard/orders");
+        }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
       }
@@ -160,6 +191,7 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
               value={transferDate}
               onChange={(e) => setTransferDate(e.target.value)}
               required
+              max={format(new Date(), "yyyy-MM-dd")} // Can't select future dates
             />
           </div>
 
@@ -167,8 +199,12 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
             <Label>Bukti Transfer</Label>
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors ${
-                isDragActive ? "border-teal-300 bg-teal-50" : "border-gray-300"
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragActive
+                  ? "border-teal-300 bg-teal-50"
+                  : fileError
+                  ? "border-red-300 bg-red-50"
+                  : "border-gray-300 hover:bg-gray-50"
               }`}
             >
               <input {...getInputProps()} />
@@ -189,9 +225,15 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="text-gray-600">
-                    Klik atau seret file bukti transfer di sini
+                  <Upload
+                    className={`mx-auto h-12 w-12 ${
+                      fileError ? "text-red-400" : "text-gray-400"
+                    }`}
+                  />
+                  <p className={fileError ? "text-red-600" : "text-gray-600"}>
+                    {fileError
+                      ? fileError
+                      : "Klik atau seret file bukti transfer di sini"}
                   </p>
                   <p className="text-xs text-gray-500">
                     Format: JPG, PNG (Maks. 5MB)
@@ -199,6 +241,13 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
                 </div>
               )}
             </div>
+
+            {fileError && (
+              <div className="flex items-center text-red-500 text-sm mt-1">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {fileError}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
@@ -214,7 +263,7 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
             <Button
               type="submit"
               className="bg-teal-500 hover:bg-teal-600"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!fileError}
             >
               {isSubmitting ? "Memproses..." : "Kirim Bukti Pembayaran"}
             </Button>

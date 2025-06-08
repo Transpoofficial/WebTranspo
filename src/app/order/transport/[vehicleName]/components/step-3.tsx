@@ -96,25 +96,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
       // Add basic order information
       formData.append("orderType", "TRANSPORT");
 
-      // We'll use the first trip's data for the primary details
-      const firstTrip = orderData.trip[0];
-      formData.append("departureDate", format(firstTrip.date, "yyyy-MM-dd"));
-      formData.append("pickupTime", firstTrip.startTime || "09:00");
-      formData.append(
-        "timezone",
-        Intl.DateTimeFormat().resolvedOptions().timeZone
-      );
-
-      // Add pickup and destination details
-      if (firstTrip.location.length > 0) {
-        // First location is pickup
-        formData.append("pickupLocation", firstTrip.location[0].address);
-
-        // Last location is final destination
-        const lastLocation = firstTrip.location[firstTrip.location.length - 1];
-        formData.append("destination", lastLocation.address);
-      }
-
       // Add vehicle details
       formData.append(
         "vehicleCount",
@@ -127,21 +108,62 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
       // Add price for payment creation
       formData.append("totalPrice", orderData.totalPrice.toString());
 
-      // Add all destination points with their arrival times
-      let destinationIndex = 0;
-      orderData.trip.forEach((trip) => {
-        trip.location.forEach((loc) => {
+      // Add all destinations with their full details
+      orderData.trip.forEach((trip, tripIndex) => {
+        trip.location.forEach((loc, locIndex) => {
           if (loc.address) {
-            formData.append(`destinations[${destinationIndex}]`, loc.address);
+            const index = tripIndex * 100 + locIndex;
 
-            // If location has time info, add it
-            if (loc.time) {
-              formData.append(`arrivalTimes[${destinationIndex}]`, loc.time);
+            // Add location data
+            formData.append(`destinations[${index}].address`, loc.address);
+            formData.append(
+              `destinations[${index}].lat`,
+              loc.lat?.toString() || "0"
+            );
+            formData.append(
+              `destinations[${index}].lng`,
+              loc.lng?.toString() || "0"
+            );
+
+            // Mark first location in first trip as pickup
+            formData.append(
+              `destinations[${index}].isPickupLocation`,
+              tripIndex === 0 && locIndex === 0 ? "true" : "false"
+            );
+
+            // Add departure date for first location in each trip
+            if (locIndex === 0) {
+              formData.append(
+                `destinations[${index}].departureDate`,
+                format(trip.date, "yyyy-MM-dd")
+              );
+
+              // Add time info for departure
+              formData.append(
+                `destinations[${index}].departureTime`,
+                trip.startTime || "09:00"
+              );
             }
-            destinationIndex++;
+
+            // Add sequence number
+            formData.append(
+              `destinations[${index}].sequence`,
+              index.toString()
+            );
+
+            // If location has arrival time info, add it
+            if (loc.time) {
+              formData.append(`destinations[${index}].arrivalTime`, loc.time);
+            }
           }
         });
       });
+
+      // Extract timezone for server-side processing
+      formData.append(
+        "timezone",
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+      );
 
       // Send the order to the API
       const response = await axios.post("/api/orders", formData);
