@@ -104,7 +104,9 @@ model DestinationTransportation {
   id                      String              @id @default(cuid())
   transportationOrderId   String
   transportationOrder     TransportationOrder @relation(fields: [transportationOrderId], references: [id])
-  destinationName         String              // this column can be change to destinationId/locationId if the google maps API is available
+  destination             Json                @default("[]")// Storing destination data as JSON instead of text {lat, lng, address}
+  arrivalTime             String?             
+  sequence                Int                 @default(0) 
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -146,7 +148,7 @@ model Vehicle {
 
 model VehicleType {
   id                      String              @id @default(cuid())
-  name                    String
+  name                    String              @unique
   vehicles                Vehicle[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt

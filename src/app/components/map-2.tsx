@@ -17,6 +17,7 @@ import React, {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Clock,
   EllipsisVertical,
   Flag,
   GripVertical,
@@ -47,35 +48,50 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { toast } from "sonner";
 
-interface Location {
+export interface Location {
   id: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   address: string;
+  time?: string | null;
 }
 
-interface Trip {
+export interface Trip {
   id: string;
+  date?: Date;
   locations: Location[];
 }
 
-interface DirectionInfo {
+export interface DirectionInfo {
   tripId: string;
   directions: google.maps.DirectionsResult;
   totalDistance: number; // in meters
   totalDuration: number; // in seconds
 }
 
+interface Map2Props {
+  initialTrips?: Trip[];
+  activeTabIndex?: number;
+  onTripsChange?: (trips: Trip[]) => void;
+  onDirectionsChange?: (directions: DirectionInfo[]) => void;
+  showUI?: boolean;
+  height?: string;
+  maxLocationsPerTrip?: number;
+}
+
 const SortableLocationItem = ({
   location,
   onFocus,
   onChange,
+  onTimeChange,
   inputRef,
 }: {
   location: Location;
   onFocus: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onTimeChange: (time: string) => void;
   inputRef: React.Ref<HTMLInputElement>;
 }) => {
   const {
@@ -93,30 +109,64 @@ const SortableLocationItem = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="grow flex items-center">
-      <div
-        className={`invisible group-hover:visible ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="min-w-4 min-h-4 w-4 h-4" />
+    <div ref={setNodeRef} style={style} className="grow flex flex-col gap-2">
+      {/* Location input row */}
+      <div className="flex items-center w-full">
+        <div
+          className={`invisible group-hover:visible ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="min-w-4 min-h-4 w-4 h-4" />
+        </div>
+
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder="Pilih destinasi"
+          onFocus={onFocus}
+          value={location.address}
+          onChange={onChange}
+          className="flex-1"
+        />
       </div>
 
-      <Input
-        ref={inputRef}
-        type="text"
-        placeholder="Pilih destinasi"
-        onFocus={onFocus}
-        value={location.address}
-        onChange={onChange}
-      />
+      {/* Enhanced time input row with better styling and label */}
+      <div className="ml-5">
+        <div className="flex items-center gap-1 mb-1">
+          <Clock className="h-3.5 w-3.5 text-teal-600" />
+          <span className="text-xs font-medium text-teal-700">
+            Jam Kedatangan
+          </span>
+        </div>
+        <div className="relative w-full max-w-[150px]">
+          <Input
+            type="time"
+            value={location.time || ""}
+            onChange={(e) => onTimeChange(e.target.value)}
+            className="h-8 px-3 py-1 border border-gray-200 hover:border-teal-300 focus:border-teal-500 rounded-md bg-white text-sm"
+            aria-label="Jam kedatangan ke lokasi"
+          />
+          <div className="text-[10px] text-gray-500 mt-0.5">
+            Estimasi tiba di lokasi ini
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-const Map2: NextPage = () => {
+const Map2: React.FC<Map2Props> = ({
+  initialTrips = [],
+  activeTabIndex = 0,
+  onTripsChange,
+  onDirectionsChange,
+  showUI = true,
+  height = "100dvh",
+  maxLocationsPerTrip = 10,
+}) => {
   const libraries = useMemo(() => ["places"], []);
   const mapCenter = useMemo(
     () => ({ lat: -7.966913168381078, lng: 112.63315537047333 }),
@@ -133,33 +183,37 @@ const Map2: NextPage = () => {
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: libraries as (
-      | "places"
-      | "geometry"
-      | "drawing"
-      | "visualization"
-    )[],
+    libraries: libraries as any,
   });
 
-  const [trips, setTrips] = useState<Trip[]>([
-    {
-      id: "trip-1",
-      locations: [
-        {
-          id: `loc-1-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          lat: 0,
-          lng: 0,
-          address: "",
-        },
-        {
-          id: `loc-1-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          lat: 0,
-          lng: 0,
-          address: "",
-        },
-      ],
-    },
-  ]);
+  // Generate default trips if no initial trips provided
+  const defaultTrips = useMemo(() => {
+    return [
+      {
+        id: "trip-1",
+        locations: [
+          {
+            id: `loc-1-start-${Date.now()}`,
+            lat: null,
+            lng: null,
+            address: "",
+          },
+          {
+            id: `loc-1-end-${Date.now() + 1}`,
+            lat: null,
+            lng: null,
+            address: "",
+          },
+        ],
+      },
+    ];
+  }, []);
+
+  const [trips, setTrips] = useState<Trip[]>(
+    initialTrips.length > 0 ? initialTrips : defaultTrips
+  );
+
+  const [activeTrip, setActiveTrip] = useState<number>(activeTabIndex);
   const [activeInput, setActiveInput] = useState<{
     tripIndex: number;
     locationIndex: number;
@@ -171,6 +225,12 @@ const Map2: NextPage = () => {
   const renderersRef = useRef<Map<string, google.maps.DirectionsRenderer>>(
     new Map()
   );
+  const autocompleteRefs = useRef<
+    Record<string, google.maps.places.Autocomplete | null>
+  >({});
+
+  // Track if initial data has been loaded to prevent infinite loops
+  const initialLoadDone = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -183,6 +243,35 @@ const Map2: NextPage = () => {
     })
   );
 
+  // Update activeTrip when activeTabIndex prop changes
+  useEffect(() => {
+    setActiveTrip(activeTabIndex);
+  }, [activeTabIndex]);
+
+  // Update local trips when initialTrips changes, but only if they're different
+  useEffect(() => {
+    if (initialTrips.length > 0 && !initialLoadDone.current) {
+      console.log("Setting trips from initialTrips", initialTrips);
+      setTrips(initialTrips);
+      initialLoadDone.current = true;
+    }
+  }, [initialTrips]);
+
+  // Notify parent component when trips change
+  useEffect(() => {
+    if (onTripsChange && initialLoadDone.current) {
+      onTripsChange(trips);
+    }
+  }, [trips, onTripsChange]);
+
+  // Notify parent component when directions change
+  useEffect(() => {
+    if (onDirectionsChange) {
+      onDirectionsChange(directions);
+    }
+  }, [directions, onDirectionsChange]);
+
+  // Handle map click to set location
   const handleMapClick = useCallback(
     (e: google.maps.MapMouseEvent) => {
       if (!e.latLng || activeInput === null) return;
@@ -194,6 +283,8 @@ const Map2: NextPage = () => {
           const address = results[0].formatted_address;
           setTrips((prevTrips) => {
             const updatedTrips = [...prevTrips];
+            if (!updatedTrips[activeInput.tripIndex]) return prevTrips;
+
             const updatedLocations = [
               ...updatedTrips[activeInput.tripIndex].locations,
             ];
@@ -208,48 +299,100 @@ const Map2: NextPage = () => {
           });
         } else {
           console.error("Geocode failed:", status);
+          toast.error("Gagal mendapatkan alamat lokasi");
         }
       });
     },
     [activeInput]
   );
 
+  // Initialize or reinitialize autocomplete for an input
   const initializeAutocomplete = useCallback(
     (inputElement: HTMLInputElement, tripIndex: number, locIndex: number) => {
       if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error("Google Maps Places API not loaded");
         return;
       }
 
-      const autocomplete = new google.maps.places.Autocomplete(inputElement);
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        const lat = place.geometry?.location?.lat();
-        const lng = place.geometry?.location?.lng();
+      try {
+        // Create a unique key for this input
+        const inputKey = `${tripIndex}-${locIndex}`;
 
-        if (lat && lng) {
-          setTrips((prevTrips) => {
-            const updatedTrips = [...prevTrips];
-            updatedTrips[tripIndex] = {
-              ...updatedTrips[tripIndex],
-              locations: updatedTrips[tripIndex].locations.map((loc, index) =>
-                index === locIndex
-                  ? { ...loc, lat, lng, address: place.formatted_address || "" }
-                  : loc
-              ),
-            };
-            return updatedTrips;
+        // Check if we already have an autocomplete instance for this input
+        let autocomplete = autocompleteRefs.current[inputKey];
+
+        if (!autocomplete) {
+          // Create a new autocomplete instance with the right configuration
+          autocomplete = new google.maps.places.Autocomplete(inputElement, {
+            fields: ["geometry", "formatted_address"],
+            componentRestrictions: { country: "id" }, // Restrict to Indonesia
+          });
+
+          // Store the autocomplete instance for future reference
+          autocompleteRefs.current[inputKey] = autocomplete;
+
+          // Add the place_changed event listener
+          autocomplete.addListener("place_changed", () => {
+            if (!autocomplete) return;
+
+            const place = autocomplete.getPlace();
+
+            if (!place.geometry || !place.geometry.location) {
+              toast.error("Lokasi tidak ditemukan");
+              return;
+            }
+
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            const address = place.formatted_address || "";
+
+            setTrips((prevTrips) => {
+              const updatedTrips = [...prevTrips];
+              if (!updatedTrips[tripIndex]) return prevTrips;
+
+              const updatedLocations = [...updatedTrips[tripIndex].locations];
+              if (!updatedLocations[locIndex]) return prevTrips;
+
+              updatedLocations[locIndex] = {
+                ...updatedLocations[locIndex],
+                lat,
+                lng,
+                address,
+              };
+
+              updatedTrips[tripIndex] = {
+                ...updatedTrips[tripIndex],
+                locations: updatedLocations,
+              };
+
+              return updatedTrips;
+            });
+
+            // Pan map to the selected location
+            if (mapRef.current) {
+              mapRef.current.panTo({ lat, lng });
+              mapRef.current.setZoom(15);
+            }
           });
         }
-      });
+      } catch (error) {
+        console.error("Error initializing autocomplete:", error);
+        toast.error("Gagal mengaktifkan pencarian alamat");
+      }
     },
     []
   );
 
+  // Handle input value changes
   const handleInputChange = useCallback(
     (tripIndex: number, locationIndex: number, value: string) => {
       setTrips((prevTrips) => {
         const updatedTrips = [...prevTrips];
+        if (!updatedTrips[tripIndex]) return prevTrips;
+
         const updatedLocations = [...updatedTrips[tripIndex].locations];
+        if (!updatedLocations[locationIndex]) return prevTrips;
+
         updatedLocations[locationIndex] = {
           ...updatedLocations[locationIndex],
           address: value,
@@ -261,6 +404,27 @@ const Map2: NextPage = () => {
     []
   );
 
+  const handleTimeChange = useCallback(
+    (tripIndex: number, locationIndex: number, time: string) => {
+      setTrips((prevTrips) => {
+        const updatedTrips = [...prevTrips];
+        if (!updatedTrips[tripIndex]) return prevTrips;
+
+        const updatedLocations = [...updatedTrips[tripIndex].locations];
+        if (!updatedLocations[locationIndex]) return prevTrips;
+
+        updatedLocations[locationIndex] = {
+          ...updatedLocations[locationIndex],
+          time,
+        };
+        updatedTrips[tripIndex].locations = updatedLocations;
+        return updatedTrips;
+      });
+    },
+    []
+  );
+
+  // Handle drag end event for locations
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -293,33 +457,63 @@ const Map2: NextPage = () => {
     });
   }, []);
 
-  const handleAddLocation = useCallback((tripIndex: number) => {
-    setTrips((prevTrips) => {
-      const updatedTrips = [...prevTrips];
-      const trip = updatedTrips[tripIndex];
-      const uniqueSuffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const newId = `loc-${tripIndex + 1}-${uniqueSuffix}`;
+  // Handle adding a new location to a trip
+  const handleAddLocation = useCallback(
+    (tripIndex: number) => {
+      setTrips((prevTrips) => {
+        const updatedTrips = [...prevTrips];
+        if (!updatedTrips[tripIndex]) return prevTrips;
 
-      updatedTrips[tripIndex] = {
-        ...trip,
-        locations: [
-          ...trip.locations,
-          { id: newId, lat: 0, lng: 0, address: "" },
-        ],
-      };
+        const trip = updatedTrips[tripIndex];
 
-      return updatedTrips;
-    });
-  }, []);
+        // Check max destinations limit
+        if (
+          maxLocationsPerTrip &&
+          trip.locations.length >= maxLocationsPerTrip
+        ) {
+          toast.error(
+            `Maksimal ${maxLocationsPerTrip} destinasi per perjalanan`
+          );
+          return prevTrips;
+        }
 
+        // Generate unique ID for the new location
+        const uniqueSuffix = `${Date.now()}-${Math.floor(
+          Math.random() * 1000
+        )}`;
+        const newId = `loc-${tripIndex + 1}-${uniqueSuffix}`;
+
+        // Add the new location
+        updatedTrips[tripIndex] = {
+          ...trip,
+          locations: [
+            ...trip.locations,
+            { id: newId, lat: null, lng: null, address: "" },
+          ],
+        };
+
+        return updatedTrips;
+      });
+    },
+    [maxLocationsPerTrip]
+  );
+
+  // Handle removing a location from a trip
   const handleRemoveLocation = useCallback(
     (tripIndex: number, locationIndex: number) => {
       setTrips((prevTrips) => {
         const updatedTrips = [...prevTrips];
+        if (!updatedTrips[tripIndex]) return prevTrips;
+
         const trip = updatedTrips[tripIndex];
 
-        if (trip.locations.length <= 2) return prevTrips;
+        // Don't allow fewer than 2 locations
+        if (trip.locations.length <= 2) {
+          toast.error("Minimal 2 destinasi per perjalanan");
+          return prevTrips;
+        }
 
+        // Remove the location
         const newLocations = trip.locations.filter(
           (_, index) => index !== locationIndex
         );
@@ -335,29 +529,28 @@ const Map2: NextPage = () => {
     []
   );
 
+  // Handle adding a new trip
   const handleAddTrip = useCallback(() => {
     setTrips((prevTrips) => {
       const newTripId = `trip-${prevTrips.length + 1}`;
+      const timestamp = Date.now();
 
+      // Create a new trip with 2 empty locations by default
       return [
         ...prevTrips,
         {
           id: newTripId,
           locations: [
             {
-              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(
-                Math.random() * 1000
-              )}`,
-              lat: 0,
-              lng: 0,
+              id: `loc-${prevTrips.length + 1}-start-${timestamp}`,
+              lat: null,
+              lng: null,
               address: "",
             },
             {
-              id: `loc-${prevTrips.length + 1}-${Date.now()}-${Math.floor(
-                Math.random() * 1000
-              )}`,
-              lat: 0,
-              lng: 0,
+              id: `loc-${prevTrips.length + 1}-end-${timestamp + 1}`,
+              lat: null,
+              lng: null,
               address: "",
             },
           ],
@@ -366,10 +559,15 @@ const Map2: NextPage = () => {
     });
   }, []);
 
+  // Handle deleting a trip
   const handleDeleteTrip = useCallback((tripIndex: number) => {
-    setTrips((prevTrips) =>
-      prevTrips.filter((_, index) => index !== tripIndex)
-    );
+    setTrips((prevTrips) => {
+      if (prevTrips.length <= 1) {
+        toast.error("Minimal 1 perjalanan diperlukan");
+        return prevTrips;
+      }
+      return prevTrips.filter((_, index) => index !== tripIndex);
+    });
   }, []);
 
   // Debounce function to limit route calculation frequency
@@ -405,25 +603,34 @@ const Map2: NextPage = () => {
 
     const directionsService = new google.maps.DirectionsService();
 
+    // Hide all existing renderers
+    renderersRef.current.forEach((renderer) => {
+      renderer.setMap(null);
+    });
+
     const calculateRoutes = debounce(async () => {
       const newDirections: DirectionInfo[] = [];
 
-      for (const trip of trips) {
+      // When using in Step2, only calculate for the active trip
+      const tripsToCalculate = onTripsChange ? [trips[activeTrip]] : trips;
+
+      for (const trip of tripsToCalculate) {
+        if (!trip) continue; // Skip if trip is undefined
+
         const validLocations = trip.locations.filter(
-          (loc) => loc.lat !== 0 && loc.lng !== 0
+          (loc) => loc.lat !== null && loc.lng !== null
         );
 
         if (validLocations.length < 2) {
           const renderer = renderersRef.current.get(trip.id);
           if (renderer) {
             renderer.setMap(null);
-            renderersRef.current.delete(trip.id);
           }
           continue;
         }
 
         const waypoints = validLocations.slice(1, -1).map((loc) => ({
-          location: { lat: loc.lat, lng: loc.lng },
+          location: { lat: loc.lat!, lng: loc.lng! },
           stopover: true,
         }));
 
@@ -433,15 +640,16 @@ const Map2: NextPage = () => {
               directionsService.route(
                 {
                   origin: {
-                    lat: validLocations[0].lat,
-                    lng: validLocations[0].lng,
+                    lat: validLocations[0].lat!,
+                    lng: validLocations[0].lng!,
                   },
                   destination: {
-                    lat: validLocations[validLocations.length - 1].lat,
-                    lng: validLocations[validLocations.length - 1].lng,
+                    lat: validLocations[validLocations.length - 1].lat!,
+                    lng: validLocations[validLocations.length - 1].lng!,
                   },
                   waypoints,
                   travelMode: google.maps.TravelMode.DRIVING,
+                  optimizeWaypoints: false, // Don't optimize to maintain user order
                 },
                 (result, status) => {
                   if (status === google.maps.DirectionsStatus.OK && result) {
@@ -462,6 +670,7 @@ const Map2: NextPage = () => {
             totalDuration += leg.duration?.value || 0;
           });
 
+          // Add this trip's directions to our collection
           newDirections.push({
             tripId: trip.id,
             directions: result,
@@ -469,15 +678,26 @@ const Map2: NextPage = () => {
             totalDuration,
           });
 
+          // Get or create a renderer for this trip
           let renderer = renderersRef.current.get(trip.id);
           if (!renderer) {
             renderer = new google.maps.DirectionsRenderer({
-              map: mapRef.current,
               suppressMarkers: true,
+              preserveViewport: true, // Don't change the map view when setting directions
             });
             renderersRef.current.set(trip.id, renderer);
           }
-          renderer.setDirections(result);
+
+          // Only show renderer for the current trip or all trips if not in Step2
+          if (
+            (onTripsChange && trips[activeTrip]?.id === trip.id) ||
+            !onTripsChange
+          ) {
+            renderer.setMap(mapRef.current);
+            renderer.setDirections(result);
+          } else {
+            renderer.setMap(null);
+          }
         } catch (error) {
           console.error(
             `Failed to calculate route for trip ${trip.id}:`,
@@ -486,257 +706,320 @@ const Map2: NextPage = () => {
         }
       }
 
-      // Clean up renderers for removed trips
-      for (const tripId of renderersRef.current.keys()) {
-        if (!trips.some((t) => t.id === tripId)) {
-          const renderer = renderersRef.current.get(tripId);
-          if (renderer) {
-            renderer.setMap(null);
-            renderersRef.current.delete(tripId);
+      // Add all previous directions that we're not recalculating (to maintain state)
+      if (onTripsChange) {
+        const currentTripId = trips[activeTrip]?.id;
+
+        // Keep existing directions for other trips that we're not currently displaying
+        // This ensures we don't lose directions for other trips
+        directions.forEach((dir) => {
+          if (
+            dir.tripId !== currentTripId &&
+            !newDirections.some((nd) => nd.tripId === dir.tripId)
+          ) {
+            newDirections.push(dir);
           }
-        }
+        });
       }
 
-      setDirections(newDirections);
+      // Update directions state without causing a re-render loop
+      if (JSON.stringify(newDirections) !== JSON.stringify(directions)) {
+        setDirections(newDirections);
+      }
     }, 500); // Debounce for 500ms
 
     calculateRoutes();
 
     return () => {
-      renderersRef.current.forEach((renderer) => renderer.setMap(null));
-      renderersRef.current.clear();
+      // Clean up on effect cleanup (component unmount or deps change)
+      renderersRef.current.forEach((renderer) => {
+        if (renderer) renderer.setMap(null);
+      });
     };
-  }, [trips, isLoaded]);
+  }, [trips, activeTrip, isLoaded, onTripsChange]);
 
+  // Initialize autocomplete when input is focused
   useEffect(() => {
     if (activeInput && isLoaded) {
-      const inputElement =
-        inputRefs.current[
-          `${activeInput.tripIndex}-${activeInput.locationIndex}`
-        ];
+      const inputKey = `${activeInput.tripIndex}-${activeInput.locationIndex}`;
+      const inputElement = inputRefs.current[inputKey];
+
       if (inputElement) {
         initializeAutocomplete(
           inputElement,
           activeInput.tripIndex,
           activeInput.locationIndex
         );
+
+        // Focus the input element
+        inputElement.focus();
       }
     }
   }, [activeInput, initializeAutocomplete, isLoaded]);
 
-  // Memoize DirectionsRenderer components to prevent unnecessary re-renders
-  const directionsRenderers = useMemo(
-    () =>
-      directions.map(({ tripId, directions }) => (
-        <DirectionsRenderer
-          key={tripId}
-          directions={directions}
-          options={{ suppressMarkers: true }}
-        />
-      )),
-    [directions]
-  );
+  // Get currently active trip to display markers
+  const currentTripToShow = onTripsChange ? trips[activeTrip] : null;
 
-  if (!isLoaded) return <p>Loading...</p>;
+  if (!isLoaded) return <p>Loading Google Maps...</p>;
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ height }}>
       <GoogleMap
         options={mapOptions}
         zoom={12}
         center={mapCenter}
-        mapContainerStyle={{ width: "100%", height: "100dvh" }}
+        mapContainerStyle={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
         onLoad={(map) => {
           mapRef.current = map;
         }}
       >
-        {trips.map((trip, tripIndex) =>
-          trip.locations.map(
-            (location, locIndex) =>
-              location.lat !== 0 &&
-              location.lng !== 0 && (
-                <Marker
-                  key={`${tripIndex}-${locIndex}`}
-                  position={{ lat: location.lat, lng: location.lng }}
-                  label={`${locIndex + 1}`}
-                  onClick={() => {
-                    setActiveInput({ tripIndex, locationIndex: locIndex });
-                  }}
-                />
+        {/* Show markers only for the active trip when using in Step2 */}
+        {onTripsChange
+          ? // When in Step2, only show markers for active trip
+            currentTripToShow &&
+            currentTripToShow.locations.map(
+              (location, locIndex) =>
+                location.lat !== null &&
+                location.lng !== null && (
+                  <Marker
+                    key={`active-${locIndex}`}
+                    position={{ lat: location.lat, lng: location.lng }}
+                    label={`${locIndex + 1}`}
+                    onClick={() => {
+                      setActiveInput({
+                        tripIndex: activeTrip,
+                        locationIndex: locIndex,
+                      });
+                    }}
+                  />
+                )
+            )
+          : // When not in Step2, show all trips' markers
+            trips.map((trip, tripIndex) =>
+              trip.locations.map(
+                (location, locIndex) =>
+                  location.lat !== null &&
+                  location.lng !== null && (
+                    <Marker
+                      key={`${tripIndex}-${locIndex}`}
+                      position={{ lat: location.lat, lng: location.lng }}
+                      label={`${locIndex + 1}`}
+                      onClick={() => {
+                        setActiveInput({ tripIndex, locationIndex: locIndex });
+                      }}
+                    />
+                  )
               )
-          )
-        )}
-        {directionsRenderers}
+            )}
       </GoogleMap>
 
-      <div className="absolute top-4 left-4 z-10 max-w-sm">
-        <div className="bg-white rounded-xl shadow-lg pb-4">
-          <div className="pt-4 px-6">
-            <div className="text-lg font-semibold">Inisiasi perjalanan</div>
-            <p className="text-xs text-muted-foreground">
-              Klik input lalu pilih lokasi di peta atau ketik manual. Tarik &
-              lepas untuk mengubah urutan.
-            </p>
-          </div>
+      {showUI && (
+        <div className="absolute top-4 left-4 z-10 max-w-sm">
+          <div
+            className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"
+            style={{ maxHeight: `calc(${height} - 32px)` }}
+          >
+            <div className="pt-4 px-6 flex-shrink-0">
+              <div className="text-lg font-semibold">Inisiasi perjalanan</div>
+              <p className="text-xs text-muted-foreground">
+                Klik input lalu pilih lokasi di peta atau ketik manual. Tarik &
+                lepas untuk mengubah urutan.
+              </p>
+            </div>
 
-          <div className="flex flex-col gap-y-0.5 px-2 mt-2">
-            <Accordion type="single" collapsible className="gap-y-2 w-full">
-              {trips.map((trip, tripIndex) => {
-                const tripDirections = directions.find(
-                  (d) => d.tripId === trip.id
-                );
-                return (
-                  <AccordionItem key={trip.id} value={`item-${tripIndex}`}>
-                    <AccordionTrigger className="items-center px-4 hover:[box-shadow:rgba(99,_99,_99,_0.2)_0px_2px_8px_0px] rounded-2xl">
-                      <div>
-                        <small className="text-sm font-medium leading-none">
-                          Trip {tripIndex + 1}
-                        </small>
-                        <p className="text-xs text-muted-foreground">
-                          {
-                            trip.locations.filter(
-                              (loc) => loc.lat !== 0 && loc.lng !== 0
-                            ).length
-                          }{" "}
-                          dari {trip.locations.length} destinasi dipilih
-                        </p>
-                        {tripDirections && (
+            <div className="flex-1 overflow-y-auto px-2 mt-2">
+              <Accordion
+                type="single"
+                collapsible
+                defaultValue="item-0"
+                className="gap-y-2 w-full"
+              >
+                {trips.map((trip, tripIndex) => {
+                  const tripDirections = directions.find(
+                    (d) => d.tripId === trip.id
+                  );
+
+                  // Only show the active trip's panel when used in Step2
+                  if (onTripsChange && tripIndex !== activeTrip) {
+                    return null;
+                  }
+
+                  return (
+                    <AccordionItem
+                      key={trip.id}
+                      value={`item-${tripIndex}`}
+                      className="border-b-0"
+                    >
+                      <AccordionTrigger className="items-center px-4 hover:[box-shadow:rgba(99,_99,_99,_0.2)_0px_2px_8px_0px] rounded-2xl">
+                        <div>
+                          <small className="text-sm font-medium leading-none">
+                            Trip {tripIndex + 1}
+                            {trip.date &&
+                              ` - ${trip.date.toLocaleDateString()}`}
+                          </small>
                           <p className="text-xs text-muted-foreground">
-                            Jarak:{" "}
-                            {formatDistance(tripDirections.totalDistance)} |
-                            Waktu:{" "}
-                            {formatDuration(tripDirections.totalDuration)}
+                            {
+                              trip.locations.filter(
+                                (loc) => loc.lat !== null && loc.lng !== null
+                              ).length
+                            }{" "}
+                            dari {trip.locations.length} destinasi dipilih
                           </p>
+                          {tripDirections && (
+                            <p className="text-xs text-muted-foreground">
+                              Jarak:{" "}
+                              {formatDistance(tripDirections.totalDistance)} |
+                              Waktu:{" "}
+                              {formatDuration(tripDirections.totalDuration)}
+                            </p>
+                          )}
+                        </div>
+
+                        {!onTripsChange && (
+                          <div
+                            title="Hapus trip"
+                            className="p-2 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTrip(tripIndex);
+                            }}
+                          >
+                            <Trash className="w-4 h-4" color="#DC2626" />
+                          </div>
                         )}
-                      </div>
-
-                      <div
-                        title="Hapus trip"
-                        className="p-2 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTrip(tripIndex);
-                        }}
-                      >
-                        <Trash className="w-4 h-4" color="#DC2626" />
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="py-1.5 px-4">
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                        modifiers={[restrictToVerticalAxis]}
-                      >
-                        <SortableContext
-                          items={trip.locations.map((loc) => loc.id)}
-                          strategy={verticalListSortingStrategy}
+                      </AccordionTrigger>
+                      <AccordionContent className="py-1.5 px-4 overflow-visible">
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handleDragEnd}
+                          modifiers={[restrictToVerticalAxis]}
                         >
-                          {trip.locations.map((location, locationIndex) => (
-                            <React.Fragment key={locationIndex}>
-                              <div className="flex items-center w-full group">
-                                {locationIndex === 0 ? (
-                                  <MapPin
-                                    color="#DC362E"
-                                    className="min-w-4 min-h-4 w-4 h-4"
-                                  />
-                                ) : locationIndex ===
-                                  trip?.locations.length - 1 ? (
-                                  <Flag
-                                    color="#DC362E"
-                                    className="min-w-4 min-h-4 w-4 h-4"
-                                  />
-                                ) : (
-                                  <span className="min-w-4 min-h-4 w-4 h-4 text-[10px] text-center font-medium border border-black rounded-full">
-                                    {locationIndex}
-                                  </span>
-                                )}
-
-                                <SortableLocationItem
-                                  key={location.id}
-                                  location={location}
-                                  onFocus={() =>
-                                    setActiveInput({
-                                      tripIndex,
-                                      locationIndex,
-                                    })
-                                  }
-                                  onChange={(e) =>
-                                    handleInputChange(
-                                      tripIndex,
-                                      locationIndex,
-                                      e.target.value
-                                    )
-                                  }
-                                  inputRef={(el) => {
-                                    inputRefs.current[
-                                      `${tripIndex}-${locationIndex}`
-                                    ] = el;
-                                  }}
-                                />
-
-                                {trip.locations.length > 2 && (
-                                  <button
-                                    title="Hapus lokasi"
-                                    className="pl-2 py-2 cursor-pointer"
-                                    onClick={() =>
-                                      handleRemoveLocation(
+                          <SortableContext
+                            items={trip.locations.map((loc) => loc.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {trip.locations.map((location, locationIndex) => (
+                              <React.Fragment key={location.id}>
+                                <div className="flex items-center w-full group mb-4">
+                                  {" "}
+                                  {/* Increased margin-bottom */}
+                                  {locationIndex === 0 ? (
+                                    <MapPin
+                                      color="#DC362E"
+                                      className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
+                                    />
+                                  ) : locationIndex ===
+                                    trip.locations.length - 1 ? (
+                                    <Flag
+                                      color="#DC362E"
+                                      className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
+                                    />
+                                  ) : (
+                                    <span className="min-w-4 min-h-4 w-4 h-4 text-[10px] text-center font-medium border border-black rounded-full mr-1 self-start mt-2">
+                                      {" "}
+                                      {/* Added self-start alignment */}
+                                      {locationIndex}
+                                    </span>
+                                  )}
+                                  <SortableLocationItem
+                                    key={location.id}
+                                    location={location}
+                                    onFocus={() =>
+                                      setActiveInput({
                                         tripIndex,
-                                        locationIndex
+                                        locationIndex,
+                                      })
+                                    }
+                                    onChange={(e) =>
+                                      handleInputChange(
+                                        tripIndex,
+                                        locationIndex,
+                                        e.target.value
                                       )
                                     }
-                                  >
-                                    <Trash
-                                      className="w-4 h-4"
-                                      color="#DC2626"
-                                    />
-                                  </button>
-                                )}
-                              </div>
-
-                              {locationIndex !== trip?.locations.length - 1 && (
-                                <div className="mr-auto">
-                                  <EllipsisVertical
-                                    strokeWidth={1}
-                                    className="min-w-4 min-h-4 w-4 h-4"
+                                    onTimeChange={(time) =>
+                                      handleTimeChange(
+                                        tripIndex,
+                                        locationIndex,
+                                        time
+                                      )
+                                    }
+                                    inputRef={(el) => {
+                                      inputRefs.current[
+                                        `${tripIndex}-${locationIndex}`
+                                      ] = el;
+                                    }}
                                   />
+                                  {trip.locations.length > 2 && (
+                                    <button
+                                      title="Hapus lokasi"
+                                      className="pl-2 py-2 cursor-pointer self-start mt-2" // Added self-start alignment
+                                      onClick={() =>
+                                        handleRemoveLocation(
+                                          tripIndex,
+                                          locationIndex
+                                        )
+                                      }
+                                    >
+                                      <Trash
+                                        className="w-4 h-4"
+                                        color="#DC2626"
+                                      />
+                                    </button>
+                                  )}
                                 </div>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </SortableContext>
-                      </DndContext>
 
-                      <div className="flex gap-2 mt-4">
-                        <Button
-                          disabled={trip.locations.length >= 10}
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAddLocation(tripIndex)}
-                          className="flex-1"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Tambah destinasi
-                        </Button>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
+                                {locationIndex !==
+                                  trip.locations.length - 1 && (
+                                  <div className="mr-auto mb-2">
+                                    <EllipsisVertical
+                                      strokeWidth={1}
+                                      className="min-w-4 min-h-4 w-4 h-4"
+                                    />
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </SortableContext>
+                        </DndContext>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </div>
 
-            <Button
-              onClick={handleAddTrip}
-              variant="outline"
-              className="mt-4 mx-4"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Tambah perjalanan
-            </Button>
+            <div className="p-4 bg-white border-t flex-shrink-0">
+              {!onTripsChange ? (
+                <Button
+                  onClick={handleAddTrip}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Tambah perjalanan
+                </Button>
+              ) : (
+                <Button
+                  disabled={
+                    !!maxLocationsPerTrip &&
+                    trips[activeTrip]?.locations.length >= maxLocationsPerTrip
+                  }
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAddLocation(activeTrip)}
+                  className="w-full"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Tambah destinasi
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

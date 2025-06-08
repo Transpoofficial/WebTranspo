@@ -6,6 +6,7 @@ import { BusFront } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
+import OrderButton from "./order-button";
 
 const Hiace = () => {
   const [activeTab, setActiveTab] = useState("commuter");
@@ -93,12 +94,7 @@ const Hiace = () => {
                 </TabsContent>
               </Tabs>
 
-              <Button
-                size="lg"
-                className="py-8 px-8 text-xl w-min text-[#0897B1] bg-white hover:bg-gray-100 shadow-lg"
-              >
-                Pesan sekarang
-              </Button>
+              <OrderButton content={`hiace-${activeTab}`} type="TRANSPORT" />
             </div>
           </div>
         </CardContent>
