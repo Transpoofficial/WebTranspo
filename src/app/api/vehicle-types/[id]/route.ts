@@ -38,8 +38,8 @@ export const PUT = async (
     await checkAuth(req);
     const { id } = await params;
     const body = await req.json();
-    const { name } = body;
-    if (!name) {
+    const { name, pricePerKm } = body;
+    if (!name || !pricePerKm) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
@@ -66,7 +66,7 @@ export const PUT = async (
     }
     const updatedVehicleType = await prisma.vehicleType.update({
       where: { id: id },
-      data: { name },
+      data: { name, pricePerKm },
     });
     return NextResponse.json(
       {

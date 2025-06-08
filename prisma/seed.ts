@@ -30,6 +30,24 @@ async function main() {
     },
   ];
 
+  // Seed vehicle types
+  const vehicleTypes = [
+    { name: "Angkot" },
+    { name: "Hiace Commuter" },
+    { name: "Hiace Premio" },
+    { name: "ELF" },
+  ];
+
+  for (const vehicleType of vehicleTypes) {
+    await prisma.vehicleType.upsert({
+      where: { name: vehicleType.name },
+      update: {},
+      create: {
+        name: vehicleType.name,
+      },
+    });
+  }
+
   for (const user of users) {
     await prisma.user.upsert({
       where: { email: user.email },
