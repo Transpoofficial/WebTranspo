@@ -147,6 +147,7 @@ model Vehicle {
 model VehicleType {
   id                      String              @id @default(cuid())
   name                    String
+  pricePerKm              Decimal             @db.Decimal(10, 2)
   vehicles                Vehicle[]
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt

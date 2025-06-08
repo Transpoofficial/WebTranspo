@@ -41,7 +41,7 @@ export const POST = async (req: NextRequest) => {
   try {
     await checkAuth(req);
     const body = await req.json();
-    const { name } = body;
+    const { name, pricePerKm } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -63,6 +63,7 @@ export const POST = async (req: NextRequest) => {
     const vehicleType = await prisma.vehicleType.create({
       data: {
         name,
+        pricePerKm: parseFloat(pricePerKm)
       },
     });
     return NextResponse.json(
