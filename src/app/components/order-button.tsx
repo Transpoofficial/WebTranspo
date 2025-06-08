@@ -12,10 +12,11 @@ interface OrderButtonProps {
 const OrderButton: FC<OrderButtonProps> = ({ content, type }) => {
   const router = useRouter();
   const handleOrderClick = () => {
+    const encodedContent = encodeURIComponent(content);
     if (type === "TRANSPORT") {
-      router.push(`/order/transport/${content}`);
+      router.push(`/order/transport/${encodedContent}`);
     } else if (type === "TOUR_PACKAGE") {
-      router.push(`/order/tour-package/${content}`);
+      router.push(`/order/tour-package/${encodedContent}`);
     }
   };
   return (

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BusFront } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import OrderButton from "./order-button";
@@ -94,7 +93,7 @@ const Hiace = () => {
                 </TabsContent>
               </Tabs>
 
-              <OrderButton content={`hiace-${activeTab}`} type="TRANSPORT" />
+              <OrderButton content={`hiace ${activeTab}`} type="TRANSPORT" />
             </div>
           </div>
         </CardContent>

@@ -58,7 +58,11 @@ const getStartDate = (vehicleName: string) => {
 const OrderTransportPage = () => {
   const params = useParams();
 
-  const vehicleName = params.vehicleName;
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  );
   const startDate = getStartDate(vehicleName as string);
 
   const router = useRouter();
@@ -90,11 +94,12 @@ const OrderTransportPage = () => {
     id: string;
     amount: number;
   } | null>(null);
+  console.log({ vehicleName });
 
   const isValidVehicleName = [
     "angkot",
-    "hiace-commuter",
-    "hiace-premio",
+    "hiace commuter",
+    "hiace premio",
     "elf",
   ].includes(vehicleName as string);
 
