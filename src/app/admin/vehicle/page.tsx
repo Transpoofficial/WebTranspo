@@ -14,11 +14,11 @@ const Vehicle = () => {
 
   return (
     <>
-      <h2 className="text-3xl font-bold tracking-tight first:mt-0">
+      <h1 className="text-2xl font-bold tracking-tight">
         Kendaraan
-      </h2>
+      </h1>
 
-      <div className="flex justify-end mt-4 mb-1">
+      <div className="my-4">
         <Button
           onClick={handleOpenVehicleTypeCreateDialog}
           className="cursor-pointer"

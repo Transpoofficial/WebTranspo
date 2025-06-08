@@ -14,7 +14,6 @@ import {
   MapPinned,
   Phone,
   Quote,
-  TreePalm,
   UsersRound,
 } from "lucide-react";
 import {
@@ -37,7 +36,6 @@ import { Hurricane } from "next/font/google";
 import Transportation from "./components/transportation";
 import Hiace from "./components/hiace";
 import Elf from "./components/elf";
-import TourPackages from "./components/tour_packages";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useRef } from "react";
 
@@ -157,15 +155,6 @@ const Home = () => {
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="paket_wisata"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
-                >
-                  <TreePalm className="!w-8 !h-8" />
-                  <span className="font-bold uppercase text-base">
-                    Paket wisata
-                  </span>
-                </TabsTrigger>
               </TabsList>
               <TabsContent value="angkot">
                 <Transportation />
@@ -175,9 +164,6 @@ const Home = () => {
               </TabsContent>
               <TabsContent value="elf">
                 <Elf />
-              </TabsContent>
-              <TabsContent value="paket_wisata">
-                <TourPackages />
               </TabsContent>
             </Tabs>
           </div>

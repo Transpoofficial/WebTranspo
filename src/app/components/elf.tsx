@@ -1,11 +1,8 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Bus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import OrderButton from "./order-button";
 
 const Elf = () => {
   return (
@@ -35,15 +32,24 @@ const Elf = () => {
                 </p>
                 <ul className="mt-1 mb-6 ml-6 list-disc text-base md:text-xl text-white">
                   <li>Muat hingga 19 orang, cocok untuk rombongan.</li>
-                  <li>Harga sewa ekonomis untuk ukuran mobil besar, mulai dari 1.200.000 per hari.</li>
+                  <li>
+                    Harga sewa ekonomis untuk ukuran mobil besar, mulai dari
+                    1.200.000 per hari.
+                  </li>
                   <li>Ideal untuk perjalanan ke luar kota dan provinsi.</li>
-                  <li>Dilengkapi musik, mic untuk karaoke seru-seruan, AC yang dingin, dan free air mineral.</li>
-                  <li>Fleksibel dan nyaman untuk mengunjungi banyak destinasi sekaligus dengan jarak yang jauh.</li>
+                  <li>
+                    Dilengkapi musik, mic untuk karaoke seru-seruan, AC yang
+                    dingin, dan free air mineral.
+                  </li>
+                  <li>
+                    Fleksibel dan nyaman untuk mengunjungi banyak destinasi
+                    sekaligus dengan jarak yang jauh.
+                  </li>
                   <li>Cocok untuk perjalanan jauh dalam waktu yang lama.</li>
                 </ul>
               </div>
 
-              <Button size="lg" className="py-8 px-8 text-xl w-min text-[#0897B1] bg-white hover:bg-gray-100 shadow-lg">Pesan sekarang</Button>
+              <OrderButton content="elf" type="TRANSPORT" />
             </div>
           </div>
         </CardContent>
