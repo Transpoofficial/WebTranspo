@@ -48,7 +48,7 @@ export const POST = async (
 
     // Use the uploadFiles utility to upload to Supabase
     const uploadResult = await uploadFiles(
-      "transpo", // bucket name - update this to match your bucket name
+      process.env.SUPABASE_BUCKET || "",
       [proofImage],
       "payment-proofs" // directory for payment proofs
     );
