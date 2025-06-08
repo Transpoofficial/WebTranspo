@@ -281,25 +281,6 @@ const OrderTransportPage = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center">
-          <div className="bg-transpo-primary p-2 rounded-full">
-            <div className="text-white font-bold">TRANSPO</div>
-          </div>
-        </div>
-        <div className="flex space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/orders")}
-          >
-            Pesanan Saya
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/profile")}>
-            Profil
-          </Button>
-        </div>
-      </div>
-
       {/* Progress steps */}
       <div className="flex justify-center mb-12">
         <div className="flex items-center">
