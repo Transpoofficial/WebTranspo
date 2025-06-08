@@ -10,9 +10,9 @@ import {
   Newspaper,
   TreePalm,
   User,
-} from "lucide-react";
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
+} from "lucide-react"
+import { NavMain } from "@/components/nav-main"
+import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
