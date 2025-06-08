@@ -17,17 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
 
 interface Step3Props {
   orderData: OrderData;
   setOrderData?: React.Dispatch<React.SetStateAction<any>>;
-  onContinue: (paymentData?: { id: string; amount: number }) => void; // Modified to accept payment data
+  onContinue: (paymentData?: { id: string; amount: number }) => void;
   onBack: () => void;
 }
 
-const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
-  const router = useRouter();
+const PAYMENT_ID_KEY = "transpo_payment_id";
+// const PAYMENT_AMOUNT_KEY = "transpo_payment_amount";
+
+const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
@@ -101,7 +102,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         "vehicleCount",
         orderData.userData.totalVehicles.toString()
       );
-      formData.append("roundTrip", "false"); // Assuming one-way trip by default
+      formData.append("roundTrip", "false");
       formData.append("vehicleTypeId", orderData.vehicleTypeId);
       formData.append("totalDistance", orderData.totalDistance.toString());
 
@@ -174,6 +175,11 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         // Extract payment info from response
         const paymentData = response.data.data.payment;
 
+        // Save ONLY payment ID in localStorage (not amount for security)
+        if (typeof window !== "undefined") {
+          localStorage.setItem(PAYMENT_ID_KEY, paymentData.id);
+        }
+
         // Move to the next step with payment data
         onContinue({
           id: paymentData.id,
@@ -196,156 +202,204 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
 
   return (
     <>
-      <Card className="mx-auto max-w-4xl shadow-sm border-gray-100">
-        {/* Card content remains the same */}
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-gray-700 font-medium">
-            Detail Pesanan
+      <Card
+        className="mx-auto max-w-4xl shadow-lg border-0 text-gray-600"
+        style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
+      >
+        <CardHeader className="text-center rounded-t-lg">
+          <CardTitle className="text-2xl font-semibold">
+            DETAIL PESANAN
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="p-6 space-y-8">
           {/* Customer Details */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-              <span className="text-gray-700">Nama</span>
-              <span className="font-medium">: {orderData.userData.name}</span>
+          <div className="space-y-4">
+            <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
+              Informasi Pemesan
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+              <div className="space-y-1">
+                <div className="text-gray-500 text-sm">Nama</div>
+                <div className="font-medium">{orderData.userData.name}</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-gray-500 text-sm">No Telepon</div>
+                <div className="font-medium">{orderData.userData.phone}</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-gray-500 text-sm">Jumlah Penumpang</div>
+                <div className="font-medium">
+                  {orderData.userData.totalPassangers}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-gray-500 text-sm">Jumlah Armada</div>
+                <div className="font-medium">
+                  {orderData.userData.totalVehicles}
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-              <span className="text-gray-700">No Telepon</span>
-              <span className="font-medium">: {orderData.userData.phone}</span>
-            </div>
-
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-              <span className="text-gray-700">Jumlah Penumpang</span>
-              <span className="font-medium">
-                : {orderData.userData.totalPassangers}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-              <span className="text-gray-700">Jumlah Armada</span>
-              <span className="font-medium">
-                : {orderData.userData.totalVehicles}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-baseline">
-              <span className="text-gray-700">Tanggal Pesanan</span>
-              <span className="font-medium">
-                <ul className="list-disc ml-5 space-y-1">
+            <div className="space-y-1">
+              <div className="text-gray-500 text-sm">Tanggal Pesanan</div>
+              <div className="font-medium">
+                <ul className="list-disc pl-5 space-y-1">
                   {Object.values(tripsByDate).map((item: any) => (
                     <li key={format(item.date, "yyyy-MM-dd")}>
                       {formatLocalizedDate(item.date)}
                     </li>
                   ))}
                 </ul>
-              </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
-              <span className="text-gray-700">Total Biaya Pesanan</span>
-              <span className="font-medium text-teal-600">
-                : {formatRupiah(displayPrice)}
-              </span>
+            <div className="space-y-1 mt-2">
+              <div className="text-gray-500 text-sm">Total Biaya Pesanan</div>
+              <div className="font-semibold text-lg text-transpo-primary">
+                {formatRupiah(displayPrice)}
+              </div>
             </div>
           </div>
 
           {/* Journey Details */}
-          <div className="grid grid-cols-[120px_1fr] gap-2 items-baseline mt-4">
-            <span className="text-gray-700">Detail Perjalanan</span>
-            <div className="space-y-6">
-              {Object.values(tripsByDate).map((item: any) => (
-                <div
-                  key={format(item.date, "yyyy-MM-dd")}
-                  className="space-y-4 border-b pb-4 last:border-b-0"
-                >
-                  <h3 className="font-medium text-lg text-teal-700">
-                    {formatLocalizedDate(item.date)}
-                  </h3>
+          <div className="space-y-6">
+            <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
+              Detail Perjalanan
+            </h3>
 
-                  {item.trips.map((trip: any, tripIndex: number) => (
-                    <div key={tripIndex} className="ml-2 space-y-4">
-                      <div className="text-sm text-gray-500 flex items-center gap-2 mb-2">
-                        <Clock size={15} />
-                        <span>Jadwal Perjalanan #{tripIndex + 1}</span>
-                      </div>
+            <div className="space-y-8">
+              {Object.values(tripsByDate).map(
+                (item: any, dateIndex: number) => (
+                  <div
+                    key={format(item.date, "yyyy-MM-dd")}
+                    className="space-y-4"
+                  >
+                    <div className="bg-gray-50 p-3 rounded-md border-l-4 border-transpo-primary">
+                      <h3 className="font-medium text-transpo-primary-dark">
+                        {formatLocalizedDate(item.date)}
+                      </h3>
+                    </div>
 
-                      <div className="space-y-3 ml-2 border-l-2 border-gray-200 pl-4">
-                        {trip.location.map(
-                          (loc: any, locIndex: number) =>
-                            loc.address && (
-                              <div
-                                key={locIndex}
-                                className="flex items-start space-x-3"
-                              >
+                    {item.trips.map((trip: any, tripIndex: number) => (
+                      <div key={tripIndex} className="ml-2 space-y-4">
+                        <div className="ml-4 space-y-6">
+                          {trip.location.map(
+                            (loc: any, locIndex: number) =>
+                              loc.address && (
                                 <div
-                                  className={`${
-                                    locIndex === 0
-                                      ? "text-red-500"
-                                      : "text-teal-500"
-                                  } mt-1`}
+                                  key={locIndex}
+                                  className="flex items-start"
                                 >
-                                  <MapPin size={18} />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="font-medium">
-                                    {loc.address.split(",")[0] ||
-                                      `Destinasi ${locIndex + 1}`}
+                                  <div className="mr-4 relative">
+                                    <div
+                                      className={`
+                                    w-10 h-10 rounded-full flex items-center justify-center 
+                                    ${
+                                      locIndex === 0
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-transpo-primary-light text-transpo-primary"
+                                    }
+                                  `}
+                                    >
+                                      <MapPin size={18} />
+                                    </div>
+                                    {locIndex < trip.location.length - 1 && (
+                                      <div className="absolute top-10 bottom-0 left-1/2 w-0.5 h-16 bg-gray-300 -translate-x-1/2"></div>
+                                    )}
                                   </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-3.5 w-3.5" />
+
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-800">
+                                      {loc.address.split(",")[0] ||
+                                        `Destinasi ${locIndex + 1}`}
+                                    </div>
+                                    <div className="text-gray-500 text-sm mt-1">
+                                      {loc.address}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                      <Clock className="h-3.5 w-3.5 text-transpo-primary" />
                                       <span>
-                                        Estimasi tiba:{" "}
-                                        {loc.time
-                                          ? formatTime(loc.time)
-                                          : "Tidak ditentukan"}
+                                        Pukul Kedatangan:{" "}
+                                        <span className="font-medium">
+                                          {loc.time
+                                            ? formatTime(loc.time)
+                                            : "Tidak ditentukan"}
+                                        </span>
                                       </span>
                                     </div>
+
+                                    {locIndex === 0 && (
+                                      <div className="mt-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block">
+                                        Penjemputan
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-                            )
-                        )}
-                      </div>
-
-                      {/* Trip details (distance, duration) */}
-                      {(trip.distance || trip.duration) && (
-                        <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-3 ml-2">
-                          {trip.distance && (
-                            <div className="bg-gray-100 px-2 py-1 rounded-md">
-                              Jarak: {(trip.distance / 1000).toFixed(1)} km
-                            </div>
-                          )}
-                          {trip.duration && (
-                            <div className="bg-gray-100 px-2 py-1 rounded-md">
-                              Durasi: {Math.floor(trip.duration / 60)} menit
-                            </div>
+                              )
                           )}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
+
+                        {/* Trip details (distance, duration) */}
+                        {(trip.distance || trip.duration) && (
+                          <div className="mt-4 ml-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+                            <div className="text-sm font-medium text-gray-700 mb-1">
+                              Informasi Perjalanan:
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm">
+                              {trip.distance && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin
+                                    size={14}
+                                    className="text-transpo-primary"
+                                  />
+                                  <span>
+                                    Jarak: {(trip.distance / 1000).toFixed(1)}{" "}
+                                    km
+                                  </span>
+                                </div>
+                              )}
+                              {trip.duration && (
+                                <div className="flex items-center gap-1">
+                                  <Clock
+                                    size={14}
+                                    className="text-transpo-primary"
+                                  />
+                                  <span>
+                                    Durasi: {Math.floor(trip.duration / 60)}{" "}
+                                    menit
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
             </div>
           </div>
 
           {/* Navigation buttons */}
-          <div className="flex justify-end space-x-3 mt-8">
+          <div className="flex justify-end space-x-3 pt-4">
             <Button
               onClick={onBack}
-              variant="secondary"
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700"
+              variant="outline"
+              className="border-gray-300 hover:bg-gray-100 text-gray-700"
               disabled={isSubmitting}
             >
               Kembali
             </Button>
             <Button
               onClick={() => setIsConfirmDialogOpen(true)}
-              className="bg-teal-500 hover:bg-teal-600"
+              className="bg-transpo-primary hover:bg-transpo-primary-dark"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Memproses..." : "Buat Pesanan"}
@@ -364,7 +418,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
             <AlertDialogTitle>Konfirmasi Pemesanan</AlertDialogTitle>
             <AlertDialogDescription>
               Anda akan membuat pesanan transportasi dengan total biaya{" "}
-              <span className="font-semibold text-teal-600">
+              <span className="font-semibold text-transpo-primary">
                 {formatRupiah(displayPrice)}
               </span>
               .
@@ -384,7 +438,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
             <AlertDialogAction
               onClick={handleCreateOrder}
               disabled={isSubmitting}
-              className="bg-teal-500 hover:bg-teal-600"
+              className="bg-transpo-primary hover:bg-transpo-primary-dark"
             >
               {isSubmitting ? "Memproses..." : "Ya, Buat Pesanan"}
             </AlertDialogAction>

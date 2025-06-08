@@ -309,8 +309,11 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   };
 
   return (
-    <div className="mx-auto mt-8 max-w-full">
-      <Card className="border-none shadow-sm">
+    <div className="mx-auto mt-8 max-w-full pb-10">
+      <Card
+        className="border-none"
+        style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
+      >
         <CardHeader>
           <CardTitle className="text-2xl text-center text-gray-700">
             JADWAL PERJALANAN
@@ -333,13 +336,16 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                   className={cn(
                     "border rounded-lg p-4 cursor-pointer",
                     activeTabIndex === idx
-                      ? "border-teal-500"
+                      ? "border-transpo-primary"
                       : "border-gray-200"
                   )}
                   onClick={() => setActiveTabIndex(idx)}
                 >
                   <div className="flex items-center gap-2">
-                    <CalendarIcon className="text-teal-500" size={18} />
+                    <CalendarIcon
+                      className="text-transpo-primary border-transpo-primary"
+                      size={18}
+                    />
                     <span>
                       {trip.date ? formatLocalizedDate(trip.date) : "No date"}
                     </span>
@@ -356,7 +362,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
 
             {/* Summary for all trips */}
             {orderData.totalDistance > 0 && (
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+              <div className="bg-transpo-primary/10 border border-transpo-primary/30 rounded-lg p-4">
                 <div className="font-medium text-teal-800">
                   Total Perjalanan
                 </div>
@@ -422,7 +428,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
         </Button>
         <Button
           onClick={handleContinue}
-          className="bg-teal-500 hover:bg-teal-600"
+          className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
         >
           Selanjutnya
         </Button>

@@ -1,16 +1,17 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { Upload, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Upload, AlertCircle, CreditCard } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
 import { format } from "date-fns";
-import { id } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+
+const PAYMENT_ID_KEY = "transpo_payment_id";
 
 interface Step4Props {
   paymentData: {
@@ -19,6 +20,34 @@ interface Step4Props {
   };
   onBack: () => void;
 }
+
+// Bank account data
+const BANK_ACCOUNTS = [
+  {
+    bank: "BCA",
+    number: "0065010452605",
+    name: "Defrina Eka Orchid",
+    logo: "/icons/bca.png",
+  },
+  {
+    bank: "Mandiri",
+    number: "1440024149178",
+    name: "Defrina Eka Orchid",
+    logo: "/icons/mandiri.png",
+  },
+  {
+    bank: "BNI",
+    number: "1884588906",
+    name: "Defrina Eka Orchid",
+    logo: "/icons/bni.png",
+  },
+  {
+    bank: "BRI",
+    number: "0894580796",
+    name: "Defrina Eka Orchid",
+    logo: "/icons/bri.png",
+  },
+];
 
 const Step4 = ({ paymentData, onBack }: Step4Props) => {
   const router = useRouter();
@@ -30,6 +59,43 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [paymentExists, setPaymentExists] = useState(true);
+
+  // Verify payment exists on load
+  useEffect(() => {
+    const verifyPayment = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`/api/payments/${paymentData.id}`);
+        if (response.status !== 200) {
+          setPaymentExists(false);
+          // Redirect if payment doesn't exist
+          toast.error("Data pembayaran tidak ditemukan");
+          setTimeout(() => {
+            // Clear localStorage and redirect
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(PAYMENT_ID_KEY);
+            }
+            router.push("/");
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("Error verifying payment:", error);
+        setPaymentExists(false);
+        toast.error("Data pembayaran tidak valid");
+        // Clear localStorage and redirect
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(PAYMENT_ID_KEY);
+        }
+        setTimeout(() => router.push("/"), 1500);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyPayment();
+  }, [paymentData.id, router]);
 
   // Format price as Rupiah
   const formatRupiah = (price: number) => {
@@ -40,6 +106,17 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
     })
       .format(price)
       .replace("Rp", "Rp.");
+  };
+
+  // Handle going back to orders page
+  const handleBackToOrders = () => {
+    // Remove payment ID from localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(PAYMENT_ID_KEY);
+    }
+
+    // Redirect to orders page
+    router.push("/my-orders");
   };
 
   // Validate file before accepting
@@ -124,9 +201,14 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
       if (response.status === 200) {
         toast.success("Bukti pembayaran berhasil diunggah!");
 
+        // Clear payment ID from localStorage
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(PAYMENT_ID_KEY);
+        }
+
         // Navigate to the orders page after successful upload
         setTimeout(() => {
-          router.push("/dashboard/orders");
+          router.push("/my-orders");
         }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
@@ -142,76 +224,103 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-lg p-8 text-center">
+        <p>Memverifikasi data pembayaran...</p>
+      </div>
+    );
+  }
+
+  if (!paymentExists) {
+    return (
+      <div className="mx-auto max-w-lg p-8 text-center">
+        <p>Data pembayaran tidak ditemukan. Mengalihkan ke halaman utama...</p>
+      </div>
+    );
+  }
+
   return (
-    <Card className="mx-auto max-w-lg shadow-sm border-gray-100">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl text-gray-700 font-medium">
-          Pembayaran Pesanan
+    <Card className="mx-auto max-w-2xl shadow-lg border-0">
+      <CardHeader className="text-center border-b">
+        <CardTitle className="text-2xl font-semibold">
+          Upload Bukti Transfer
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        <div className="text-center bg-teal-50 p-4 rounded-lg">
-          <p className="font-medium text-teal-900">Total Pembayaran</p>
-          <p className="text-2xl font-bold text-teal-600 mt-1">
+      <CardContent className="p-6 space-y-6">
+        <div className="mb-4 px-2 flex flex-col items-center">
+          <div className="font-medium text-gray-500">Total Biaya:</div>
+          <div className="text-2xl font-semibold mt-1">
             {formatRupiah(paymentData.amount)}
-          </p>
-          <p className="text-sm text-teal-700 mt-2">
-            Silahkan transfer ke rekening berikut:
-          </p>
-          <div className="mt-2 text-left bg-white p-3 rounded-md shadow-sm border border-teal-100">
-            <p className="flex justify-between">
-              <span className="font-medium">Bank BCA</span>
-              <span>1234567890</span>
-            </p>
-            <p className="flex justify-between mt-1">
-              <span className="font-medium">A/N</span>
-              <span>PT Transpo Indonesia</span>
-            </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="senderName">Nama Pengirim</Label>
-            <Input
-              id="senderName"
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
-              placeholder="Masukkan nama pengirim"
-              required
-            />
+        <div className="space-y-3">
+          <div className="font-medium">Transfer Dapat Dilakukan Melalui:</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {BANK_ACCOUNTS.map((account) => (
+              <div
+                key={account.bank}
+                className="border rounded-md p-3 bg-white shadow-sm flex flex-col items-center justify-center"
+              >
+                <div className="text-xs text-center font-medium mb-1">
+                  {account.bank}
+                </div>
+                <div className="text-xs text-center mb-1">{account.number}</div>
+                <div className="text-xs text-center text-gray-500 text-[10px]">
+                  {account.name}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="senderName">Nama Pengirim</Label>
+              <Input
+                id="senderName"
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+                placeholder="Masukkan nama pengirim"
+                required
+                className="bg-gray-50 border-gray-200"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="transferDate">Tanggal Transfer</Label>
+              <Input
+                id="transferDate"
+                type="date"
+                value={transferDate}
+                onChange={(e) => setTransferDate(e.target.value)}
+                required
+                max={format(new Date(), "yyyy-MM-dd")}
+                className="bg-gray-50 border-gray-200"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="transferDate">Tanggal Transfer</Label>
-            <Input
-              id="transferDate"
-              type="date"
-              value={transferDate}
-              onChange={(e) => setTransferDate(e.target.value)}
-              required
-              max={format(new Date(), "yyyy-MM-dd")} // Can't select future dates
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Bukti Transfer</Label>
+            <Label>Upload Bukti Transfer:</Label>
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragActive
-                  ? "border-teal-300 bg-teal-50"
+                  ? "border-transpo-primary bg-transpo-primary/5"
                   : fileError
                   ? "border-red-300 bg-red-50"
-                  : "border-gray-300 hover:bg-gray-50"
+                  : "border-gray-300 hover:border-transpo-primary hover:bg-gray-50"
               }`}
             >
               <input {...getInputProps()} />
 
               {previewUrl ? (
-                <div className="space-y-2">
-                  <div className="relative h-40 w-full mx-auto">
+                <div className="space-y-3">
+                  <div className="relative h-56 w-full mx-auto">
                     <Image
                       src={previewUrl}
                       alt="Bukti transfer"
@@ -219,25 +328,33 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
                       className="object-contain"
                     />
                   </div>
-                  <p className="text-sm text-teal-600">
+                  <p className="text-sm text-transpo-primary">
                     Klik atau seret file untuk mengganti
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Upload
-                    className={`mx-auto h-12 w-12 ${
-                      fileError ? "text-red-400" : "text-gray-400"
-                    }`}
-                  />
-                  <p className={fileError ? "text-red-600" : "text-gray-600"}>
-                    {fileError
-                      ? fileError
-                      : "Klik atau seret file bukti transfer di sini"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Format: JPG, PNG (Maks. 5MB)
-                  </p>
+                <div className="space-y-3">
+                  <div className="w-16 h-16 mx-auto border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center bg-gray-50">
+                    <Upload
+                      className={`h-8 w-8 ${
+                        fileError ? "text-red-400" : "text-gray-400"
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <p
+                      className={
+                        fileError ? "text-red-600" : "text-gray-600 font-medium"
+                      }
+                    >
+                      {fileError
+                        ? fileError
+                        : "Drop Foto Screenshot Bukti Pembayaran Anda di sini"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Format: JPG, PNG (Maks. 5MB)
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -250,22 +367,22 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
             )}
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
             <Button
               type="button"
-              onClick={onBack}
-              variant="secondary"
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700"
+              onClick={handleBackToOrders}
+              variant="outline"
+              className="border-gray-300 hover:bg-gray-100 text-gray-700"
               disabled={isSubmitting}
             >
               Kembali
             </Button>
             <Button
               type="submit"
-              className="bg-teal-500 hover:bg-teal-600"
+              className="bg-transpo-primary hover:bg-transpo-primary-dark text-white"
               disabled={isSubmitting || !!fileError}
             >
-              {isSubmitting ? "Memproses..." : "Kirim Bukti Pembayaran"}
+              {isSubmitting ? "Memproses..." : "Submit"}
             </Button>
           </div>
         </form>

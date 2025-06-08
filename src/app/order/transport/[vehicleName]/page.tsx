@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
-import { totalmem } from "os";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Step1 from "./components/step-1";
@@ -13,6 +12,9 @@ import Step4 from "./components/step-4";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+
+// Constants
+const PAYMENT_ID_KEY = "transpo_payment_id";
 
 export interface OrderData {
   userData: {
@@ -57,15 +59,14 @@ const getStartDate = (vehicleName: string) => {
 
 const OrderTransportPage = () => {
   const params = useParams();
-
   const vehicleName = decodeURIComponent(
     Array.isArray(params.vehicleName)
       ? params.vehicleName[0]
       : params.vehicleName || ""
   );
   const startDate = getStartDate(vehicleName as string);
-
   const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [orderData, setOrderData] = useState<OrderData>({
     userData: {
@@ -94,19 +95,67 @@ const OrderTransportPage = () => {
     id: string;
     amount: number;
   } | null>(null);
-  console.log({ vehicleName });
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const isValidVehicleName = [
     "angkot",
     "hiace commuter",
     "hiace premio",
     "elf",
-  ].includes(vehicleName as string);
+  ].includes(vehicleName.toLowerCase());
 
+  // Check for payment ID in localStorage and fetch payment data if exists
   useEffect(() => {
-    if (!isValidVehicleName) {
-      router.push("/");
-    }
+    const checkPaymentStatus = async () => {
+      if (typeof window === "undefined") return;
+
+      try {
+        const storedPaymentId = localStorage.getItem(PAYMENT_ID_KEY);
+
+        // If we have a payment ID, verify it exists and get amount
+        if (storedPaymentId) {
+          try {
+            const response = await axios.get(
+              `/api/payments/${storedPaymentId}`
+            );
+
+            if (response.status === 200 && response.data.data) {
+              const payment = response.data.data;
+              setPaymentData({
+                id: payment.id,
+                amount: parseFloat(payment.totalPrice),
+              });
+              setStep(4); // Go directly to step 4
+            } else {
+              // Payment not found or invalid
+              localStorage.removeItem(PAYMENT_ID_KEY);
+
+              // If vehicle name is invalid, redirect home
+              if (!isValidVehicleName) {
+                router.push("/");
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching payment:", error);
+            localStorage.removeItem(PAYMENT_ID_KEY);
+
+            // If vehicle name is invalid, redirect home
+            if (!isValidVehicleName) {
+              router.push("/");
+            }
+          }
+        } else if (!isValidVehicleName) {
+          // No payment ID and invalid vehicle name - redirect home
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Error in payment check:", error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    checkPaymentStatus();
   }, [isValidVehicleName, router]);
 
   useEffect(() => {
@@ -138,6 +187,7 @@ const OrderTransportPage = () => {
     }
     setStep(step + 1);
   };
+
   const handlePreviousStep = () => {
     setStep(step - 1);
   };
@@ -145,6 +195,11 @@ const OrderTransportPage = () => {
   useQuery({
     queryKey: ["orderTransport", vehicleName],
     queryFn: async () => {
+      // Skip API call if we're already on step 4 with payment data
+      if (step === 4 && paymentData) {
+        return null;
+      }
+
       const response = await axios.get(
         `/api/vehicle-types?search=${vehicleName}`
       );
@@ -154,10 +209,11 @@ const OrderTransportPage = () => {
       const vehicleTypeData = response.data.data[0];
       setOrderData((prevData) => ({
         ...prevData,
-        vehicleTypeId: vehicleTypeData.id,
+        vehicleTypeId: vehicleTypeData?.id || "",
       }));
-      return response.data.data[0];
+      return vehicleTypeData;
     },
+    enabled: isValidVehicleName && !isInitializing,
   });
 
   const renderStep = () => {
@@ -214,19 +270,33 @@ const OrderTransportPage = () => {
         );
     }
   };
-  console.log({ orderData });
+
+  if (isInitializing) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center">
-          <div className="bg-teal-500 p-2 rounded-full">
+          <div className="bg-transpo-primary p-2 rounded-full">
             <div className="text-white font-bold">TRANSPO</div>
           </div>
         </div>
         <div className="flex space-x-4">
-          <Button variant="outline">Pesanan Saya</Button>
-          <Button variant="outline">Profil</Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/orders")}
+          >
+            Pesanan Saya
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/profile")}>
+            Profil
+          </Button>
         </div>
       </div>
 
@@ -239,7 +309,9 @@ const OrderTransportPage = () => {
                 className={cn(
                   "rounded-full w-12 h-12 flex items-center justify-center border-2",
                   step === stepNumber
-                    ? "border-teal-500 text-teal-500 font-bold"
+                    ? "border-transpo-primary text-transpo-primary font-bold"
+                    : stepNumber < step
+                    ? "border-transpo-primary bg-transpo-primary text-white"
                     : "border-gray-300 text-gray-300"
                 )}
               >
@@ -252,7 +324,13 @@ const OrderTransportPage = () => {
                       key={i}
                       className={cn(
                         "w-2 h-2 rounded-full mx-1",
-                        step >= stepNumber ? "bg-teal-500" : "bg-gray-300"
+                        step > stepNumber
+                          ? "bg-transpo-primary"
+                          : step === stepNumber
+                          ? i < 3
+                            ? "bg-transpo-primary"
+                            : "bg-gray-300"
+                          : "bg-gray-300"
                       )}
                     />
                   ))}

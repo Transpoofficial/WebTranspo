@@ -146,7 +146,7 @@ const Step1 = ({
   return (
     <Card
       className="mx-auto max-w-4xl border-0 text-gray-600"
-      style={{ boxShadow: "0 5px 50px rgba(0, 0, 0, 0.2)" }}
+      style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
     >
       <CardHeader className="text-center rounded-t-lg">
         <CardTitle className="text-2xl font-semibold">DATA PEMESANAN</CardTitle>
