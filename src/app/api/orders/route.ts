@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
+import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client"; // Import necessary enums
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -49,78 +50,281 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
+    // Get user data first to verify user exists
+    const token = await checkAuth(req);
+
+    // Check if user exists in DB to avoid foreign key violation
+    const userExists = await prisma.user.findUnique({
+      where: { id: token.id },
+    });
+
+    if (!userExists) {
+      return NextResponse.json(
+        { message: "User not found. Please log in again.", data: [] },
+        { status: 404 }
+      );
+    }
+
     const formData = await req.formData();
+
+    // Added debug logging for departure dates in form data
+    console.log("FORM DATA DEPARTURE DATES:");
+    formData.forEach((value, key) => {
+      if (key.includes("destinations") && key.includes("departureDate")) {
+        console.log(`${key}: ${value}`);
+      }
+    });
+
     interface OrderRequestBody {
       orderType?: string;
-      departureDate?: string;
-      pickupTime?: string;
       timezone?: string;
-      pickupLocation?: string;
-      destination?: string;
       vehicleCount?: string;
       roundTrip?: string;
       vehicleTypeId?: string;
       totalDistance?: string;
+      totalPrice?: string;
       packageId?: string;
     }
 
+    interface Destination {
+      address: string;
+      lat: number;
+      lng: number;
+      arrivalTime?: string;
+      departureDate?: string;
+      departureTime?: string;
+      isPickupLocation: boolean;
+      sequence: number;
+    }
+
     const body: OrderRequestBody = {};
-    const destinations: string[] = [];
-    // Collect form data into body object
+    const destinations: Destination[] = [];
+    const timezone = (formData.get("timezone") as string) || "Asia/Jakarta";
+
+    // Parse form data
     formData.forEach((value, key) => {
-      const match = key.match(/^destinations\[(\d+)\]$/);
-      if (match) {
-        const index = parseInt(match[1], 10); // Extract the index from the key
-        destinations[index] = value as string; // Insert the value into the array at the corresponding index
-      } else {
-        body[key as keyof OrderRequestBody] = value as string; // Other keys are added to the body object
+      // Handle destination data - complex parsing
+      const destMatch = key.match(/^destinations\[(\d+)\]\.(.+)$/);
+      if (destMatch) {
+        const index = parseInt(destMatch[1], 10);
+        const property = destMatch[2];
+
+        // Ensure the destination object exists
+        if (!destinations[index]) {
+          destinations[index] = {
+            address: "",
+            lat: 0,
+            lng: 0,
+            isPickupLocation: false,
+            sequence: index,
+          };
+        }
+
+        // Set the appropriate property
+        switch (property) {
+          case "address":
+            destinations[index].address = value as string;
+            break;
+          case "lat":
+            destinations[index].lat = parseFloat(value as string) || 0;
+            break;
+          case "lng":
+            destinations[index].lng = parseFloat(value as string) || 0;
+            break;
+          case "arrivalTime":
+            destinations[index].arrivalTime = value as string;
+            break;
+          case "departureDate":
+            destinations[index].departureDate = value as string;
+            break;
+          case "departureTime":
+            destinations[index].departureTime = value as string;
+            break;
+          case "isPickupLocation":
+            destinations[index].isPickupLocation = value === "true";
+            break;
+          case "sequence":
+            destinations[index].sequence = parseInt(value as string, 10);
+            break;
+        }
+        return;
+      }
+
+      // Other fields
+      body[key as keyof OrderRequestBody] = value as string;
+    });
+
+    // Filter out incomplete destinations and process them
+    const unsortedDestinations = destinations.filter(
+      (dest) => dest && dest.address
+    );
+
+    // Log raw destinations for debugging
+    console.log("Raw destinations after parsing:");
+    unsortedDestinations.forEach((dest) => {
+      console.log(
+        `Seq ${dest.sequence}: ${dest.address} - Date: ${
+          dest.departureDate || "none"
+        }`
+      );
+    });
+
+    // NEW APPROACH: Handle explicit date assignment
+    // First, collect all destinations with explicit departure dates
+    const datedDestinations = unsortedDestinations.filter(
+      (dest) => dest.departureDate
+    );
+
+    // Extract only the dates that are explicitly set in the input
+    const explicitDates = new Set<string>();
+    datedDestinations.forEach((dest) => {
+      if (dest.departureDate) {
+        explicitDates.add(dest.departureDate);
       }
     });
 
-    // Collect user data from the request
-    const token = await checkAuth(req);
-    // Main Data
-    let { orderType } = body;
-    orderType = orderType?.toUpperCase() === "TRANSPORT" ? "TRANSPORT" : "TOUR";
-    const { departureDate, pickupTime, timezone } = body;
+    // Convert to sorted array for consistent processing
+    const availableDates = Array.from(explicitDates).sort();
+    console.log("Explicit dates found in form data:", availableDates);
 
-    // Transportation Order Data
-    const {
-      pickupLocation,
-      destination,
-      vehicleCount,
-      roundTrip,
-      vehicleTypeId, // Collect the vehicle type based on user selection
-      totalDistance,
-    } = body;
+    // Default date if none provided
+    const defaultDate = DateTime.now().plus({ days: 5 }).toFormat("yyyy-MM-dd");
 
-    // Package Order Data
-    const { packageId } = body;
+    // If no dates provided, use default
+    if (availableDates.length === 0) {
+      availableDates.push(defaultDate);
+      console.log("No explicit dates found, using default:", defaultDate);
+    }
 
-    // Basic Validation
-    if (!orderType || !departureDate || !timezone) {
+    // Assign dates to all destinations
+    const processedDestinations: Destination[] = [];
+
+    // Process the destinations in batches by sequence number ranges
+
+    // First batch: process destinations that already have dates
+    datedDestinations.forEach((dest) => {
+      processedDestinations.push({
+        ...dest,
+        departureDate: dest.departureDate, // Keep original date
+      });
+    });
+
+    // Second batch: process destinations without dates using sequence based logic
+    const undatedDestinations = unsortedDestinations.filter(
+      (dest) => !dest.departureDate
+    );
+
+    // Sort undated destinations by sequence
+    undatedDestinations.sort((a, b) => a.sequence - b.sequence);
+
+    // We'll use sequence number to determine which date to use
+    undatedDestinations.forEach((dest) => {
+      let dateToUse: string;
+
+      // For sequences < 100, use first date
+      // For sequences >= 100, use second date if available
+      if (dest.sequence < 100) {
+        dateToUse = availableDates[0];
+      } else if (availableDates.length > 1) {
+        dateToUse = availableDates[1];
+      } else {
+        dateToUse = availableDates[0];
+      }
+
+      processedDestinations.push({
+        ...dest,
+        departureDate: dateToUse,
+      });
+    });
+
+    // Sort all processed destinations by date then sequence
+    processedDestinations.sort((a, b) => {
+      // First sort by date
+      const dateA = a.departureDate || "";
+      const dateB = b.departureDate || "";
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      // Then by sequence
+      return a.sequence - b.sequence;
+    });
+
+    // Reassign sequence numbers to be strictly sequential
+    const validDestinations = processedDestinations.map((dest, idx) => ({
+      ...dest,
+      sequence: idx,
+    }));
+
+    // NEW: Set first destination of each date as pickup location
+    // Group by date
+    const destByDate = new Map<string, Destination[]>();
+
+    validDestinations.forEach((dest) => {
+      const date = dest.departureDate || "";
+      if (!destByDate.has(date)) {
+        destByDate.set(date, []);
+      }
+      destByDate.get(date)?.push(dest);
+    });
+
+    // For each date, mark first destination as pickup
+    for (const [date, dests] of destByDate.entries()) {
+      if (dests.length > 0) {
+        // First, reset all pickup locations for this date to false
+        dests.forEach((d) => (d.isPickupLocation = false));
+
+        // Then set the first one to true
+        dests[0].isPickupLocation = true;
+        console.log(
+          `Marking first destination on ${date} as pickup location: ${dests[0].address}`
+        );
+      }
+    }
+
+    // Log final destination list with dates and pickup locations
+    console.log("Final destinations with assigned dates and pickup locations:");
+    validDestinations.forEach((dest) => {
+      console.log(
+        `Seq ${dest.sequence}: ${dest.address} - Date: ${dest.departureDate} - Pickup: ${dest.isPickupLocation}`
+      );
+    });
+
+    // Ensure we have at least one destination
+    if (!validDestinations.length) {
       return NextResponse.json(
-        {
-          message:
-            "Missing required fields: orderType, departureDate, or timezone",
-          data: [],
-        },
+        { message: "No valid destinations provided", data: [] },
         { status: 400 }
       );
     }
 
-    if (orderType === "TRANSPORT") {
+    // Basic validation
+    const { orderType } = body;
+    const {
+      vehicleCount,
+      roundTrip,
+      vehicleTypeId,
+      totalDistance,
+      totalPrice,
+      packageId,
+    } = body;
+
+    // Verify required fields
+    if (!orderType || !timezone) {
+      return NextResponse.json(
+        { message: "Missing required fields: orderType or timezone", data: [] },
+        { status: 400 }
+      );
+    }
+
+    if (orderType.toUpperCase() === "TRANSPORT") {
       if (
-        !pickupLocation ||
-        !destination ||
         !vehicleTypeId ||
         !totalDistance ||
         vehicleCount === undefined ||
         roundTrip === undefined ||
-        roundTrip === null ||
-        destinations === undefined ||
-        destinations === null ||
-        destinations.length === 0
+        !validDestinations.length
       ) {
         return NextResponse.json(
           {
@@ -130,7 +334,7 @@ export const POST = async (req: NextRequest) => {
           { status: 400 }
         );
       }
-    } else if (orderType === "TOUR") {
+    } else if (orderType.toUpperCase() === "TOUR") {
       if (!packageId) {
         return NextResponse.json(
           { message: "Missing required fields for package order", data: [] },
@@ -144,98 +348,110 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const formatedDepartureDate = DateTime.fromFormat(
-      `${departureDate} ${pickupTime}`,
-      "yyyy-MM-dd HH:mm",
-      {
-        zone: timezone,
+    // Create order and include payment in the transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create order - Fix: Use proper enum
+      const createdOrder = await tx.order.create({
+        data: {
+          orderType: orderType.toUpperCase() as OrderType,
+          userId: token.id,
+          orderStatus: OrderStatus.PENDING,
+        },
+      });
+
+      if (orderType.toUpperCase() === "TRANSPORT") {
+        // Create transportation order
+        const transportationOrders = await tx.transportationOrder.create({
+          data: {
+            orderId: createdOrder.id,
+            vehicleCount: parseInt(vehicleCount || "1"),
+            roundTrip: roundTrip === "true",
+            totalDistance: parseFloat(totalDistance || "0.0"),
+          },
+        });
+
+        // Set default values for time only
+        const defaultDepartureTime = "09:00";
+
+        // Create all destinations with proper departure dates
+        await Promise.all(
+          validDestinations.map((dest) => {
+            // At this point, every destination should have a departureDate
+            const departureDateStr = dest.departureDate;
+
+            // Use destination's departure time if available, otherwise default
+            const departureTimeStr = dest.departureTime || defaultDepartureTime;
+
+            console.log(`Creating destination: ${dest.address}`);
+            console.log(`Date from validDestinations: ${departureDateStr}`);
+            console.log(`Time: ${departureTimeStr}`);
+            console.log(`Is pickup location: ${dest.isPickupLocation}`);
+
+            // Add timezone debugging
+            console.log(`Using timezone: ${timezone}`);
+
+            // Format and log the complete datetime
+            const dateTimeString = `${departureDateStr} ${departureTimeStr}`;
+            console.log(`Parsing datetime: ${dateTimeString} in ${timezone}`);
+
+            const departureDatetime = DateTime.fromFormat(
+              dateTimeString,
+              "yyyy-MM-dd HH:mm",
+              { zone: timezone }
+            ).toJSDate();
+
+            console.log(`Resulting JS Date: ${departureDatetime}`);
+
+            return tx.destinationTransportation.create({
+              data: {
+                transportationOrderId: transportationOrders.id,
+                lat: dest.lat,
+                lng: dest.lng,
+                address: dest.address,
+                arrivalTime: dest.arrivalTime,
+                isPickupLocation: dest.isPickupLocation,
+                sequence: dest.sequence,
+                departureDate: departureDatetime,
+              },
+            });
+          })
+        );
+      } else if (orderType.toUpperCase() === "TOUR") {
+        await tx.packageOrder.create({
+          data: {
+            orderId: createdOrder.id,
+            packageId: packageId || "",
+            departureDate: new Date(), // Default date for now
+          },
+        });
       }
-    );
-    const createdOrder = await prisma.order.create({
-      data: {
-        orderType,
-        userId: token.id,
-        orderStatus: "PENDING",
-      },
+
+      // Create payment record
+      const payment = await tx.payment.create({
+        data: {
+          orderId: createdOrder.id,
+          senderName: "", // Will be filled when proof is uploaded
+          transferDate: new Date(), // Will be updated when proof is uploaded
+          paymentStatus: PaymentStatus.PENDING,
+          totalPrice: parseFloat(totalPrice || "0"),
+        },
+      });
+
+      return {
+        order: createdOrder,
+        payment: payment,
+      };
     });
 
-    if (orderType === "TRANSPORT") {
-      const availableVehicles = await prisma.vehicle.findMany({
-        where: {
-          vehicleTypeId: vehicleTypeId,
-          transportationOrderId: null,
-        },
-        take: parseInt(vehicleCount || "0"),
-      });
-      if (availableVehicles.length < parseInt(vehicleCount || "0")) {
-        return NextResponse.json(
-          {
-            message: "Not enough vehicles available",
-            data: [{ availableVehicles: availableVehicles.length }],
-          },
-          { status: 400 }
-        );
-      }
-
-      const transportationOrders = await prisma.transportationOrder.create({
-        data: {
-          departureDate: formatedDepartureDate.toUTC().toJSDate(),
-          pickupLocation: pickupLocation || "",
-          destination: destination || "",
-          vehicleCount: parseInt(vehicleCount || "0"),
-          roundTrip: roundTrip === "true" ? true : false,
-          totalDistance: parseFloat(totalDistance || "0.0"),
-          orderId: createdOrder.id,
-        },
-      });
-
-      if (availableVehicles.length < parseInt(vehicleCount || "0")) {
-        // Rollback the order creation if not enough vehicles are available
-        await prisma.order.delete({
-          where: { id: createdOrder.id },
-        });
-        await prisma.transportationOrder.delete({
-          where: { id: transportationOrders.id },
-        });
-        return NextResponse.json(
-          {
-            message: "Not enough vehicles available",
-            data: [{ availableVehicles: availableVehicles.length }],
-          },
-          { status: 400 }
-        );
-      }
-
-      await Promise.all(
-        availableVehicles.map((vehicle) =>
-          prisma.vehicle.update({
-            where: { id: vehicle.id },
-            data: { transportationOrderId: transportationOrders.id },
-          })
-        )
-      );
-      await Promise.all(
-        destinations.map((destination: string) =>
-          prisma.destinationTransportation.create({
-            data: {
-              destinationName: destination,
-              transportationOrderId: transportationOrders.id,
-            },
-          })
-        )
-      );
-    } else if (orderType === "TOUR") {
-      await prisma.packageOrder.create({
-        data: {
-          orderId: createdOrder.id,
-          packageId: packageId || "",
-          departureDate: formatedDepartureDate.toUTC().toJSDate(),
-        },
-      });
-    }
-
+    // Return created order with payment data
     return NextResponse.json(
-      { message: "Order created successfully", data: createdOrder },
+      {
+        message: "Order created successfully",
+        data: {
+          ...result.order,
+          payment: result.payment,
+        },
+      },
       { status: 201 }
     );
   } catch (error) {

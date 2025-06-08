@@ -88,9 +88,7 @@ model TransportationOrder {
   id                      String              @id @default(cuid())
   orderId                 String              @unique
   order                   Order               @relation(fields: [orderId], references: [id])
-  departureDate           DateTime
-  pickupLocation          String
-  destination             String
+  // Removed departureDate, pickupLocation, destination fields
   vehicleCount            Int
   roundTrip               Boolean
   totalDistance           Float
@@ -104,7 +102,14 @@ model DestinationTransportation {
   id                      String              @id @default(cuid())
   transportationOrderId   String
   transportationOrder     TransportationOrder @relation(fields: [transportationOrderId], references: [id])
-  destinationName         String              // this column can be change to destinationId/locationId if the google maps API is available
+  // Enhanced location data
+  lat                     Float?              // Added lat field
+  lng                     Float?              // Added lng field
+  address                 String              // Added explicit address field 
+  arrivalTime             String?             // Existing field
+  isPickupLocation        Boolean             @default(false) // To identify the pickup point
+  sequence                Int                 @default(0)     // To maintain order
+  departureDate           DateTime?           // Added from TransportationOrder
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -146,7 +151,7 @@ model Vehicle {
 
 model VehicleType {
   id                      String              @id @default(cuid())
-  name                    String
+  name                    String              @unique
   pricePerKm              Decimal             @db.Decimal(10, 2)
   vehicles                Vehicle[]
   createdAt               DateTime            @default(now())
