@@ -1,7 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CarFront } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import OrderButton from "./order-button";
 

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
-import { Upload, AlertCircle, CreditCard } from "lucide-react";
+import { Upload, AlertCircle } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
 import { format } from "date-fns";
@@ -49,7 +49,7 @@ const BANK_ACCOUNTS = [
   },
 ];
 
-const Step4 = ({ paymentData, onBack }: Step4Props) => {
+const Step4 = ({ paymentData }: Step4Props) => {
   const router = useRouter();
   const [senderName, setSenderName] = useState("");
   const [transferDate, setTransferDate] = useState(
@@ -116,7 +116,7 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
     }
 
     // Redirect to orders page
-    router.push("/my-orders");
+    router.push("/dashboard/orders");
   };
 
   // Validate file before accepting
@@ -208,17 +208,18 @@ const Step4 = ({ paymentData, onBack }: Step4Props) => {
 
         // Navigate to the orders page after successful upload
         setTimeout(() => {
-          router.push("/my-orders");
+          router.push("/dashboard/orders");
         }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error uploading payment proof:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Terjadi kesalahan saat mengunggah bukti pembayaran"
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat mengunggah bukti pembayaran";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

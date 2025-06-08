@@ -6,12 +6,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const POST = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     // Authentication
     const token = await checkAuth(req);
-    const paymentId = params.id;
+    const { id: paymentId } = await params;
 
     // Check if payment exists and belongs to user
     const payment = await prisma.payment.findFirst({

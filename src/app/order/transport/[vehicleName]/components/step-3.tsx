@@ -20,13 +20,27 @@ import {
 
 interface Step3Props {
   orderData: OrderData;
-  setOrderData?: React.Dispatch<React.SetStateAction<any>>;
+  setOrderData?: React.Dispatch<React.SetStateAction<OrderData>>;
   onContinue: (paymentData?: { id: string; amount: number }) => void;
   onBack: () => void;
 }
 
+interface TripsByDateItem {
+  date: Date;
+  trips: {
+    location: Array<{
+      address: string;
+      lat: number | null;
+      lng: number | null;
+      time: string | null;
+    }>;
+    distance?: number;
+    duration?: number;
+    startTime: string;
+  }[];
+}
+
 const PAYMENT_ID_KEY = "transpo_payment_id";
-// const PAYMENT_AMOUNT_KEY = "transpo_payment_amount";
 
 const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,23 +69,27 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
 
       return time; // Return as is if not in expected format
     } catch (e) {
+      console.error("Error formatting time:", e);
       return time; // Return original on any error
     }
   };
 
   // Group trips by date for better display
-  const tripsByDate = orderData.trip.reduce((acc: any, trip) => {
-    const dateStr = format(trip.date, "yyyy-MM-dd");
-    if (!acc[dateStr]) {
-      acc[dateStr] = {
-        date: trip.date,
-        trips: [],
-      };
-    }
+  const tripsByDate: Record<string, TripsByDateItem> = orderData.trip.reduce(
+    (acc: Record<string, TripsByDateItem>, trip) => {
+      const dateStr = format(trip.date, "yyyy-MM-dd");
+      if (!acc[dateStr]) {
+        acc[dateStr] = {
+          date: trip.date,
+          trips: [],
+        };
+      }
 
-    acc[dateStr].trips.push(trip);
-    return acc;
-  }, {});
+      acc[dateStr].trips.push(trip);
+      return acc;
+    },
+    {}
+  );
 
   // Format price as Rupiah
   const formatRupiah = (price: number) => {
@@ -188,12 +206,13 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
       } else {
         toast.error("Gagal membuat pesanan. Silakan coba lagi.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating order:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Terjadi kesalahan saat membuat pesanan"
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat membuat pesanan";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
       setIsConfirmDialogOpen(false);
@@ -249,7 +268,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
               <div className="text-gray-500 text-sm">Tanggal Pesanan</div>
               <div className="font-medium">
                 <ul className="list-disc pl-5 space-y-1">
-                  {Object.values(tripsByDate).map((item: any) => (
+                  {Object.values(tripsByDate).map((item) => (
                     <li key={format(item.date, "yyyy-MM-dd")}>
                       {formatLocalizedDate(item.date)}
                     </li>
@@ -273,31 +292,27 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
             </h3>
 
             <div className="space-y-8">
-              {Object.values(tripsByDate).map(
-                (item: any, dateIndex: number) => (
-                  <div
-                    key={format(item.date, "yyyy-MM-dd")}
-                    className="space-y-4"
-                  >
-                    <div className="bg-gray-50 p-3 rounded-md border-l-4 border-transpo-primary">
-                      <h3 className="font-medium text-transpo-primary-dark">
-                        {formatLocalizedDate(item.date)}
-                      </h3>
-                    </div>
+              {Object.values(tripsByDate).map((item) => (
+                <div
+                  key={format(item.date, "yyyy-MM-dd")}
+                  className="space-y-4"
+                >
+                  <div className="bg-gray-50 p-3 rounded-md border-l-4 border-transpo-primary">
+                    <h3 className="font-medium text-transpo-primary-dark">
+                      {formatLocalizedDate(item.date)}
+                    </h3>
+                  </div>
 
-                    {item.trips.map((trip: any, tripIndex: number) => (
-                      <div key={tripIndex} className="ml-2 space-y-4">
-                        <div className="ml-4 space-y-6">
-                          {trip.location.map(
-                            (loc: any, locIndex: number) =>
-                              loc.address && (
-                                <div
-                                  key={locIndex}
-                                  className="flex items-start"
-                                >
-                                  <div className="mr-4 relative">
-                                    <div
-                                      className={`
+                  {item.trips.map((trip, tripIndex) => (
+                    <div key={tripIndex} className="ml-2 space-y-4">
+                      <div className="ml-4 space-y-6">
+                        {trip.location.map(
+                          (loc, locIndex) =>
+                            loc.address && (
+                              <div key={locIndex} className="flex items-start">
+                                <div className="mr-4 relative">
+                                  <div
+                                    className={`
                                     w-10 h-10 rounded-full flex items-center justify-center 
                                     ${
                                       locIndex === 0
@@ -305,85 +320,82 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                                         : "bg-transpo-primary-light text-transpo-primary"
                                     }
                                   `}
-                                    >
-                                      <MapPin size={18} />
-                                    </div>
-                                    {locIndex < trip.location.length - 1 && (
-                                      <div className="absolute top-10 bottom-0 left-1/2 w-0.5 h-16 bg-gray-300 -translate-x-1/2"></div>
-                                    )}
+                                  >
+                                    <MapPin size={18} />
+                                  </div>
+                                  {locIndex < trip.location.length - 1 && (
+                                    <div className="absolute top-10 bottom-0 left-1/2 w-0.5 h-16 bg-gray-300 -translate-x-1/2"></div>
+                                  )}
+                                </div>
+
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">
+                                    {loc.address.split(",")[0] ||
+                                      `Destinasi ${locIndex + 1}`}
+                                  </div>
+                                  <div className="text-gray-500 text-sm mt-1">
+                                    {loc.address}
                                   </div>
 
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-800">
-                                      {loc.address.split(",")[0] ||
-                                        `Destinasi ${locIndex + 1}`}
-                                    </div>
-                                    <div className="text-gray-500 text-sm mt-1">
-                                      {loc.address}
-                                    </div>
-
-                                    <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                      <Clock className="h-3.5 w-3.5 text-transpo-primary" />
-                                      <span>
-                                        Pukul Kedatangan:{" "}
-                                        <span className="font-medium">
-                                          {loc.time
-                                            ? formatTime(loc.time)
-                                            : "Tidak ditentukan"}
-                                        </span>
+                                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                    <Clock className="h-3.5 w-3.5 text-transpo-primary" />
+                                    <span>
+                                      Pukul Kedatangan:{" "}
+                                      <span className="font-medium">
+                                        {loc.time
+                                          ? formatTime(loc.time)
+                                          : "Tidak ditentukan"}
                                       </span>
-                                    </div>
-
-                                    {locIndex === 0 && (
-                                      <div className="mt-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block">
-                                        Penjemputan
-                                      </div>
-                                    )}
+                                    </span>
                                   </div>
-                                </div>
-                              )
-                          )}
-                        </div>
 
-                        {/* Trip details (distance, duration) */}
-                        {(trip.distance || trip.duration) && (
-                          <div className="mt-4 ml-4 p-3 bg-gray-50 rounded-md border border-gray-200">
-                            <div className="text-sm font-medium text-gray-700 mb-1">
-                              Informasi Perjalanan:
-                            </div>
-                            <div className="flex flex-wrap gap-4 text-sm">
-                              {trip.distance && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin
-                                    size={14}
-                                    className="text-transpo-primary"
-                                  />
-                                  <span>
-                                    Jarak: {(trip.distance / 1000).toFixed(1)}{" "}
-                                    km
-                                  </span>
+                                  {locIndex === 0 && (
+                                    <div className="mt-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block">
+                                      Penjemputan
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                              {trip.duration && (
-                                <div className="flex items-center gap-1">
-                                  <Clock
-                                    size={14}
-                                    className="text-transpo-primary"
-                                  />
-                                  <span>
-                                    Durasi: {Math.floor(trip.duration / 60)}{" "}
-                                    menit
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                              </div>
+                            )
                         )}
                       </div>
-                    ))}
-                  </div>
-                )
-              )}
+
+                      {/* Trip details (distance, duration) */}
+                      {(trip.distance || trip.duration) && (
+                        <div className="mt-4 ml-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+                          <div className="text-sm font-medium text-gray-700 mb-1">
+                            Informasi Perjalanan:
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            {trip.distance && (
+                              <div className="flex items-center gap-1">
+                                <MapPin
+                                  size={14}
+                                  className="text-transpo-primary"
+                                />
+                                <span>
+                                  Jarak: {(trip.distance / 1000).toFixed(1)} km
+                                </span>
+                              </div>
+                            )}
+                            {trip.duration && (
+                              <div className="flex items-center gap-1">
+                                <Clock
+                                  size={14}
+                                  className="text-transpo-primary"
+                                />
+                                <span>
+                                  Durasi: {Math.floor(trip.duration / 60)} menit
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -11,7 +11,7 @@ function calculateAngkotPrice(
   const baseRate = 5000;
   const minCharge = 100000;
 
-  let price = baseRate * distanceKm * vehicleCount;
+  const price = baseRate * distanceKm * vehicleCount;
   return price < minCharge ? minCharge : price;
 }
 
@@ -24,7 +24,7 @@ function calculateHiaceCommuterPrice(
   const baseRate = 7000;
   const minCharge = 150000;
 
-  let price = baseRate * distanceKm * vehicleCount;
+  const price = baseRate * distanceKm * vehicleCount;
   return price < minCharge ? minCharge : price;
 }
 
@@ -37,7 +37,7 @@ function calculateHiacePremioPrice(
   const baseRate = 10000;
   const minCharge = 200000;
 
-  let price = baseRate * distanceKm * vehicleCount;
+  const price = baseRate * distanceKm * vehicleCount;
   return price < minCharge ? minCharge : price;
 }
 
@@ -47,7 +47,7 @@ function calculateElfPrice(distanceKm: number, vehicleCount: number): number {
   const baseRate = 8000;
   const minCharge = 180000;
 
-  let price = baseRate * distanceKm * vehicleCount;
+  const price = baseRate * distanceKm * vehicleCount;
   return price < minCharge ? minCharge : price;
 }
 
