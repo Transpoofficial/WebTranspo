@@ -32,6 +32,7 @@ interface VehicleType {
   data: {
     id: string;
     name: string;
+    pricePerKm: number;
     createdAt: string;
     updatedAt: string;
   };
@@ -45,6 +46,7 @@ interface VehicleTypeUpdateDialogProps {
 
 const vehicleTypeSchema = z.object({
   name: z.string().min(1, { message: "Tipe kendaraan wajib diisi" }),
+  pricePerKm: z.string().min(1, { message: "Harga per kilometer(km) wajib diisi" }),
 });
 
 type VehicleTypeInput = z.infer<typeof vehicleTypeSchema>;
@@ -60,6 +62,7 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
     resolver: zodResolver(vehicleTypeSchema),
     defaultValues: {
       name: "",
+      pricePerKm: "",
     },
   });
 
@@ -80,7 +83,7 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
   // Update form when vehicle type data is fetched
   useEffect(() => {
     if (vehicleType) {
-      form.reset({ name: vehicleType?.data?.name });
+      form.reset({ name: vehicleType?.data?.name, pricePerKm: vehicleType?.data?.pricePerKm.toString() });
     }
   }, [vehicleType, form]);
 
@@ -131,7 +134,7 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex flex-col gap-y-2 py-4">
+            <div className="flex flex-col gap-y-4 py-4">
               {isLoading ? (
                 <Skeleton className="h-[58px] w-full" />
               ) : (
@@ -152,6 +155,27 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
                   )}
                 />
               )}
+
+              {isLoading ? (
+                <Skeleton className="h-[58px] w-full" />
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="pricePerKm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Harga per kilometer(km)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="" {...field} />
+                      </FormControl>
+                      {form.formState.errors.pricePerKm && (
+                        <FormMessage />
+                      )}
+                    </FormItem>
+                  )}
+                />
+              )}
+              
             </div>
 
             <DialogFooter>
