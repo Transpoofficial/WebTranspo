@@ -65,7 +65,8 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          fullName: user.fullName || "Unknown", // Provide a fallback for null fullNames
+          fullName: user.fullName || "Unknown",
+          role: user.role,
         };
       },
     }),
@@ -116,9 +117,12 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
           },
         });
-        if (dbUser) token.id = dbUser.id;
-        token.email = user.email;
-        token.fullName = user.fullName;
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.email = dbUser.email;
+          token.fullName = dbUser.fullName;
+          token.role = dbUser.role;
+        }
       }
       return token;
     },
@@ -129,6 +133,7 @@ export const authOptions: NextAuthOptions = {
           id: token.id,
           email: token.email,
           fullName: token.fullName,
+          role: token.role,
         };
       }
       return session;
