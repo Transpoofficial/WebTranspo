@@ -41,7 +41,6 @@ export async function GET() {
                 isPickupLocation: true,
               },
             },
-            vehicles: true,
           },
         },
       },

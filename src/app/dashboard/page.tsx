@@ -8,6 +8,7 @@ import Link from "next/link";
 import servicesData from "@/data/services.json";
 import OrderButton from "../components/order-button";
 import { Users, DollarSign, Check, BusFront } from "lucide-react";
+import Header from "@/components/header";
 
 interface NearestOrder {
   id: string;
@@ -176,133 +177,136 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      {/* Header Section */}
-      <div className="bg-transpo-primary text-white rounded-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold">Halo, {userName || ""}!</h1>
-        <p className="text-sm">Ayo Atur Perjalananmu bareng TRANSPO!!</p>
+    <>
+      <Header isLandingPage={false} />
+      <div className="max-w-6xl mx-auto p-4">
+        {/* Header Section */}
+        <div className="bg-transpo-primary text-white rounded-lg p-6 mb-6">
+          <h1 className="text-2xl font-bold">Halo, {userName || ""}!</h1>
+          <p className="text-sm">Ayo Atur Perjalananmu bareng TRANSPO!!</p>
 
-        {/* Order Status Box */}
-        <div className="bg-white rounded-lg mt-4 p-4">
-          <h2 className="text-transpo-primary font-medium mb-2">
-            Pesanan Saya
+          {/* Order Status Box */}
+          <div className="bg-white rounded-lg mt-4 p-4">
+            <h2 className="text-transpo-primary font-medium mb-2">
+              Pesanan Saya
+            </h2>
+
+            {loading ? (
+              <p className="text-gray-500 text-sm">Memuat data...</p>
+            ) : nearestOrder ? (
+              <div className="text-gray-700 text-sm">
+                <p>{getOrderDescription(nearestOrder)}</p>
+                <p>Tanggal: {formatOrderDate(nearestOrder)}</p>
+                <div className="flex justify-end mt-2">
+                  <button className="bg-transpo-primary text-white px-4 py-1 rounded-md">
+                    Cek Pesanan
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">
+                Tidak ada pesanan dalam waktu dekat. Pilih layanan dan atur
+                perjalananmu
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className=" border-t-2 border-t-transpo-primary md:my-10" />
+
+        {/* Services Section */}
+        <div className="mb-6">
+          <h2 className="text-xl md:text-3xl font-bold text-transpo-primary mb-4">
+            Layanan yang Tersedia
           </h2>
 
-          {loading ? (
-            <p className="text-gray-500 text-sm">Memuat data...</p>
-          ) : nearestOrder ? (
-            <div className="text-gray-700 text-sm">
-              <p>{getOrderDescription(nearestOrder)}</p>
-              <p>Tanggal: {formatOrderDate(nearestOrder)}</p>
-              <div className="flex justify-end mt-2">
-                <button className="bg-transpo-primary text-white px-4 py-1 rounded-md">
-                  Cek Pesanan
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">
-              Tidak ada pesanan dalam waktu dekat. Pilih layanan dan atur
-              perjalananmu
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className=" border-t-2 border-t-transpo-primary md:my-10" />
-
-      {/* Services Section */}
-      <div className="mb-6">
-        <h2 className="text-xl md:text-3xl font-bold text-transpo-primary mb-4">
-          Layanan yang Tersedia
-        </h2>
-
-        {services.map((service, index) => (
-          <div
-            key={index}
-            className={`rounded-lg overflow-hidden mb-4 ${getServiceBgColor(
-              service.name
-            )}`}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-5">
-              {/* Image Section */}
-              <div className="p-4">
-                <Image
-                  src={getVehicleImage(service.name)}
-                  alt={`${service.name} vehicle`}
-                  width={96}
-                  height={96}
-                  className="object-cover w-full h-full aspect-square"
-                />
-              </div>
-              {/* Left section - Vehicle info */}
-              <div
-                className="p-4 md:col-span-3 flex gap-4
-              "
-              >
-                <div>
-                  <div className="flex items-center mb-3">
-                    <span className="text-2xl md:text-3xl mr-2 text-white">
-                      <BusFront />
-                    </span>
-                    <h3 className="text-xl md:text-2xl font-bold text-white">
-                      {service.name.toUpperCase()}
-                    </h3>
-                  </div>
-                  <div className="ml-1">
-                    <ul className="list-disc list-inside text-lg font-semibold mb-2 text-white">
-                      {service.information.slice(0, 3).map((info, i) => (
-                        <li key={i}>{info}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right section - Features */}
-              <div className="border-l border-white/20 p-4">
-                <div className="flex flex-col h-full justify-center gap-4 items-center">
-                  <div>
-                    {service.pros.slice(0, 3).map((pro, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center mb-2 text-white"
-                      >
-                        <span className="mr-2">
-                          {i === 0 ? (
-                            <Users size={16} />
-                          ) : i === 1 ? (
-                            <DollarSign size={16} />
-                          ) : (
-                            <Check size={16} />
-                          )}
-                        </span>
-                        <span className="text-base">{pro}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <OrderButton
-                    textColor={getServiceTextColor(service.name)}
-                    isDashboard
-                    content={service.name}
-                    type="TRANSPORT"
+          {services.map((service, index) => (
+            <div
+              key={index}
+              className={`rounded-lg overflow-hidden mb-4 ${getServiceBgColor(
+                service.name
+              )}`}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-5">
+                {/* Image Section */}
+                <div className="p-4">
+                  <Image
+                    src={getVehicleImage(service.name)}
+                    alt={`${service.name} vehicle`}
+                    width={96}
+                    height={96}
+                    className="object-cover w-full h-full aspect-square"
                   />
                 </div>
+                {/* Left section - Vehicle info */}
+                <div
+                  className="p-4 md:col-span-3 flex gap-4
+              "
+                >
+                  <div>
+                    <div className="flex items-center mb-3">
+                      <span className="text-2xl md:text-3xl mr-2 text-white">
+                        <BusFront />
+                      </span>
+                      <h3 className="text-xl md:text-2xl font-bold text-white">
+                        {service.name.toUpperCase()}
+                      </h3>
+                    </div>
+                    <div className="ml-1">
+                      <ul className="list-disc list-inside text-lg font-semibold mb-2 text-white">
+                        {service.information.slice(0, 3).map((info, i) => (
+                          <li key={i}>{info}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right section - Features */}
+                <div className="border-l border-white/20 p-4">
+                  <div className="flex flex-col h-full justify-center gap-4 items-center">
+                    <div>
+                      {service.pros.slice(0, 3).map((pro, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center mb-2 text-white"
+                        >
+                          <span className="mr-2">
+                            {i === 0 ? (
+                              <Users size={16} />
+                            ) : i === 1 ? (
+                              <DollarSign size={16} />
+                            ) : (
+                              <Check size={16} />
+                            )}
+                          </span>
+                          <span className="text-base">{pro}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <OrderButton
+                      textColor={getServiceTextColor(service.name)}
+                      isDashboard
+                      content={service.name}
+                      type="TRANSPORT"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="text-right">
-        <button
-          onClick={handleSignOut}
-          className="text-gray-500 hover:text-gray-700 underline"
-        >
-          Keluar dari akun
-        </button>
+        <div className="text-right">
+          <button
+            onClick={handleSignOut}
+            className="text-gray-500 hover:text-gray-700 underline"
+          >
+            Keluar dari akun
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

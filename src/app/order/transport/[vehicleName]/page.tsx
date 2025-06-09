@@ -12,6 +12,7 @@ import Step4 from "./components/step-4";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import Header from "@/components/header";
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -280,50 +281,53 @@ const OrderTransportPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      {/* Progress steps */}
-      <div className="flex justify-center mb-12">
-        <div className="flex items-center">
-          {[1, 2, 3, 4].map((stepNumber) => (
-            <React.Fragment key={stepNumber}>
-              <div
-                className={cn(
-                  "rounded-full w-12 h-12 flex items-center justify-center border-2",
-                  step === stepNumber
-                    ? "border-transpo-primary text-transpo-primary font-bold"
-                    : stepNumber < step
-                    ? "border-transpo-primary bg-transpo-primary text-white"
-                    : "border-gray-300 text-gray-300"
-                )}
-              >
-                {stepNumber}
-              </div>
-              {stepNumber < 4 && (
-                <div className="flex mx-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-2 h-2 rounded-full mx-1",
-                        step > stepNumber
-                          ? "bg-transpo-primary"
-                          : step === stepNumber
-                          ? i < 3
-                            ? "bg-transpo-primary"
-                            : "bg-gray-300"
-                          : "bg-gray-300"
-                      )}
-                    />
-                  ))}
+    <>
+      <Header isLandingPage={false} />
+      <div className="container mx-auto py-8">
+        {/* Progress steps */}
+        <div className="flex justify-center mb-12">
+          <div className="flex items-center">
+            {[1, 2, 3, 4].map((stepNumber) => (
+              <React.Fragment key={stepNumber}>
+                <div
+                  className={cn(
+                    "rounded-full w-12 h-12 flex items-center justify-center border-2",
+                    step === stepNumber
+                      ? "border-transpo-primary text-transpo-primary font-bold"
+                      : stepNumber < step
+                      ? "border-transpo-primary bg-transpo-primary text-white"
+                      : "border-gray-300 text-gray-300"
+                  )}
+                >
+                  {stepNumber}
                 </div>
-              )}
-            </React.Fragment>
-          ))}
+                {stepNumber < 4 && (
+                  <div className="flex mx-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "w-2 h-2 rounded-full mx-1",
+                          step > stepNumber
+                            ? "bg-transpo-primary"
+                            : step === stepNumber
+                            ? i < 3
+                              ? "bg-transpo-primary"
+                              : "bg-gray-300"
+                            : "bg-gray-300"
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {renderStep()}
-    </div>
+        {renderStep()}
+      </div>
+    </>
   );
 };
 
