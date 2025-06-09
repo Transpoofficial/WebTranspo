@@ -65,3 +65,18 @@ export const priorities = [
     icon: ArrowUp,
   },
 ]
+
+export const vehicleTypes = [
+  {
+    value: "ANGKOT",
+    label: "Angkot",
+  },
+  {
+    value: "HIACE",
+    label: "Hiace",
+  },
+  {
+    value: "ELF",
+    label: "Elf",
+  },
+]

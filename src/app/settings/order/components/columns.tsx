@@ -1,129 +1,232 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
-import { orderTypes, priorities, statuses } from "../data/data";
+import { orderTypes, vehicleTypes } from "../data/data";
 import { Order } from "../data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 
 export const columns: ColumnDef<Order>[] = [
-  {
-    accessorKey: "user",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Pemesan" />
-    ),
-    cell: ({ row }) => {
-      const user = row.getValue("user") as { fullName: string; phoneNumber: string };
+	{
+		accessorKey: "user",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Pemesan" />
+		),
+		cell: ({ row }) => {
+			const user = row.original.user;
 
-      return (
-        <div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-          <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
-          <div className="text-xs text-gray-500">{user.phoneNumber}</div>
-        </div>
-      );
-    },
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "title",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Route" />
-    ),
-    cell: ({ row }) => {
-      const label = orderTypes.find(
-        (orderType) => orderType.value === row.original.orderType
-      );
+			return (
+				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
+					<div className="text-sm font-medium text-gray-900">
+						{user.fullName}
+					</div>
+					<div className="text-xs text-gray-500">
+						{user.phoneNumber || user.email}
+					</div>
+				</div>
+			);
+		},
+		enableSorting: true,
+		enableHiding: false,
+		filterFn: (row, id, value) => {
+			return (
+				row.original.user.fullName
+					.toLowerCase()
+					.includes(value.toLowerCase()) ||
+				(row.original.user.phoneNumber
+					?.toLowerCase()
+					.includes(value.toLowerCase()) || "") ||
+				row.original.user.email.toLowerCase().includes(value.toLowerCase())
+			);
+		},
+	},
+	{
+		accessorKey: "orderType", // Change from 'route' to 'orderType'
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Route" />
+		),
+		cell: ({ row }) => {
+			const order = row.original;
+			const orderType = orderTypes.find(
+				(type) => type.value === order.orderType
+			);
 
-      return (
-        <div className="flex space-x-2">
-          {label && <Badge variant="outline">{label.label}</Badge>}
-          <span className="max-w-[500px] truncate font-medium">
-            {row.getValue("title")}
-          </span>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "price",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Harga" />
-    ),
-    cell: ({ row }) => {
-      // Format price if it exists
-      const price = row.original.userId || row.original.id;
-      return <div className="w-[80px]">{price}</div>;
-    },
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Tanggal" />
-    ),
-    cell: ({ row }) => {
-      // Format date if it exists
-      const date = row.original.createdAt || row.original.id;
-      return <div className="w-[80px]">{date}</div>;
-    },
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status pesanan" />
-    ),
-    cell: ({ row }) => {
-      const status = statuses.find(
-        (status) => status.value === row.getValue("status")
-      );
+			// Generate route info based on order type
+			let routeInfo = "";
+			if (order.orderType === "TRANSPORT" && order.transportation) {
+				const destinations = order.transportation.destinations;
+				const pickupLocations = destinations.filter(
+					(dest) => dest.isPickupLocation
+				);
+				const dropLocations = destinations.filter(
+					(dest) => !dest.isPickupLocation
+				);
 
-      if (!status) {
-        return null;
-      }
+				if (pickupLocations.length > 0 && dropLocations.length > 0) {
+					const firstPickup = pickupLocations[0].address.split(",")[0];
+					const lastDrop = dropLocations[dropLocations.length - 1]
+						.address.split(",")[0];
+					routeInfo = `${firstPickup} → ${lastDrop}`;
+				}
+			}
 
-      return (
-        <div className="flex w-[100px] items-center">
-          {status.icon && (
-            <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
-          <span>{status.label}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: "priority",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status pembayaran" />
-    ),
-    cell: ({ row }) => {
-      const priority = priorities.find(
-        (priority) => priority.value === row.getValue("priority")
-      );
+			return (
+				<div className="flex flex-col space-y-1">
+					<div className="flex items-center space-x-2">
+						{orderType && <Badge variant="outline">{orderType.label}</Badge>}
+					</div>
+					<span className="max-w-[300px] truncate text-sm text-gray-600">
+						{routeInfo || "No route info"}
+					</span>
+				</div>
+			);
+		},
+		filterFn: (row, id, value) => {
+			return value.includes(row.getValue(id));
+		},
+	},
+	{
+		accessorKey: "vehicleInfo",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Kendaraan" />
+		),
+		cell: ({ row }) => {
+			const order = row.original;
+			let vehicleInfo = "-";
 
-      if (!priority) {
-        return null;
-      }
+			if (order.orderType === "TRANSPORT" && order.transportation) {
+				vehicleInfo = `${order.transportation.vehicleCount} unit`;
+			}
 
-      return (
-        <div className="flex items-center">
-          {priority.icon && (
-            <priority.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
-          <span>{priority.label}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
+			return <div className="w-[80px]">{vehicleInfo}</div>;
+		},
+		enableSorting: false,
+		enableHiding: false,
+	},
+	{
+		accessorKey: "distance",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Jarak" />
+		),
+		cell: ({ row }) => {
+			const order = row.original;
+			let distance = "-";
+
+			if (order.orderType === "TRANSPORT" && order.transportation) {
+				const km = (order.transportation.totalDistance / 1000).toFixed(1);
+				distance = `${km} km`;
+			}
+
+			return <div className="w-[80px]">{distance}</div>;
+		},
+		enableSorting: false,
+		enableHiding: false,
+	},
+	{
+		accessorKey: "createdAt",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Tanggal Dibuat" />
+		),
+		cell: ({ row }) => {
+			const date = new Date(row.original.createdAt);
+			return (
+				<div className="w-[100px]">
+					{format(date, "dd MMM yyyy", { locale: id })}
+				</div>
+			);
+		},
+	},
+	{
+		accessorKey: "orderStatus",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Status Pesanan" />
+		),
+		cell: ({ row }) => {
+			const orderStatus = row.original.orderStatus;
+
+			// Map order status to display status
+			const statusMap: {
+				[key: string]: {
+					label: string;
+					variant: "default" | "secondary" | "destructive" | "outline";
+				};
+			} = {
+				PENDING: { label: "Menunggu", variant: "outline" },
+				CONFIRMED: { label: "Dikonfirmasi", variant: "default" },
+				CANCELED: { label: "Dibatalkan", variant: "destructive" },
+				COMPLETED: { label: "Selesai", variant: "secondary" },
+				REFUNDED: { label: "Dikembalikan", variant: "outline" },
+			};
+
+			const status =
+				statusMap[orderStatus] || {
+					label: orderStatus,
+					variant: "outline" as const,
+				};
+
+			return (
+				<div className="flex w-[100px] items-center">
+					<Badge variant={status.variant}>{status.label}</Badge>
+				</div>
+			);
+		},
+		filterFn: (row, id, value) => {
+			return value.includes(row.getValue(id));
+		},
+	},
+	{
+		accessorKey: "roundTrip",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Tipe Perjalanan" />
+		),
+		cell: ({ row }) => {
+			const order = row.original;
+			let tripType = "-";
+
+			if (order.orderType === "TRANSPORT" && order.transportation) {
+				tripType = order.transportation.roundTrip
+					? "Pulang Pergi"
+					: "Sekali Jalan";
+			}
+
+			return (
+				<div className="flex items-center">
+					<Badge variant="outline">{tripType}</Badge>
+				</div>
+			);
+		},
+		filterFn: (row, id, value) => {
+			return value.includes(row.getValue(id));
+		},
+	},
+	{
+		accessorKey: "vehicleType",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Jenis Kendaraan" />
+		),
+		cell: ({ row }) => {
+			const order = row.original;
+			let vehicle = "-";
+
+			if (order.orderType === "TRANSPORT" && order.transportation) {
+				const vehicleType = vehicleTypes.find(
+					(type) => type.value === order.transportation?.vehicleType
+				);
+				vehicle = vehicleType?.label || "-";
+			}
+
+			return (
+				<div className="flex items-center">
+					<Badge variant="outline">{vehicle}</Badge>
+				</div>
+			);
+		},
+		filterFn: (row, id, value) => {
+			if (!row.original.transportation) return false;
+			return value.includes(row.original.transportation.vehicleType);
+		},
+	},
 ];

@@ -76,7 +76,7 @@ export const POST = async (req: NextRequest) => {
     }
 
     const results: ResultUploadFiles = await uploadFiles(
-      "testing",
+      process.env.SUPABASE_BUCKET || "",
       [mainImgUrl],
       "articles"
     );

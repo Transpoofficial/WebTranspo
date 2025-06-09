@@ -39,17 +39,32 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
+import { Order } from "../data/schema";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { FlagTriangleRight } from "lucide-react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { UploadPaymentDialog } from "./upload-payment-dialog";
+import { toast } from "sonner";
+import Image from "next/image";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends Order, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -62,10 +77,14 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [selectedRow, setSelectedRow] = React.useState<TData | null>(null);
   const [isActionDrawerOpen, setIsActionDrawerOpen] = React.useState(false);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = React.useState(false);
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = React.useState(false);
   const [isDeleteDrawerOpen, setIsDeleteDrawerOpen] = React.useState(false);
-  const [editedTitle, setEditedTitle] = React.useState("");
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+  const [isPaymentProofDialogOpen, setIsPaymentProofDialogOpen] =
+    React.useState(false);
   const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const table = useReactTable({
     data,
@@ -91,7 +110,6 @@ export function DataTable<TData, TValue>({
 
   const handleLongPressStart = (row: TData) => {
     longPressTimer.current = setTimeout(() => {
-      // Open action drawer on mobile long press
       setSelectedRow(row);
       setIsActionDrawerOpen(true);
     }, 800);
@@ -104,51 +122,310 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  const handleEdit = (row: TData) => {
+  const handleViewDetail = (row: TData) => {
     setSelectedRow(row);
-    // Assuming the row has an 'id' or 'title' property
-    const rowData = row as { id?: string; title?: string };
-    setEditedTitle(rowData.id || rowData.title || "");
-    setIsActionDrawerOpen(false); // Close action drawer
-    setIsEditDrawerOpen(true);
-  };
-
-  const handleDelete = (row: TData) => {
-    setSelectedRow(row);
-    setIsActionDrawerOpen(false); // Close action drawer
-    setIsDeleteDrawerOpen(true);
-  };
-
-  const handleSaveEdit = () => {
-    if (selectedRow) {
-      // Implement save logic here (e.g., API call to update task)
-      console.log("Saving edited task:", {
-        ...selectedRow,
-        title: editedTitle,
-      });
-      setIsEditDrawerOpen(false);
-      setSelectedRow(null);
-      setEditedTitle("");
+    setIsActionDrawerOpen(false);
+    if (isDesktop) {
+      setSheetOpen(true);
+    } else {
+      setIsDetailDrawerOpen(true);
     }
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmCancel = () => {
     if (selectedRow) {
-      // Implement delete logic here (e.g., API call to delete task)
-      console.log("Deleting task:", selectedRow);
+      console.log("Canceling order:", selectedRow);
+      // Implement cancel logic here (API call)
       setIsDeleteDrawerOpen(false);
       setSelectedRow(null);
     }
   };
 
-  const handleCopy = (row: TData) => {
-    console.log("Copying task:", row);
-    setIsActionDrawerOpen(false); // Close action drawer
+  const handleUploadPayment = (row: TData) => {
+    setSelectedRow(row);
+    setIsActionDrawerOpen(false);
+    setIsUploadDialogOpen(true);
   };
 
-  const handleFavorite = (row: TData) => {
-    console.log("Favoriting task:", row);
-    setIsActionDrawerOpen(false); // Close action drawer
+  const handleViewPaymentProof = (row: TData) => {
+    setSelectedRow(row);
+    setIsActionDrawerOpen(false);
+    setIsPaymentProofDialogOpen(true);
+  };
+
+  const handleUploadSuccess = () => {
+    // Refresh data or update UI as needed
+    toast.success("Pembayaran berhasil diupload");
+  };
+
+  const renderOrderDetails = (order: Order) => {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h4 className="font-medium text-sm text-gray-500">Order ID</h4>
+            <p className="text-sm font-mono">{order.id}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-gray-500">Status</h4>
+            <Badge variant="outline">{order.orderStatus}</Badge>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-gray-500">Tipe Order</h4>
+            <p className="text-sm">{order.orderType}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-sm text-gray-500">
+              Tanggal Dibuat
+            </h4>
+            <p className="text-sm">
+              {format(new Date(order.createdAt), "dd MMM yyyy HH:mm", {
+                locale: id,
+              })}
+            </p>
+          </div>
+        </div>
+
+        {order.orderType === "TRANSPORT" && order.transportation && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm text-gray-900">
+              Detail Transportasi
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h5 className="font-medium text-xs text-gray-500">
+                  Jumlah Kendaraan
+                </h5>
+                <p className="text-sm">
+                  {order.transportation.vehicleCount} unit
+                </p>
+              </div>
+              <div>
+                <h5 className="font-medium text-xs text-gray-500">
+                  Tipe Perjalanan
+                </h5>
+                <p className="text-sm">
+                  {order.transportation.roundTrip
+                    ? "Pulang Pergi"
+                    : "Sekali Jalan"}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <h5 className="font-medium text-xs text-gray-500">
+                  Total Jarak
+                </h5>
+                <p className="text-sm">
+                  {(order.transportation.totalDistance / 1000).toFixed(1)} km
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h5 className="font-medium text-xs text-gray-500 mb-2">
+                Destinasi
+              </h5>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {order.transportation.destinations
+                  .sort((a, b) => a.sequence - b.sequence)
+                  .map((dest) => (
+                    <div
+                      key={dest.id}
+                      className="text-xs bg-gray-50 p-2 rounded"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            dest.isPickupLocation ? "default" : "secondary"
+                          }
+                          className="text-xs px-1"
+                        >
+                          {dest.isPickupLocation ? "Pickup" : "Drop"}
+                        </Badge>
+                        <span className="font-medium">{dest.arrivalTime}</span>
+                      </div>
+                      <p className="mt-1 text-gray-600">{dest.address}</p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    try {
+      if (!dateString) return "Invalid date";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Invalid date";
+      }
+      return format(date, "EEEE, d MMMM yyyy 'pukul' HH:mm", { locale: id });
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "Invalid date";
+    }
+  };
+
+  const formatTimeOnly = (dateString: string | null | undefined) => {
+    try {
+      if (!dateString) return "Invalid time";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Invalid time";
+      }
+      return format(date, "HH:mm 'WIB'", { locale: id });
+    } catch (error) {
+      console.error("Time formatting error:", error);
+      return "Invalid time";
+    }
+  };
+
+  const renderOrderDetailContent = (order: Order) => {
+    const groupDestinationsByDate = (
+      destinations: NonNullable<Order["transportation"]>["destinations"]
+    ) => {
+      const groups = destinations.reduce((acc, dest) => {
+        // Handle case where departureDate might be null/undefined
+        const date = dest.departureDate
+          ? dest.departureDate.split("T")[0]
+          : "unknown";
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(dest);
+        return acc;
+      }, {} as Record<string, typeof destinations>);
+
+      // Sort destinations within each group by sequence
+      Object.keys(groups).forEach((date) => {
+        groups[date].sort((a, b) => a.sequence - b.sequence);
+      });
+
+      return groups;
+    };
+
+    const statusMap: {
+      [key: string]: {
+        label: string;
+        variant: "default" | "secondary" | "destructive" | "outline";
+      };
+    } = {
+      PENDING: { label: "Menunggu", variant: "outline" },
+      CONFIRMED: { label: "Dikonfirmasi", variant: "default" },
+      CANCELED: { label: "Dibatalkan", variant: "destructive" },
+      COMPLETED: { label: "Selesai", variant: "secondary" },
+      REFUNDED: { label: "Dikembalikan", variant: "outline" },
+    };
+
+    const status = statusMap[order.orderStatus] || {
+      label: order.orderStatus,
+      variant: "outline" as const,
+    };
+    return (
+      <div className="p-4 pt-0 overflow-y-auto">
+        <div className="flex items-start gap-x-10 w-full whitespace-nowrap overflow-x-auto">
+          {/* Created At */}
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">Tanggal pemesanan</p>
+            <p className="text-sm">{formatDate(order.createdAt)}</p>
+          </div>
+
+          {/* Payment Status */}
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">Status pesanan</p>
+            <Badge variant={status.variant}>{status.label}</Badge>
+          </div>
+
+          {/* Order Type */}
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">Tipe</p>
+            <Badge className="block first-letter:uppercase">
+              {order.orderType}
+            </Badge>
+          </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Customer */}
+        <div className="flex flex-col gap-y-4">
+          <p className="text-xs text-[#6A6A6A]">Pemesan</p>
+          <div className="flex flex-col gap-y-2">
+            <p className="text-sm">{order.user.fullName}</p>
+            <p className="text-sm">{order.user.email}</p>
+            <p className="text-sm">{order.user.phoneNumber}</p>
+          </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Destination for Transport orders */}
+        {order.orderType === "TRANSPORT" && order.transportation && (
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">Destinasi (Transport)</p>
+
+            <div className="flex flex-col max-h-96 overflow-y-auto divide-y">
+              {Object.entries(
+                groupDestinationsByDate(order.transportation.destinations)
+              )
+                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                .filter(([date]) => date !== "unknown")
+                .map(([date, destinations]) => (
+                  <div key={date} className="py-4 first:pt-0 last:pb-0">
+                    <h3 className="text-sm font-medium text-gray-900 sticky top-0 bg-white py-2 mb-4">
+                      {format(new Date(date), "EEEE, d MMMM yyyy", {
+                        locale: id,
+                      })}
+                    </h3>
+
+                    <div className="flex flex-col space-y-4">
+                      {destinations.map((dest, index) => (
+                        <div
+                          key={dest.id}
+                          className="flex items-stretch gap-x-3.5"
+                        >
+                          <div className="w-6 flex flex-col items-center pt-1">
+                            <span className="inline-flex justify-center items-center border border-dashed rounded-full p-1 border-black">
+                              {dest.isPickupLocation ? (
+                                <FlagTriangleRight size={14} />
+                              ) : (
+                                <span className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold">
+                                  {index + 1}
+                                </span>
+                              )}
+                            </span>
+                            {index < destinations.length - 1 && (
+                              <div className="h-full pt-1">
+                                <Separator orientation="vertical" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="inline-flex flex-col flex-1">
+                            <p className="text-sm font-medium line-clamp-2">
+                              {dest.address}
+                            </p>
+                            <p className="text-xs text-[#6A6A6A]">
+                              {dest.isPickupLocation
+                                ? "Lokasi penjemputan"
+                                : `Lokasi ${index + 1}`}
+                            </p>
+                            <p className="text-xs text-[#6A6A6A] mt-1">
+                              {formatTimeOnly(dest.arrivalTime)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -184,7 +461,7 @@ export function DataTable<TData, TValue>({
                       onMouseLeave={handleLongPressEnd}
                       onTouchStart={() => handleLongPressStart(row.original)}
                       onTouchEnd={handleLongPressEnd}
-                      className="relative transition duration-200 active:scale-99 cursor-pointer"
+                      className="relative cursor-pointer"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
@@ -197,23 +474,22 @@ export function DataTable<TData, TValue>({
                     </TableRow>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleEdit(row.original)}>
-                      Edit
+                    <ContextMenuItem onClick={() => handleViewDetail(row.original)}>
+                      Lihat detail
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleCopy(row.original)}>
-                      Make a copy
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => handleFavorite(row.original)}
-                    >
-                      Favorite
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => handleDelete(row.original)}
-                      className="text-red-600 focus:text-red-600"
-                    >
-                      Delete
-                    </ContextMenuItem>
+                    {row.original.payment?.proofUrl ? (
+                      <ContextMenuItem
+                        onClick={() => handleViewPaymentProof(row.original)}
+                      >
+                        Lihat bukti pembayaran
+                      </ContextMenuItem>
+                    ) : (
+                      <ContextMenuItem
+                        onClick={() => handleUploadPayment(row.original)}
+                      >
+                        Upload bukti pembayaran
+                      </ContextMenuItem>
+                    )}
                   </ContextMenuContent>
                 </ContextMenu>
               ))
@@ -223,7 +499,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  Tidak ada pesanan ditemukan.
                 </TableCell>
               </TableRow>
             )}
@@ -235,100 +511,139 @@ export function DataTable<TData, TValue>({
       {/* Action Drawer for Mobile */}
       <Drawer open={isActionDrawerOpen} onOpenChange={setIsActionDrawerOpen}>
         <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Actions</DrawerTitle>
-            <DrawerDescription>
-              Choose an action for this item.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 space-y-2">
+          <div className="p-4">
             <Button
-              variant="outline"
+              variant="ghost"
               className="w-full justify-start"
-              onClick={() => selectedRow && handleEdit(selectedRow)}
+              onClick={() => selectedRow && handleViewDetail(selectedRow)}
             >
-              Edit
+              Lihat Detail
             </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => selectedRow && handleCopy(selectedRow)}
-            >
-              Make a copy
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => selectedRow && handleFavorite(selectedRow)}
-            >
-              Favorite
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
-              onClick={() => selectedRow && handleDelete(selectedRow)}
-            >
-              Delete
-            </Button>
-          </div>
-          <DrawerFooter>
+            {selectedRow?.payment?.proofUrl ? (
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => selectedRow && handleViewPaymentProof(selectedRow)}
+              >
+                Lihat bukti pembayaran
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => selectedRow && handleUploadPayment(selectedRow)}
+              >
+                Upload bukti pembayaran
+              </Button>
+            )}
             <DrawerClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="ghost" className="w-full justify-start">
+                Batal
+              </Button>
             </DrawerClose>
-          </DrawerFooter>
+          </div>
         </DrawerContent>
       </Drawer>
 
-      {/* Edit Drawer */}
-      <Drawer open={isEditDrawerOpen} onOpenChange={setIsEditDrawerOpen}>
+      {/* Detail Drawer */}
+      <Drawer open={isDetailDrawerOpen} onOpenChange={setIsDetailDrawerOpen}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Edit Order</DrawerTitle>
+            <DrawerTitle>Detail Pesanan</DrawerTitle>
             <DrawerDescription>
-              Update the order details below.
+              Informasi lengkap tentang pesanan Anda
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-4">
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                className="mt-1"
-                placeholder="Enter title"
-              />
-            </div>
+          <div className="p-4 max-h-[60vh] overflow-y-auto">
+            {selectedRow && renderOrderDetails(selectedRow as Order)}
           </div>
           <DrawerFooter>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
             <DrawerClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline">Tutup</Button>
             </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
 
-      {/* Delete Confirmation Drawer */}
+      {/* Cancel Confirmation Drawer */}
       <Drawer open={isDeleteDrawerOpen} onOpenChange={setIsDeleteDrawerOpen}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Delete Order</DrawerTitle>
+            <DrawerTitle>Batalkan Pesanan</DrawerTitle>
             <DrawerDescription>
-              Are you sure you want to delete this order? This action cannot be
-              undone.
+              Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini
+              tidak dapat dibatalkan.
             </DrawerDescription>
           </DrawerHeader>
           <DrawerFooter>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              Delete Order
+            <Button variant="destructive" onClick={handleConfirmCancel}>
+              Batalkan Pesanan
             </Button>
             <DrawerClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline">Batal</Button>
             </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Upload Payment Dialog */}
+      {selectedRow && (
+        <UploadPaymentDialog
+          open={isUploadDialogOpen}
+          onClose={() => setIsUploadDialogOpen(false)}
+          paymentId={selectedRow.payment.id}
+          amount={selectedRow.payment.totalPrice}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* Payment Proof Dialog */}
+      <Dialog open={isPaymentProofDialogOpen} onOpenChange={setIsPaymentProofDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Bukti Pembayaran</DialogTitle>
+          </DialogHeader>
+          {selectedRow?.payment?.proofUrl && (
+            <div className="relative w-full aspect-[3/4]">
+              <Image
+                src={selectedRow.payment.proofUrl}
+                alt="Bukti pembayaran"
+                fill
+                className="object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Desktop Sheet */}
+      {isDesktop && (
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent className="w-[384px] sm:max-w-full sm:w-[576px]">
+            <SheetHeader>
+              <SheetTitle>Detail pesanan</SheetTitle>
+            </SheetHeader>
+            {selectedRow && renderOrderDetailContent(selectedRow)}
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Mobile Drawer */}
+      {!isDesktop && (
+        <Drawer open={isDetailDrawerOpen} onOpenChange={setIsDetailDrawerOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Detail Pesanan</DrawerTitle>
+            </DrawerHeader>
+            {selectedRow && renderOrderDetailContent(selectedRow)}
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="outline">Tutup</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }
