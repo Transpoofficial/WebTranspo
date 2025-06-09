@@ -138,7 +138,7 @@ const SortableLocationItem = ({
         <div className="flex items-center gap-1 mb-1">
           <Clock className="h-3.5 w-3.5 text-teal-600" />
           <span className="text-xs font-medium text-teal-700">
-            Jam Kedatangan
+            Jam Kedatangan (Opsional)
           </span>
         </div>
         <div className="relative w-full max-w-[150px]">
