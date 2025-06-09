@@ -15,12 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
-  scrollToAdvantage: () => void;
-  scrollToHowToOrder: () => void;
-  scrollToFAQAndContact: () => void;
-  scrollToReview: () => void;
+  scrollToAdvantage?: () => void;
+  scrollToHowToOrder?: () => void;
+  scrollToFAQAndContact?: () => void;
+  scrollToReview?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -31,6 +32,15 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const router = useRouter();
+
+  const handleButtonClick = (scrollFunction?: () => void) => {
+    if (scrollFunction) {
+      scrollFunction();
+    } else if (!scrollToAdvantage && !scrollToHowToOrder && !scrollToFAQAndContact && !scrollToReview) {
+      router.push("/");
+    }
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -89,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({
 
           <div className="hidden md:flex items-center">
             <Button
-              onClick={scrollToAdvantage}
+              onClick={() => handleButtonClick(scrollToAdvantage)}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -97,7 +107,7 @@ const Header: React.FC<HeaderProps> = ({
               Kelebihan
             </Button>
             <Button
-              onClick={scrollToHowToOrder}
+              onClick={() => handleButtonClick(scrollToHowToOrder)}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -105,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({
               Cara kerja
             </Button>
             <Button
-              onClick={scrollToFAQAndContact}
+              onClick={() => handleButtonClick(scrollToFAQAndContact)}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -113,7 +123,7 @@ const Header: React.FC<HeaderProps> = ({
               FAQ
             </Button>
             <Button
-              onClick={scrollToReview}
+              onClick={() => handleButtonClick(scrollToReview)}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -121,7 +131,7 @@ const Header: React.FC<HeaderProps> = ({
               Review
             </Button>
             <Button
-              onClick={scrollToFAQAndContact}
+              onClick={() => handleButtonClick(scrollToFAQAndContact)}
               variant="ghost"
               size="lg"
               className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
@@ -163,8 +173,12 @@ const Header: React.FC<HeaderProps> = ({
                       <Link href="/admin">Halaman admin</Link>
                     </DropdownMenuItem>
                   ))}
-                <DropdownMenuItem>Profil</DropdownMenuItem>
-                <DropdownMenuItem>Pesanan</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/profile">Profil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/order">Pesanan</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   Log out

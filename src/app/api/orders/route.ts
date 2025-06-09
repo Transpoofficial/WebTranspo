@@ -24,6 +24,7 @@ export const GET = async (req: NextRequest) => {
         },
         packageOrder: true,
         vehicleType: true, // Include vehicleType in the response
+        payment: true,
       },
     });
 
