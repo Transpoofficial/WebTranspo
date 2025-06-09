@@ -65,7 +65,8 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          fullName: user.fullName || "Unknown", // Provide a fallback for null fullNames
+          fullName: user.fullName || "Unknown",
+          role: user.role,
         };
       },
     }),
@@ -116,20 +117,32 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
           },
         });
-        if (dbUser) token.id = dbUser.id;
-        token.email = user.email;
-        token.fullName = user.fullName;
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.email = dbUser.email;
+          token.fullName = dbUser.fullName;
+          token.role = dbUser.role;
+        }
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          fullName: token.fullName,
-        };
+    async session({ session, user }) {
+      // Jika menggunakan adapter, user akan tersedia
+      if (user) {
+        session.user.id = user.id;
+        session.user.fullName = user.fullName;
+        session.user.email = user.email;
+      } else {
+        // Jika menggunakan JWT, ambil data terbaru dari database
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, fullName: true, email: true },
+        });
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.fullName = dbUser.fullName;
+          session.user.email = dbUser.email;
+        }
       }
       return session;
     },

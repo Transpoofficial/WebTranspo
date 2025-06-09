@@ -3,12 +3,31 @@ import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
 import { ResultUploadFiles } from "@/../types/supabase";
+import { getPaginationParams } from "@/utils/pagination";
 
-export const GET = async () => {
+export const GET = async (req: NextRequest) => {
   try {
-    const packages = await prisma.tourPackage.findMany({});
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.tourPackage.count();
+
+    const packages = await prisma.tourPackage.findMany({
+      skip,
+      take: limit,
+    });
+
     return NextResponse.json(
-      { message: "Packages retrieved successfully", data: packages },
+      {
+        message: "Packages retrieved successfully",
+        data: packages,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + packages.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -73,7 +92,7 @@ export const POST = async (req: NextRequest) => {
       );
     }
     const results: ResultUploadFiles = await uploadFiles(
-      "testing",
+      process.env.SUPABASE_BUCKET || "",
       files,
       "tourPackage"
     );

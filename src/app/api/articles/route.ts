@@ -4,18 +4,36 @@ import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { ResultUploadFiles } from "../../../../types/supabase";
 import { PhotoUrl } from "../../../../types/tourPackage";
+import { getPaginationParams } from "@/utils/pagination";
 
-export const GET = async () => {
+export const GET = async (req: NextRequest) => {
   try {
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.article.count();
+
     const articles = await prisma.article.findMany({
+      skip,
+      take: limit,
       include: {
         author: {
           select: { fullName: true },
         },
       },
     });
+
     return NextResponse.json(
-      { message: "Articles retrieved successfully", data: articles },
+      {
+        message: "Articles retrieved successfully",
+        data: articles,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + articles.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -58,7 +76,7 @@ export const POST = async (req: NextRequest) => {
     }
 
     const results: ResultUploadFiles = await uploadFiles(
-      "testing",
+      process.env.SUPABASE_BUCKET || "",
       [mainImgUrl],
       "articles"
     );
