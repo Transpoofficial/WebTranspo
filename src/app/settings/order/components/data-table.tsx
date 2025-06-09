@@ -57,7 +57,12 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { UploadPaymentDialog } from "./upload-payment-dialog";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -271,14 +276,20 @@ export function DataTable<TData extends Order, TValue>({
   const formatTimeOnly = (dateString: string | null | undefined) => {
     try {
       if (!dateString) return "Invalid time";
+      // Jika arrivalTime hanya berupa jam (misal: "14:00" atau "14:00:00")
+      if (/^\d{2}:\d{2}(:\d{2})?$/.test(dateString)) {
+        // Tambahkan WIB jika belum ada
+        return `${dateString.slice(0, 5)} WIB`;
+      }
+      // Jika arrivalTime berupa ISO string
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return "Invalid time";
+        return dateString; // fallback: tampilkan apa adanya
       }
       return format(date, "HH:mm 'WIB'", { locale: id });
     } catch (error) {
       console.error("Time formatting error:", error);
-      return "Invalid time";
+      return dateString || "Invalid time";
     }
   };
 
@@ -356,6 +367,22 @@ export function DataTable<TData extends Order, TValue>({
             <p className="text-sm">{order.user.fullName}</p>
             <p className="text-sm">{order.user.email}</p>
             <p className="text-sm">{order.user.phoneNumber}</p>
+          </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Total Price */}
+        <div className="flex flex-col gap-y-4">
+          <p className="text-xs text-[#6A6A6A]">Total biaya</p>
+          <div className="text-lg font-semibold">
+            {order.payment?.totalPrice !== undefined
+              ? new Intl.NumberFormat("id-ID", {
+                  style: "currency",
+                  currency: "IDR",
+                  minimumFractionDigits: 0,
+                }).format(Number(order.payment.totalPrice))
+              : "-"}
           </div>
         </div>
 
@@ -474,7 +501,9 @@ export function DataTable<TData extends Order, TValue>({
                     </TableRow>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleViewDetail(row.original)}>
+                    <ContextMenuItem
+                      onClick={() => handleViewDetail(row.original)}
+                    >
                       Lihat detail
                     </ContextMenuItem>
                     {row.original.payment?.proofUrl ? (
@@ -523,7 +552,9 @@ export function DataTable<TData extends Order, TValue>({
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={() => selectedRow && handleViewPaymentProof(selectedRow)}
+                onClick={() =>
+                  selectedRow && handleViewPaymentProof(selectedRow)
+                }
               >
                 Lihat bukti pembayaran
               </Button>
@@ -598,7 +629,10 @@ export function DataTable<TData extends Order, TValue>({
       )}
 
       {/* Payment Proof Dialog */}
-      <Dialog open={isPaymentProofDialogOpen} onOpenChange={setIsPaymentProofDialogOpen}>
+      <Dialog
+        open={isPaymentProofDialogOpen}
+        onOpenChange={setIsPaymentProofDialogOpen}
+      >
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Bukti Pembayaran</DialogTitle>
