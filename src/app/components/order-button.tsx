@@ -43,7 +43,7 @@ const OrderButton: FC<OrderButtonProps> = ({
         <Button
           size="lg"
           className={cn(
-            "py-2 px-4 text-xl w-min bg-white hover:bg-gray-100 shadow-lg",
+            "py-2 px-4 text-xl w-full md:w-min bg-white hover:bg-gray-100 shadow-lg ",
             { [textColor as string]: textColor }
           )}
           onClick={handleOrderClick}

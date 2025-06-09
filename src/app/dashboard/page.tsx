@@ -1,10 +1,8 @@
 "use client";
-import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import servicesData from "@/data/services.json";
 import OrderButton from "../components/order-button";
 import { Users, DollarSign, Check, BusFront } from "lucide-react";
@@ -77,10 +75,6 @@ const DashboardPage = () => {
 
     fetchDashboardData();
   }, [session, router]);
-
-  const handleSignOut = () => {
-    signOut();
-  };
 
   // Format departure date from the nearest order
   const formatOrderDate = (order: NearestOrder) => {
@@ -263,8 +257,8 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Right section - Features */}
-                <div className="border-l border-white/20 p-4">
-                  <div className="flex flex-col h-full justify-center gap-4 items-center">
+                <div className="border-t-2 md:border-l-2 border-white/20 p-4">
+                  <div className="flex flex-col h-full justify-center gap-4 md:items-center">
                     <div>
                       {service.pros.slice(0, 3).map((pro, i) => (
                         <div
@@ -295,15 +289,6 @@ const DashboardPage = () => {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="text-right">
-          <button
-            onClick={handleSignOut}
-            className="text-gray-500 hover:text-gray-700 underline"
-          >
-            Keluar dari akun
-          </button>
         </div>
       </div>
     </>
