@@ -12,7 +12,6 @@ import Step4 from "./components/step-4";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import Header from "@/components/header";
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -121,21 +120,21 @@ const OrderTransportPage = () => {
             );
 
             if (response.status === 200 && response.data.data) {
-              const payment = response.data.data;
-              setPaymentData({
-                id: payment.id,
-                amount: parseFloat(payment.totalPrice),
-              });
-              setStep(4); // Go directly to step 4
+              router.push("/settings/order");
+              // const payment = response.data.data;
+              // setPaymentData({
+              //   id: payment.id,
+              //   amount: parseFloat(payment.totalPrice),
+              // });
+              // setStep(4); // Go directly to step 4
             } else {
               // Payment not found or invalid
-              localStorage.removeItem(PAYMENT_ID_KEY);
-
               // If vehicle name is invalid, redirect home
               if (!isValidVehicleName) {
                 router.push("/");
               }
             }
+            localStorage.removeItem(PAYMENT_ID_KEY);
           } catch (error) {
             console.error("Error fetching payment:", error);
             localStorage.removeItem(PAYMENT_ID_KEY);
