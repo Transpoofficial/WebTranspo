@@ -120,6 +120,13 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
         "vehicleCount",
         orderData.userData.totalVehicles.toString()
       );
+      formData.append("fullName", orderData.userData.name);
+      formData.append("phoneNumber", orderData.userData.phone);
+      formData.append("email", orderData.userData.email);
+      formData.append(
+        "totalPassengers",
+        orderData.userData.totalPassangers.toString()
+      );
       formData.append("roundTrip", "false");
       formData.append("vehicleTypeId", orderData.vehicleTypeId);
       formData.append("totalDistance", orderData.totalDistance.toString());

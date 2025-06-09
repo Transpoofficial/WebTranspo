@@ -32,10 +32,10 @@ async function main() {
 
   // Seed vehicle types
   const vehicleTypes = [
-    { name: "Angkot" },
-    { name: "Hiace Commuter" },
-    { name: "Hiace Premio" },
-    { name: "ELF" },
+    { name: "Angkot", pricePerKm: 5000 },
+    { name: "Hiace Commuter", pricePerKm: 10000 },
+    { name: "Hiace Premio", pricePerKm: 15000 },
+    { name: "ELF", pricePerKm: 12000 },
   ];
 
   for (const vehicleType of vehicleTypes) {
@@ -44,6 +44,7 @@ async function main() {
       update: {},
       create: {
         name: vehicleType.name,
+        pricePerKm: vehicleType.pricePerKm,
       },
     });
   }

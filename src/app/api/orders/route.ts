@@ -23,6 +23,7 @@ export const GET = async (req: NextRequest) => {
           },
         },
         packageOrder: true,
+        vehicleType: true, // Include vehicleType in the response
       },
     });
 
@@ -84,6 +85,10 @@ export const POST = async (req: NextRequest) => {
       totalDistance?: string;
       totalPrice?: string;
       packageId?: string;
+      fullName?: string; // Add fullName field
+      phoneNumber?: string; // Add phoneNumber field
+      email?: string; // Add email field
+      totalPassengers?: string; // Add totalPassengers field
     }
 
     interface Destination {
@@ -308,6 +313,10 @@ export const POST = async (req: NextRequest) => {
       totalDistance,
       totalPrice,
       packageId,
+      fullName,
+      phoneNumber,
+      email,
+      totalPassengers,
     } = body;
 
     // Verify required fields
@@ -350,12 +359,17 @@ export const POST = async (req: NextRequest) => {
 
     // Create order and include payment in the transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create order - Fix: Use proper enum
+      // Create order - Fix: Use proper enum and include user details
       const createdOrder = await tx.order.create({
         data: {
           orderType: orderType.toUpperCase() as OrderType,
           userId: token.id,
           orderStatus: OrderStatus.PENDING,
+          fullName: fullName || userExists.fullName || "Customer",
+          phoneNumber: phoneNumber || userExists.phoneNumber || null,
+          email: email || userExists.email || null,
+          totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
+          vehicleTypeId: vehicleTypeId || null,
         },
       });
 
