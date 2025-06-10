@@ -46,6 +46,11 @@ export default function OrderPage() {
     gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
   });
 
+  // Filter orders by current user's userId
+  const userOrders = orderResponse?.data?.filter(
+    (order) => order.userId === session?.user?.id
+  ) || [];
+
   if (status === "loading") {
     return (
       <div className="h-full flex-1 flex-col space-y-4">
@@ -68,8 +73,10 @@ export default function OrderPage() {
 
   if (isLoading) {
     return (
-      <div className="py-24 flex items-center justify-center w-full">
-        <div className="border-y-2 border-black w-6 h-6 rounded-full animate-spin" />
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">Loading orders...</div>
+        </div>
       </div>
     );
   }
@@ -93,10 +100,8 @@ export default function OrderPage() {
   }
 
   return (
-    <div className="h-full space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Pesanan</h1>
-
-      <DataTable data={orderResponse?.data || []} columns={columns} />
+    <div className="h-full">
+      <DataTable data={userOrders} columns={columns} />
     </div>
   );
 }
