@@ -3,7 +3,368 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
-import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client"; // Import necessary enums
+import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client";
+import {
+  calculateDistance,
+  calculateInterTripCharges,
+  calculateAngkotPrice,
+  calculateHiaceCommuterPrice,
+  calculateHiacePremioPrice,
+  calculateElfPrice,
+  calculateTotalPrice,
+} from "@/utils/order";
+
+// Types
+interface OrderRequestBody {
+  orderType?: string;
+  timezone?: string;
+  vehicleCount?: string;
+  roundTrip?: string;
+  vehicleTypeId?: string;
+  totalDistance?: string;
+  totalPrice?: string;
+  packageId?: string;
+  fullName?: string;
+  phoneNumber?: string;
+  email?: string;
+  totalPassengers?: string;
+  note?: string;
+}
+
+interface Destination {
+  address: string;
+  lat: number;
+  lng: number;
+  arrivalTime?: string;
+  departureDate?: string;
+  departureTime?: string;
+  isPickupLocation: boolean;
+  sequence: number;
+}
+
+interface ValidatedTransportData {
+  actualTotalDistance: number;
+  actualTotalPrice: number;
+  interTripCharges: number;
+  basePrice: number;
+}
+
+interface TripForCalculation {
+  date: Date;
+  location: Array<{
+    lat: number;
+    lng: number;
+    address: string;
+    time?: string | null;
+  }>;
+  distance?: number;
+  duration?: number;
+  startTime?: string;
+}
+
+// Helper function to sanitize note
+const sanitizeNote = (input: string | undefined): string | null => {
+  if (!input || typeof input !== "string") return null;
+
+  const trimmed = input.trim();
+  if (trimmed.length === 0) return null;
+
+  // Basic sanitization - remove HTML tags and limit length
+  const sanitized = trimmed
+    .replace(/<[^>]*>/g, "") // Remove HTML tags
+    .replace(/[<>]/g, "") // Remove angle brackets
+    .substring(0, 500); // Limit to 500 characters
+
+  return sanitized.length > 0 ? sanitized : null;
+};
+
+//  Calculate route distance using Google Maps-like approach (simplified)
+const calculateRouteDistance = (
+  locations: Array<{ lat: number; lng: number }>
+): number => {
+  if (locations.length < 2) return 0;
+
+  let totalDistance = 0;
+  for (let i = 0; i < locations.length - 1; i++) {
+    const distance = calculateDistance(
+      locations[i].lat,
+      locations[i].lng,
+      locations[i + 1].lat,
+      locations[i + 1].lng
+    );
+    totalDistance += distance;
+  }
+
+  // Convert to meters for consistency with frontend
+  return totalDistance * 1000;
+};
+
+//  Validate and recalculate transport pricing
+const validateTransportPricing = async (
+  destinations: Destination[],
+  vehicleTypeId: string,
+  vehicleCount: number,
+  frontendDistance: number,
+  frontendPrice: number
+): Promise<ValidatedTransportData> => {
+  console.log("🔍 Starting transport pricing validation...");
+
+  // Get vehicle type for pricing calculation
+  const vehicleType = await prisma.vehicleType.findUnique({
+    where: { id: vehicleTypeId },
+  });
+
+  if (!vehicleType) {
+    throw new Error("Vehicle type not found");
+  }
+
+  // Group destinations by date to form trips
+  const tripsByDate = new Map<string, Destination[]>();
+
+  destinations.forEach((dest) => {
+    const dateKey = dest.departureDate || "default";
+    if (!tripsByDate.has(dateKey)) {
+      tripsByDate.set(dateKey, []);
+    }
+    tripsByDate.get(dateKey)?.push(dest);
+  });
+
+  // Calculate actual distance for each trip
+  let actualTotalDistance = 0;
+  const tripsForCalculation: TripForCalculation[] = [];
+
+  for (const [dateStr, tripDestinations] of tripsByDate.entries()) {
+    // Sort destinations by sequence within the trip
+    const sortedDestinations = tripDestinations.sort(
+      (a, b) => a.sequence - b.sequence
+    );
+
+    // Extract locations for distance calculation
+    const locations = sortedDestinations.map((dest) => ({
+      lat: dest.lat,
+      lng: dest.lng,
+      address: dest.address,
+      time: dest.arrivalTime || null,
+    }));
+
+    // Calculate trip distance using the same function as frontend
+    const tripDistance = calculateRouteDistance(locations);
+    actualTotalDistance += tripDistance;
+
+    // Prepare trip data for inter-trip calculation
+    tripsForCalculation.push({
+      date: new Date(dateStr),
+      location: locations,
+      distance: tripDistance,
+      startTime: "09:00",
+    });
+
+    console.log(`📊 Trip ${dateStr}: ${(tripDistance / 1000).toFixed(2)} km`);
+  }
+
+  // Convert total distance from meters to kilometers for price calculation
+  const actualTotalDistanceKm = actualTotalDistance / 1000;
+
+  console.log(
+    `📏 Frontend distance: ${(frontendDistance / 1000).toFixed(2)} km`
+  );
+  console.log(
+    `📏 Backend calculated distance: ${actualTotalDistanceKm.toFixed(2)} km`
+  );
+
+  // Use consistent price calculation with the same function as frontend
+  const priceResult = calculateTotalPrice(
+    vehicleType.name,
+    actualTotalDistanceKm, // Already in km
+    vehicleCount,
+    tripsForCalculation
+  );
+
+  console.log(`💰 Frontend price: Rp ${frontendPrice.toLocaleString()}`);
+  console.log(
+    `💰 Backend calculated price: Rp ${priceResult.totalPrice.toLocaleString()}`
+  );
+  console.log(`💰 Base price: Rp ${priceResult.basePrice.toLocaleString()}`);
+  console.log(
+    `💰 Inter-trip charges: Rp ${priceResult.interTripCharges.toLocaleString()}`
+  );
+
+  // More relaxed validation tolerance (10% for API calculated prices)
+  const priceDifference = Math.abs(priceResult.totalPrice - frontendPrice);
+  const priceTolerancePercentage = 0.1; // 10% tolerance since both use same calculation
+  const maxAllowedDifference =
+    priceResult.totalPrice * priceTolerancePercentage;
+
+  if (priceDifference > maxAllowedDifference) {
+    console.log(
+      `❌ Price validation failed: difference ${priceDifference} > tolerance ${maxAllowedDifference}`
+    );
+    throw new Error(
+      `Price validation failed. Expected: Rp ${priceResult.totalPrice.toLocaleString()}, ` +
+        `Received: Rp ${frontendPrice.toLocaleString()}`
+    );
+  }
+
+  // Validate distance difference (allow 10% tolerance for routing differences)
+  const distanceDifference = Math.abs(
+    actualTotalDistance - frontendDistance * 1000
+  ); // Convert frontend to meters
+  const distanceTolerancePercentage = 0.1; // 10%
+  const maxAllowedDistanceDifference =
+    actualTotalDistance * distanceTolerancePercentage;
+
+  if (distanceDifference > maxAllowedDistanceDifference) {
+    console.log(
+      `❌ Distance validation failed: difference ${distanceDifference}m > tolerance ${maxAllowedDistanceDifference}m`
+    );
+    throw new Error(
+      `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(
+        2
+      )} km, ` + `Received: ${(frontendDistance / 1000).toFixed(2)} km`
+    );
+  }
+
+  console.log("✅ Transport pricing validation passed");
+
+  return {
+    actualTotalDistance,
+    actualTotalPrice: priceResult.totalPrice,
+    interTripCharges: priceResult.interTripCharges,
+    basePrice: priceResult.basePrice,
+  };
+};
+
+//  Handle transport order creation
+const handleTransportOrder = async (
+  tx: any,
+  orderId: string,
+  body: OrderRequestBody,
+  destinations: Destination[],
+  timezone: string
+) => {
+  const { vehicleCount, roundTrip, vehicleTypeId, totalDistance, totalPrice } =
+    body;
+
+  // Validate required fields
+  if (
+    !vehicleTypeId ||
+    !totalDistance ||
+    vehicleCount === undefined ||
+    roundTrip === undefined
+  ) {
+    throw new Error("Missing required fields for transportation order");
+  }
+
+  //  Validate pricing and distance
+  const validationResult = await validateTransportPricing(
+    destinations,
+    vehicleTypeId,
+    parseInt(vehicleCount),
+    parseFloat(totalDistance),
+    parseFloat(totalPrice || "0")
+  );
+
+  // Create transportation order with validated data
+  const transportationOrder = await tx.transportationOrder.create({
+    data: {
+      orderId: orderId,
+      vehicleCount: parseInt(vehicleCount),
+      roundTrip: roundTrip === "true",
+      totalDistance: validationResult.actualTotalDistance, //  Use validated distance
+    },
+  });
+
+  // Set default values for time
+  const defaultDepartureTime = "09:00";
+
+  // Create all destinations with proper departure dates
+  await Promise.all(
+    destinations.map((dest) => {
+      const departureDateStr = dest.departureDate;
+      const departureTimeStr = dest.departureTime || defaultDepartureTime;
+
+      console.log(`Creating destination: ${dest.address}`);
+      console.log(`Date: ${departureDateStr}, Time: ${departureTimeStr}`);
+      console.log(`Is pickup location: ${dest.isPickupLocation}`);
+
+      const dateTimeString = `${departureDateStr} ${departureTimeStr}`;
+      const departureDatetime = DateTime.fromFormat(
+        dateTimeString,
+        "yyyy-MM-dd HH:mm",
+        { zone: timezone }
+      ).toJSDate();
+
+      return tx.destinationTransportation.create({
+        data: {
+          transportationOrderId: transportationOrder.id,
+          lat: dest.lat,
+          lng: dest.lng,
+          address: dest.address,
+          arrivalTime: dest.arrivalTime,
+          isPickupLocation: dest.isPickupLocation,
+          sequence: dest.sequence,
+          departureDate: departureDatetime,
+        },
+      });
+    })
+  );
+
+  return {
+    validatedDistance: validationResult.actualTotalDistance,
+    validatedPrice: validationResult.actualTotalPrice,
+    interTripCharges: validationResult.interTripCharges,
+    basePrice: validationResult.basePrice,
+  };
+};
+
+//  Handle tour package order creation
+const handleTourPackageOrder = async (
+  tx: any,
+  orderId: string,
+  body: OrderRequestBody
+) => {
+  const { packageId, totalPrice } = body;
+
+  if (!packageId) {
+    throw new Error("Missing required fields for package order");
+  }
+
+  // Validate package exists and get pricing
+  const tourPackage = await prisma.tourPackage.findUnique({
+    where: { id: packageId },
+  });
+
+  if (!tourPackage) {
+    throw new Error("Tour package not found");
+  }
+
+  //  Validate package pricing - Convert Decimal to number
+  const frontendPrice = parseFloat(totalPrice || "0");
+  const actualPackagePrice = parseFloat(tourPackage.price.toString()); //  Convert Decimal to number
+
+  if (Math.abs(frontendPrice - actualPackagePrice) > 1000) {
+    // Allow small rounding differences
+    throw new Error(
+      `Package price validation failed. Expected: Rp ${actualPackagePrice.toLocaleString()}, ` +
+        `Received: Rp ${frontendPrice.toLocaleString()}`
+    );
+  }
+
+  console.log(" Tour package pricing validation passed");
+
+  // Create package order
+  await tx.packageOrder.create({
+    data: {
+      orderId: orderId,
+      packageId: packageId,
+      departureDate: new Date(), // Default date for now
+    },
+  });
+
+  return {
+    validatedPrice: actualPackagePrice, //  Return converted number
+  };
+};
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -23,7 +384,7 @@ export const GET = async (req: NextRequest) => {
           },
         },
         packageOrder: true,
-        vehicleType: true, // Include vehicleType in the response
+        vehicleType: true,
         payment: true,
       },
     });
@@ -69,47 +430,14 @@ export const POST = async (req: NextRequest) => {
 
     const formData = await req.formData();
 
-    // Added debug logging for departure dates in form data
-    console.log("FORM DATA DEPARTURE DATES:");
-    formData.forEach((value, key) => {
-      if (key.includes("destinations") && key.includes("departureDate")) {
-        console.log(`${key}: ${value}`);
-      }
-    });
-
-    interface OrderRequestBody {
-      orderType?: string;
-      timezone?: string;
-      vehicleCount?: string;
-      roundTrip?: string;
-      vehicleTypeId?: string;
-      totalDistance?: string;
-      totalPrice?: string;
-      packageId?: string;
-      fullName?: string; // Add fullName field
-      phoneNumber?: string; // Add phoneNumber field
-      email?: string; // Add email field
-      totalPassengers?: string; // Add totalPassengers field
-    }
-
-    interface Destination {
-      address: string;
-      lat: number;
-      lng: number;
-      arrivalTime?: string;
-      departureDate?: string;
-      departureTime?: string;
-      isPickupLocation: boolean;
-      sequence: number;
-    }
-
+    // Parse form data
     const body: OrderRequestBody = {};
     const destinations: Destination[] = [];
     const timezone = (formData.get("timezone") as string) || "Asia/Jakarta";
 
     // Parse form data
     formData.forEach((value, key) => {
-      // Handle destination data - complex parsing
+      // Handle destination data
       const destMatch = key.match(/^destinations\[(\d+)\]\.(.+)$/);
       if (destMatch) {
         const index = parseInt(destMatch[1], 10);
@@ -165,23 +493,11 @@ export const POST = async (req: NextRequest) => {
       (dest) => dest && dest.address
     );
 
-    // Log raw destinations for debugging
-    console.log("Raw destinations after parsing:");
-    unsortedDestinations.forEach((dest) => {
-      console.log(
-        `Seq ${dest.sequence}: ${dest.address} - Date: ${
-          dest.departureDate || "none"
-        }`
-      );
-    });
-
-    // NEW APPROACH: Handle explicit date assignment
-    // First, collect all destinations with explicit departure dates
+    // Process destinations (existing logic...)
     const datedDestinations = unsortedDestinations.filter(
       (dest) => dest.departureDate
     );
 
-    // Extract only the dates that are explicitly set in the input
     const explicitDates = new Set<string>();
     datedDestinations.forEach((dest) => {
       if (dest.departureDate) {
@@ -189,46 +505,31 @@ export const POST = async (req: NextRequest) => {
       }
     });
 
-    // Convert to sorted array for consistent processing
     const availableDates = Array.from(explicitDates).sort();
-    console.log("Explicit dates found in form data:", availableDates);
-
-    // Default date if none provided
     const defaultDate = DateTime.now().plus({ days: 5 }).toFormat("yyyy-MM-dd");
 
-    // If no dates provided, use default
     if (availableDates.length === 0) {
       availableDates.push(defaultDate);
-      console.log("No explicit dates found, using default:", defaultDate);
     }
 
-    // Assign dates to all destinations
     const processedDestinations: Destination[] = [];
 
-    // Process the destinations in batches by sequence number ranges
-
-    // First batch: process destinations that already have dates
     datedDestinations.forEach((dest) => {
       processedDestinations.push({
         ...dest,
-        departureDate: dest.departureDate, // Keep original date
+        departureDate: dest.departureDate,
       });
     });
 
-    // Second batch: process destinations without dates using sequence based logic
     const undatedDestinations = unsortedDestinations.filter(
       (dest) => !dest.departureDate
     );
 
-    // Sort undated destinations by sequence
     undatedDestinations.sort((a, b) => a.sequence - b.sequence);
 
-    // We'll use sequence number to determine which date to use
     undatedDestinations.forEach((dest) => {
       let dateToUse: string;
 
-      // For sequences < 100, use first date
-      // For sequences >= 100, use second date if available
       if (dest.sequence < 100) {
         dateToUse = availableDates[0];
       } else if (availableDates.length > 1) {
@@ -243,9 +544,7 @@ export const POST = async (req: NextRequest) => {
       });
     });
 
-    // Sort all processed destinations by date then sequence
     processedDestinations.sort((a, b) => {
-      // First sort by date
       const dateA = a.departureDate || "";
       const dateB = b.departureDate || "";
 
@@ -253,18 +552,15 @@ export const POST = async (req: NextRequest) => {
         return dateA.localeCompare(dateB);
       }
 
-      // Then by sequence
       return a.sequence - b.sequence;
     });
 
-    // Reassign sequence numbers to be strictly sequential
     const validDestinations = processedDestinations.map((dest, idx) => ({
       ...dest,
       sequence: idx,
     }));
 
-    // NEW: Set first destination of each date as pickup location
-    // Group by date
+    // Set first destination of each date as pickup location
     const destByDate = new Map<string, Destination[]>();
 
     validDestinations.forEach((dest) => {
@@ -275,30 +571,17 @@ export const POST = async (req: NextRequest) => {
       destByDate.get(date)?.push(dest);
     });
 
-    // For each date, mark first destination as pickup
     for (const [date, dests] of destByDate.entries()) {
       if (dests.length > 0) {
-        // First, reset all pickup locations for this date to false
         dests.forEach((d) => (d.isPickupLocation = false));
-
-        // Then set the first one to true
         dests[0].isPickupLocation = true;
-        console.log(
-          `Marking first destination on ${date} as pickup location: ${dests[0].address}`
-        );
       }
     }
 
-    // Log final destination list with dates and pickup locations
-    console.log("Final destinations with assigned dates and pickup locations:");
-    validDestinations.forEach((dest) => {
-      console.log(
-        `Seq ${dest.sequence}: ${dest.address} - Date: ${dest.departureDate} - Pickup: ${dest.isPickupLocation}`
-      );
-    });
+    // Ensure we have at least one destination for transport orders
+    const { orderType } = body;
 
-    // Ensure we have at least one destination
-    if (!validDestinations.length) {
+    if (orderType?.toUpperCase() === "TRANSPORT" && !validDestinations.length) {
       return NextResponse.json(
         { message: "No valid destinations provided", data: [] },
         { status: 400 }
@@ -306,7 +589,6 @@ export const POST = async (req: NextRequest) => {
     }
 
     // Basic validation
-    const { orderType } = body;
     const {
       vehicleCount,
       roundTrip,
@@ -318,6 +600,7 @@ export const POST = async (req: NextRequest) => {
       phoneNumber,
       email,
       totalPassengers,
+      note,
     } = body;
 
     // Verify required fields
@@ -328,39 +611,12 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    if (orderType.toUpperCase() === "TRANSPORT") {
-      if (
-        !vehicleTypeId ||
-        !totalDistance ||
-        vehicleCount === undefined ||
-        roundTrip === undefined ||
-        !validDestinations.length
-      ) {
-        return NextResponse.json(
-          {
-            message: "Missing required fields for transportation order",
-            data: [],
-          },
-          { status: 400 }
-        );
-      }
-    } else if (orderType.toUpperCase() === "TOUR") {
-      if (!packageId) {
-        return NextResponse.json(
-          { message: "Missing required fields for package order", data: [] },
-          { status: 400 }
-        );
-      }
-    } else {
-      return NextResponse.json(
-        { message: "Invalid order type", data: [] },
-        { status: 400 }
-      );
-    }
+    // Sanitize note
+    const sanitizedNote = sanitizeNote(note);
 
-    // Create order and include payment in the transaction
+    //  Create order in transaction with validation
     const result = await prisma.$transaction(async (tx) => {
-      // Create order - Fix: Use proper enum and include user details
+      // Create base order
       const createdOrder = await tx.order.create({
         data: {
           orderType: orderType.toUpperCase() as OrderType,
@@ -371,84 +627,49 @@ export const POST = async (req: NextRequest) => {
           email: email || userExists.email || null,
           totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
           vehicleTypeId: vehicleTypeId || null,
+          note: sanitizedNote,
         },
       });
 
+      console.log(`Order created with ID: ${createdOrder.id}`);
+
+      let validatedPrice = parseFloat(totalPrice || "0");
+
+      //  Handle different order types with validation
       if (orderType.toUpperCase() === "TRANSPORT") {
-        // Create transportation order
-        const transportationOrders = await tx.transportationOrder.create({
-          data: {
-            orderId: createdOrder.id,
-            vehicleCount: parseInt(vehicleCount || "1"),
-            roundTrip: roundTrip === "true",
-            totalDistance: parseFloat(totalDistance || "0.0"),
-          },
-        });
+        const transportResult = await handleTransportOrder(
+          tx,
+          createdOrder.id,
+          body,
+          validDestinations,
+          timezone
+        );
+        validatedPrice = transportResult.validatedPrice;
 
-        // Set default values for time only
-        const defaultDepartureTime = "09:00";
-
-        // Create all destinations with proper departure dates
-        await Promise.all(
-          validDestinations.map((dest) => {
-            // At this point, every destination should have a departureDate
-            const departureDateStr = dest.departureDate;
-
-            // Use destination's departure time if available, otherwise default
-            const departureTimeStr = dest.departureTime || defaultDepartureTime;
-
-            console.log(`Creating destination: ${dest.address}`);
-            console.log(`Date from validDestinations: ${departureDateStr}`);
-            console.log(`Time: ${departureTimeStr}`);
-            console.log(`Is pickup location: ${dest.isPickupLocation}`);
-
-            // Add timezone debugging
-            console.log(`Using timezone: ${timezone}`);
-
-            // Format and log the complete datetime
-            const dateTimeString = `${departureDateStr} ${departureTimeStr}`;
-            console.log(`Parsing datetime: ${dateTimeString} in ${timezone}`);
-
-            const departureDatetime = DateTime.fromFormat(
-              dateTimeString,
-              "yyyy-MM-dd HH:mm",
-              { zone: timezone }
-            ).toJSDate();
-
-            console.log(`Resulting JS Date: ${departureDatetime}`);
-
-            return tx.destinationTransportation.create({
-              data: {
-                transportationOrderId: transportationOrders.id,
-                lat: dest.lat,
-                lng: dest.lng,
-                address: dest.address,
-                arrivalTime: dest.arrivalTime,
-                isPickupLocation: dest.isPickupLocation,
-                sequence: dest.sequence,
-                departureDate: departureDatetime,
-              },
-            });
-          })
+        console.log(
+          ` Transport order validated: price=${validatedPrice}, distance=${transportResult.validatedDistance}`
         );
       } else if (orderType.toUpperCase() === "TOUR") {
-        await tx.packageOrder.create({
-          data: {
-            orderId: createdOrder.id,
-            packageId: packageId || "",
-            departureDate: new Date(), // Default date for now
-          },
-        });
+        const tourResult = await handleTourPackageOrder(
+          tx,
+          createdOrder.id,
+          body
+        );
+        validatedPrice = tourResult.validatedPrice;
+
+        console.log(` Tour package order validated: price=${validatedPrice}`);
+      } else {
+        throw new Error("Invalid order type");
       }
 
-      // Create payment record
+      // Create payment record with validated price
       const payment = await tx.payment.create({
         data: {
           orderId: createdOrder.id,
-          senderName: "", // Will be filled when proof is uploaded
-          transferDate: new Date(), // Will be updated when proof is uploaded
+          senderName: "",
+          transferDate: new Date(),
           paymentStatus: PaymentStatus.PENDING,
-          totalPrice: parseFloat(totalPrice || "0"),
+          totalPrice: validatedPrice, //  Use validated price
         },
       });
 
@@ -457,6 +678,8 @@ export const POST = async (req: NextRequest) => {
         payment: payment,
       };
     });
+
+    console.log(` Order successfully created with validated pricing`);
 
     // Return created order with payment data
     return NextResponse.json(
@@ -470,7 +693,21 @@ export const POST = async (req: NextRequest) => {
       { status: 201 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("❌ Error creating order:", error);
+
+    // Return specific error message for validation failures
+    if (
+      error instanceof Error &&
+      (error.message.includes("validation failed") ||
+        error.message.includes("not found") ||
+        error.message.includes("Missing required fields"))
+    ) {
+      return NextResponse.json(
+        { message: error.message, data: [] },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
