@@ -18,6 +18,13 @@ import { OrderData } from "../page";
 import Map2, { Trip, DirectionInfo, Location } from "@/app/components/map-2";
 import { useParams } from "next/navigation";
 import DOMPurify from "dompurify";
+// ✅ Import utils functions for consistent calculation
+import {
+  calculateDistance,
+  calculateInterTripCharges,
+  calculateTotalPrice,
+  Trip as UtilsTrip,
+} from "@/utils/order";
 
 interface Step2Props {
   orderData: OrderData;
@@ -51,29 +58,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     directions: [],
   });
 
-  // ✅ Calculate distance between two coordinates (Haversine formula)
-  const calculateDistance = (
-    lat1: number,
-    lng1: number,
-    lat2: number,
-    lng2: number
-  ): number => {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in kilometers
-  };
-
-  // ✅ Calculate inter-trip distances and additional charges
-  const calculateInterTripCharges = () => {
-    if (trips.length <= 1) return { distances: [], totalCharge: 0 };
+  // ✅ Use consistent calculation from utils with proper typing
+  const calculateInterTripChargesLocal = (tripsData: UtilsTrip[]) => {
+    if (tripsData.length <= 1) return { distances: [], totalCharge: 0 };
 
     const interTripDistances: {
       from: string;
@@ -83,14 +70,14 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     }[] = [];
     let totalAdditionalCharge = 0;
 
-    for (let i = 0; i < trips.length - 1; i++) {
-      const currentTrip = trips[i];
-      const nextTrip = trips[i + 1];
+    for (let i = 0; i < tripsData.length - 1; i++) {
+      const currentTrip = tripsData[i];
+      const nextTrip = tripsData[i + 1];
 
       // Get last location of current trip and first location of next trip
       const lastLocationCurrent =
-        currentTrip.locations[currentTrip.locations.length - 1];
-      const firstLocationNext = nextTrip.locations[0];
+        currentTrip.location[currentTrip.location.length - 1];
+      const firstLocationNext = nextTrip.location[0];
 
       if (
         lastLocationCurrent?.lat &&
@@ -107,7 +94,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
 
         let charge = 0;
         if (distance > 50) {
-          // Calculate additional charge based on distance brackets
+          // ✅ Use same calculation as backend
           const excessDistance = distance - 50;
           const brackets = Math.ceil(excessDistance / 10);
           charge = brackets * 50000;
@@ -116,7 +103,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
         interTripDistances.push({
           from: lastLocationCurrent.address || "Lokasi tidak diketahui",
           to: firstLocationNext.address || "Lokasi tidak diketahui",
-          distance: Math.round(distance * 10) / 10, // Round to 1 decimal
+          distance: Math.round(distance * 10) / 10,
           charge,
         });
 
@@ -414,53 +401,54 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     // ✅ Final sanitization of note before saving
     const finalNote = sanitizeNote(note);
 
+    // ✅ Use consistent price calculation from utils
+    const priceResult = calculateTotalPrice(
+      vehicleName,
+      totalDistance / 1000, // Convert to km
+      orderData.userData.totalVehicles || 1,
+      updatedTrip
+    );
+
+    console.log("💰 Frontend calculated price:", priceResult);
+
     // Update orderData
     setOrderData((prev: OrderData) => ({
       ...prev,
       trip: updatedTrip,
       totalDistance,
       totalDuration,
-      note: finalNote, // ✅ Include sanitized note
+      note: finalNote,
+      totalPrice: priceResult.totalPrice, // ✅ Use calculated price
     }));
-
-    // ✅ Calculate price via API with trip locations for inter-trip distance calculation
-    try {
-      const response = await axios.post("/api/calculate-price", {
-        vehicleTypeId: orderData.vehicleTypeId,
-        totalDistance: totalDistance,
-        vehicleCount: orderData.userData.totalVehicles || 1,
-        trips: updatedTrip, // ✅ Send trip data for inter-trip distance calculation
-      });
-
-      if (response.status === 200) {
-        setOrderData((prev: OrderData) => ({
-          ...prev,
-          totalPrice: response.data.data.totalPrice,
-        }));
-      } else {
-        toast.error("Failed to calculate price. Using estimate instead.");
-        const estimatedPrice = totalDistance * 1000 + 150000;
-        setOrderData((prev: OrderData) => ({
-          ...prev,
-          totalPrice: estimatedPrice,
-        }));
-      }
-    } catch (error) {
-      console.error("Error calculating price:", error);
-      toast.error("Failed to calculate price. Using estimate instead.");
-      const estimatedPrice = totalDistance * 1000 + 150000;
-      setOrderData((prev: OrderData) => ({
-        ...prev,
-        totalPrice: estimatedPrice,
-      }));
-    }
 
     // Move to next step
     onContinue();
   };
 
-  // ✅ Get inter-trip charges for display
-  const interTripCharges = calculateInterTripCharges();
+  // ✅ Get inter-trip charges for display using consistent calculation - Fixed type issues
+  const convertedTrips: UtilsTrip[] = trips
+    .map((trip) => {
+      const validLocations = trip.locations.filter(
+        (loc) => loc.lat !== null && loc.lng !== null && loc.address
+      );
+      if (validLocations.length < 2) return null;
+
+      return {
+        date: trip.date!,
+        location: validLocations.map((loc) => ({
+          lat: loc.lat!,
+          lng: loc.lng!,
+          address: loc.address,
+          time: loc.time || null,
+        })),
+        distance: 0,
+        duration: 0,
+        startTime: "09:00",
+      };
+    })
+    .filter((trip) => trip !== null) as UtilsTrip[]; // ✅ Fixed type assertion
+
+  const interTripCharges = calculateInterTripChargesLocal(convertedTrips);
 
   return (
     <div className="mx-auto mt-8 max-w-full pb-10">

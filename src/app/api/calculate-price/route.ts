@@ -1,4 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import {
+  calculateAngkotPrice,
+  calculateElfPrice,
+  calculateHiaceCommuterPrice,
+  calculateHiacePremioPrice,
+  calculateInterTripCharges,
+  calculateDistance,
+} from "@/utils/order";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types for trip data
@@ -9,8 +17,8 @@ interface TripLocation {
   time?: string | null;
 }
 
-interface Trip {
-  date: Date;
+export interface Trip {
+  date: string | Date; // Allow both string and Date
   location: TripLocation[];
   distance?: number;
   duration?: number;
@@ -19,169 +27,85 @@ interface Trip {
 
 interface PriceCalculationRequest {
   vehicleTypeId: string;
-  totalDistance: number;
   vehicleCount?: number;
-  trips?: Trip[];
+  trips: Trip[];
 }
 
 interface PriceCalculationResponse {
   vehicleType: string;
-  distanceKm: number;
+  totalDistanceKm: number;
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
   totalPrice: number;
+  breakdown: {
+    tripDistances: Array<{
+      date: string;
+      distance: number;
+    }>;
+    interTripDetails: Array<{
+      from: string;
+      to: string;
+      distance: number;
+      charge: number;
+    }>;
+  };
 }
 
-// Calculate distance between two coordinates (Haversine formula)
-function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in kilometers
-}
-
-// Calculate inter-trip additional charges with proper typing
-function calculateInterTripCharges(trips: Trip[]): number {
-  if (!trips || trips.length <= 1) return 0;
-
-  let totalAdditionalCharge = 0;
-
-  for (let i = 0; i < trips.length - 1; i++) {
-    const currentTrip = trips[i];
-    const nextTrip = trips[i + 1];
-
-    // Get last location of current trip and first location of next trip
-    if (
-      currentTrip.location &&
-      nextTrip.location &&
-      currentTrip.location.length > 0 &&
-      nextTrip.location.length > 0
-    ) {
-      const lastLocationCurrent =
-        currentTrip.location[currentTrip.location.length - 1];
-      const firstLocationNext = nextTrip.location[0];
-
-      // Type guard to ensure we have valid coordinates
-      if (
-        lastLocationCurrent.lat !== null &&
-        lastLocationCurrent.lng !== null &&
-        firstLocationNext.lat !== null &&
-        firstLocationNext.lng !== null
-      ) {
-        const distance = calculateDistance(
-          lastLocationCurrent.lat,
-          lastLocationCurrent.lng,
-          firstLocationNext.lat,
-          firstLocationNext.lng
-        );
-
-        console.log(
-          `Inter-trip distance ${i + 1} to ${i + 2}: ${distance.toFixed(2)} km`
-        );
-
-        if (distance > 50) {
-          // Calculate additional charge based on distance brackets
-          const excessDistance = distance - 50;
-          const brackets = Math.ceil(excessDistance / 10);
-          const charge = brackets * 50000;
-
-          console.log(
-            `Additional charge for ${distance.toFixed(
-              2
-            )} km: Rp ${charge.toLocaleString()}`
-          );
-          totalAdditionalCharge += charge;
-        }
-      }
+// Helper function to safely format date
+const formatDateString = (date: string | Date): string => {
+  if (typeof date === "string") {
+    // If it's already a string, try to parse it
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      // If parsing fails, assume it's already in YYYY-MM-DD format
+      return date.split("T")[0];
     }
+    return parsedDate.toISOString().split("T")[0];
+  } else if (date instanceof Date) {
+    return date.toISOString().split("T")[0];
+  } else {
+    // Fallback
+    return new Date().toISOString().split("T")[0];
+  }
+};
+
+// Calculate route distance using the same logic as backend
+const calculateRouteDistance = (
+  locations: Array<{ lat: number; lng: number }>
+): number => {
+  if (locations.length < 2) return 0;
+
+  let totalDistance = 0;
+  for (let i = 0; i < locations.length - 1; i++) {
+    const distance = calculateDistance(
+      locations[i].lat,
+      locations[i].lng,
+      locations[i + 1].lat,
+      locations[i + 1].lng
+    );
+    totalDistance += distance;
   }
 
-  console.log(
-    `Total additional inter-trip charges: Rp ${totalAdditionalCharge.toLocaleString()}`
-  );
-  return totalAdditionalCharge;
-}
-
-// Price calculation functions for each vehicle type
-function calculateAngkotPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
-  // Placeholder formula for Angkot
-  // Base rate: 5000 per km, minimum charge of 100,000
-  const baseRate = 5000;
-  const minCharge = 100000;
-
-  const price = baseRate * distanceKm * vehicleCount;
-  return price < minCharge ? minCharge : price;
-}
-
-function calculateHiaceCommuterPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
-  // Placeholder formula for HIACE Commuter
-  // Base rate: 7000 per km, minimum charge of 150,000
-  const baseRate = 7000;
-  const minCharge = 150000;
-
-  const price = baseRate * distanceKm * vehicleCount;
-  return price < minCharge ? minCharge : price;
-}
-
-function calculateHiacePremioPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
-  // Placeholder formula for HIACE Premio
-  // Base rate: 10000 per km, minimum charge of 200,000
-  const baseRate = 10000;
-  const minCharge = 200000;
-
-  const price = baseRate * distanceKm * vehicleCount;
-  return price < minCharge ? minCharge : price;
-}
-
-function calculateElfPrice(distanceKm: number, vehicleCount: number): number {
-  // Placeholder formula for Elf
-  // Base rate: 8000 per km, minimum charge of 180,000
-  const baseRate = 8000;
-  const minCharge = 180000;
-
-  const price = baseRate * distanceKm * vehicleCount;
-  return price < minCharge ? minCharge : price;
-}
+  return totalDistance; // Return in kilometers
+};
 
 export async function POST(req: NextRequest) {
   try {
     const body: PriceCalculationRequest = await req.json();
-    const { vehicleTypeId, totalDistance, vehicleCount = 1, trips = [] } = body;
+    const { vehicleTypeId, vehicleCount = 1, trips = [] } = body;
 
     console.log("Price calculation request:", {
       vehicleTypeId,
-      totalDistance,
       vehicleCount,
       tripsCount: trips.length,
+      tripDates: trips.map((t) => ({ date: t.date, type: typeof t.date })),
     });
 
-    if (!vehicleTypeId || totalDistance === undefined) {
+    if (!vehicleTypeId || !trips.length) {
       return NextResponse.json(
         {
-          message:
-            "Missing required fields: vehicleTypeId and totalDistance required",
+          message: "Missing required fields: vehicleTypeId and trips required",
           data: null,
         },
         { status: 400 }
@@ -200,53 +124,171 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert distance from meters to kilometers
-    const distanceKm = totalDistance / 1000;
-    let basePrice = 0;
+    // Calculate distance for each trip and total distance
+    let totalDistanceKm = 0;
+    const tripDistances: Array<{ date: string; distance: number }> = [];
+
+    const processedTrips = trips.map((trip) => {
+      // Filter valid locations
+      const validLocations = trip.location.filter(
+        (loc) => loc.lat !== null && loc.lng !== null && loc.address
+      );
+
+      const tripDateString = formatDateString(trip.date);
+
+      if (validLocations.length < 2) {
+        tripDistances.push({
+          date: tripDateString,
+          distance: 0,
+        });
+
+        return {
+          ...trip,
+          date: tripDateString,
+          distance: 0,
+        };
+      }
+
+      // Calculate distance for this trip
+      const locations = validLocations.map((loc) => ({
+        lat: loc.lat!,
+        lng: loc.lng!,
+      }));
+
+      const tripDistance = calculateRouteDistance(locations);
+      totalDistanceKm += tripDistance;
+
+      tripDistances.push({
+        date: tripDateString,
+        distance: tripDistance,
+      });
+
+      return {
+        ...trip,
+        date: tripDateString,
+        location: validLocations,
+        distance: tripDistance,
+      };
+    });
+
+    console.log(`Total calculated distance: ${totalDistanceKm.toFixed(2)} km`);
 
     // Calculate base price based on vehicle type
     const vehicleTypeName = vehicleType.name.toLowerCase();
+    let basePrice = 0;
 
     if (vehicleTypeName.includes("angkot")) {
-      basePrice = calculateAngkotPrice(distanceKm, vehicleCount);
+      basePrice = calculateAngkotPrice(totalDistanceKm, vehicleCount);
     } else if (
       vehicleTypeName.includes("hiace") &&
       vehicleTypeName.includes("commuter")
     ) {
-      basePrice = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
+      basePrice = calculateHiaceCommuterPrice(totalDistanceKm, vehicleCount);
     } else if (
       vehicleTypeName.includes("hiace") &&
       vehicleTypeName.includes("premio")
     ) {
-      basePrice = calculateHiacePremioPrice(distanceKm, vehicleCount);
+      basePrice = calculateHiacePremioPrice(totalDistanceKm, vehicleCount);
     } else if (vehicleTypeName.includes("elf")) {
-      basePrice = calculateElfPrice(distanceKm, vehicleCount);
+      basePrice = calculateElfPrice(totalDistanceKm, vehicleCount);
     } else {
       // Fallback to a default calculation for unknown vehicle types
       const defaultRate = 6000;
-      basePrice = defaultRate * distanceKm * vehicleCount;
+      basePrice = defaultRate * totalDistanceKm * vehicleCount;
     }
 
-    // Calculate inter-trip additional charges
-    const interTripCharges = calculateInterTripCharges(trips);
+    // Calculate inter-trip additional charges with detailed breakdown
+    const interTripDetails: Array<{
+      from: string;
+      to: string;
+      distance: number;
+      charge: number;
+    }> = [];
+
+    let totalInterTripCharges = 0;
+
+    if (processedTrips.length > 1) {
+      // Sort trips by date to ensure correct order
+      const sortedTrips = processedTrips.sort((a, b) => {
+        const dateA =
+          typeof a.date === "string" ? a.date : formatDateString(a.date);
+        const dateB =
+          typeof b.date === "string" ? b.date : formatDateString(b.date);
+        return dateA.localeCompare(dateB);
+      });
+
+      for (let i = 0; i < sortedTrips.length - 1; i++) {
+        const currentTrip = sortedTrips[i];
+        const nextTrip = sortedTrips[i + 1];
+
+        if (currentTrip.location.length > 0 && nextTrip.location.length > 0) {
+          const lastLocationCurrent =
+            currentTrip.location[currentTrip.location.length - 1];
+          const firstLocationNext = nextTrip.location[0];
+
+          if (
+            lastLocationCurrent.lat !== null &&
+            lastLocationCurrent.lng !== null &&
+            firstLocationNext.lat !== null &&
+            firstLocationNext.lng !== null
+          ) {
+            const distance = calculateDistance(
+              lastLocationCurrent.lat,
+              lastLocationCurrent.lng,
+              firstLocationNext.lat,
+              firstLocationNext.lng
+            );
+
+            let charge = 0;
+            if (distance > 50) {
+              const excessDistance = distance - 50;
+              const brackets = Math.ceil(excessDistance / 10);
+              charge = brackets * 50000;
+            }
+
+            interTripDetails.push({
+              from: lastLocationCurrent.address || "Lokasi tidak diketahui",
+              to: firstLocationNext.address || "Lokasi tidak diketahui",
+              distance: Math.round(distance * 10) / 10,
+              charge,
+            });
+
+            totalInterTripCharges += charge;
+
+            console.log(`Inter-trip ${i} to ${i + 1}:`, {
+              from: lastLocationCurrent.address?.split(",")[0],
+              to: firstLocationNext.address?.split(",")[0],
+              distance: Math.round(distance * 10) / 10,
+              charge: charge,
+            });
+          }
+        }
+      }
+    }
 
     // Calculate final total price
-    const totalPrice = basePrice + interTripCharges;
+    const totalPrice = basePrice + totalInterTripCharges;
 
     console.log("Price calculation result:", {
+      vehicleType: vehicleType.name,
+      distanceKm: totalDistanceKm.toFixed(2),
+      vehicleCount,
       basePrice,
-      interTripCharges,
+      interTripCharges: totalInterTripCharges,
       totalPrice,
-      distanceKm: distanceKm.toFixed(2),
     });
 
     const responseData: PriceCalculationResponse = {
       vehicleType: vehicleType.name,
-      distanceKm,
+      totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
       vehicleCount,
       basePrice: Math.round(basePrice),
-      interTripCharges: Math.round(interTripCharges),
-      totalPrice: Math.round(totalPrice), // Round to whole number
+      interTripCharges: Math.round(totalInterTripCharges),
+      totalPrice: Math.round(totalPrice),
+      breakdown: {
+        tripDistances,
+        interTripDetails,
+      },
     };
 
     return NextResponse.json({
