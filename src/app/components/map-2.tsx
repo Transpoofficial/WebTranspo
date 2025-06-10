@@ -123,22 +123,22 @@ const isWithinMalangArea = (lat: number, lng: number): boolean => {
   for (const center of MALANG_CENTERS) {
     const distance = calculateDistance(lat, lng, center.lat, center.lng);
 
-    console.log(`🔍 Distance Check for ${center.name}:`, {
-      targetPoint: { lat, lng },
-      center: { lat: center.lat, lng: center.lng },
-      distance: `${(distance / 1000).toFixed(2)} km`,
-      radius: `${(center.radius / 1000).toFixed(2)} km`,
-      withinRadius: distance <= center.radius,
-    });
+    // console.log(`🔍 Distance Check for ${center.name}:`, {
+    //   targetPoint: { lat, lng },
+    //   center: { lat: center.lat, lng: center.lng },
+    //   distance: `${(distance / 1000).toFixed(2)} km`,
+    //   radius: `${(center.radius / 1000).toFixed(2)} km`,
+    //   withinRadius: distance <= center.radius,
+    // });
 
     // If point is within any of the Malang areas, return true
     if (distance <= center.radius) {
-      console.log(`✅ Location is within ${center.name}`);
+      // console.log(`✅ Location is within ${center.name}`);
       return true;
     }
   }
 
-  console.log("❌ Location is outside all Malang areas");
+  // console.log("❌ Location is outside all Malang areas");
   return false;
 };
 
@@ -276,11 +276,11 @@ const Map2: React.FC<Map2Props> = ({
   // Check if vehicle is angkot with debugging
   const isAngkot = useMemo(() => {
     const result = vehicleName.toLowerCase() === "angkot";
-    console.log("🚐 Vehicle Check:", {
-      vehicleName,
-      lowercased: vehicleName.toLowerCase(),
-      isAngkot: result,
-    });
+    // console.log("🚐 Vehicle Check:", {
+    //   vehicleName,
+    //   lowercased: vehicleName.toLowerCase(),
+    //   isAngkot: result,
+    // });
     return result;
   }, [vehicleName]);
 
@@ -349,7 +349,7 @@ const Map2: React.FC<Map2Props> = ({
   // Update local trips when initialTrips changes, but only if they're different
   useEffect(() => {
     if (initialTrips.length > 0 && !initialLoadDone.current) {
-      console.log("🔄 Setting trips from initialTrips", initialTrips);
+      // console.log("🔄 Setting trips from initialTrips", initialTrips);
       setTrips(initialTrips);
       initialLoadDone.current = true;
     }
@@ -376,12 +376,12 @@ const Map2: React.FC<Map2Props> = ({
 
       const isValid = isWithinMalangArea(lat, lng);
 
-      console.log("✅ Final Validation:", {
-        lat,
-        lng,
-        isAngkot,
-        isValid,
-      });
+      // console.log("✅ Final Validation:", {
+      //   lat,
+      //   lng,
+      //   isAngkot,
+      //   isValid,
+      // });
 
       return isValid;
     },
@@ -394,7 +394,7 @@ const Map2: React.FC<Map2Props> = ({
       if (!e.latLng || activeInput === null) return;
       const latLng = e.latLng.toJSON();
 
-      console.log("🗺️ Map clicked:", { latLng, isAngkot, activeInput });
+      // console.log("🗺️ Map clicked:", { latLng, isAngkot, activeInput });
 
       // Validate location for angkot FIRST before geocoding
       if (!validateLocationForAngkot(latLng.lat, latLng.lng)) {
@@ -467,13 +467,13 @@ const Map2: React.FC<Map2Props> = ({
           autocompleteOptions.bounds = malangBounds;
           autocompleteOptions.strictBounds = true; // Enforce strict bounds for angkot
 
-          console.log(
-            "🎯 Autocomplete configured for Angkot with strict bounds:",
-            {
-              bounds: malangBounds.toJSON(),
-              strictBounds: true,
-            }
-          );
+          // console.log(
+          //   "🎯 Autocomplete configured for Angkot with strict bounds:",
+          //   {
+          //     bounds: malangBounds.toJSON(),
+          //     strictBounds: true,
+          //   }
+          // );
         }
 
         // Create a new autocomplete instance with the right configuration
@@ -498,12 +498,12 @@ const Map2: React.FC<Map2Props> = ({
           const lng = place.geometry.location.lng();
           const address = place.formatted_address || "";
 
-          console.log("📍 Autocomplete place selected:", {
-            lat,
-            lng,
-            address,
-            isAngkot,
-          });
+          // console.log("📍 Autocomplete place selected:", {
+          //   lat,
+          //   lng,
+          //   address,
+          //   isAngkot,
+          // });
 
           // Validate location for angkot IMMEDIATELY
           if (!validateLocationForAngkot(lat, lng)) {

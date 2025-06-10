@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,9 +24,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import DOMPurify from "dompurify";
 import validator from "validator";
+import { useParams } from "next/navigation";
 
 interface Step1Props {
   orderData: OrderData;
@@ -35,6 +37,18 @@ interface Step1Props {
   onContinue: () => void;
   onBack: () => void;
 }
+
+// Vehicle capacity mapping
+const VEHICLE_CAPACITY = {
+  angkot: {
+    capacity: 12,
+    description:
+      "12+1 (jika 1 orang mau dipaksakan masuk bisa menempati kursi kecil di pintu)",
+  },
+  "hiace premio": { capacity: 14, description: "14" },
+  "hiace commuter": { capacity: 15, description: "15" },
+  elf: { capacity: 19, description: "19" },
+} as const;
 
 // Helper function untuk sanitize input
 const sanitizeInput = (input: string): string => {
@@ -66,7 +80,7 @@ const sanitizePhoneNumber = (phone: string): string => {
   return cleaned;
 };
 
-// Create validation schema with Zod
+// Create validation schema with Zod - ✅ Removed max limits
 const formSchema = z.object({
   name: z
     .string()
@@ -99,12 +113,10 @@ const formSchema = z.object({
   totalPassangers: z.coerce
     .number()
     .min(1, "Jumlah penumpang minimal 1")
-    .max(100, "Jumlah penumpang maksimal 100")
     .int("Jumlah penumpang harus berupa angka bulat"),
   totalVehicles: z.coerce
     .number()
     .min(1, "Jumlah armada minimal 1")
-    .max(10, "Jumlah armada maksimal 10")
     .int("Jumlah armada harus berupa angka bulat"),
 });
 
@@ -115,33 +127,107 @@ const Step1 = ({
   onBack,
   onContinue,
 }: Step1Props) => {
+  const params = useParams();
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  ).toLowerCase();
+
+  // Get vehicle capacity info
+  const vehicleInfo =
+    VEHICLE_CAPACITY[vehicleName as keyof typeof VEHICLE_CAPACITY];
+
   // Initialize form with react-hook-form and zod validation
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: orderData.userData.name,
-      phone: orderData.userData.phone,
-      email: orderData.userData.email,
-      totalPassangers: orderData.userData.totalPassangers || 0,
-      totalVehicles: orderData.userData.totalVehicles || 0,
+      name: "",
+      phone: "",
+      email: "",
+      totalPassangers: 0,
+      totalVehicles: 0,
     },
   });
 
+  // Helper function to calculate required vehicles
+  const calculateRequiredVehicles = (passengers: number): number => {
+    if (!vehicleInfo || passengers <= 0) return 1;
+    return Math.ceil(passengers / vehicleInfo.capacity);
+  };
+
+  // ✅ Update form values when orderData changes (reactive to session data)
+  useEffect(() => {
+    const userData = orderData.userData;
+
+    // Check if there's meaningful data to populate
+    const hasData =
+      userData.name ||
+      userData.email ||
+      userData.phone ||
+      userData.totalPassangers > 0 ||
+      userData.totalVehicles > 0;
+
+    if (hasData) {
+      // Use setValue instead of reset to avoid form state issues
+      form.setValue("name", userData.name || "");
+      form.setValue("phone", userData.phone || "");
+      form.setValue("email", userData.email || "");
+      form.setValue("totalPassangers", userData.totalPassangers || 0);
+      form.setValue("totalVehicles", userData.totalVehicles || 0);
+    }
+  }, [orderData.userData, form]);
+
+  // ✅ Watch form values and sync with orderData state (with debounce)
+  useEffect(() => {
+    const subscription = form.watch((values, { name, type }) => {
+      // Only sync specific field changes, not all at once
+      if (name && type === "change") {
+        // If totalPassangers changed, auto-calculate vehicle count
+        if (name === "totalPassangers" && values.totalPassangers) {
+          const requiredVehicles = calculateRequiredVehicles(
+            values.totalPassangers
+          );
+          form.setValue("totalVehicles", requiredVehicles);
+
+          // ✅ Fixed TypeScript error - ensure values are always numbers
+          setOrderData((prev: OrderData) => ({
+            ...prev,
+            userData: {
+              ...prev.userData,
+              totalPassangers: values.totalPassangers ?? 0,
+              totalVehicles: requiredVehicles,
+            },
+          }));
+        } else {
+          // For other fields, update normally
+          setOrderData((prev: OrderData) => ({
+            ...prev,
+            userData: {
+              ...prev.userData,
+              [name]:
+                values[name as keyof typeof values] ||
+                (name === "totalPassangers" || name === "totalVehicles"
+                  ? 0
+                  : ""),
+            },
+          }));
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, setOrderData, vehicleInfo]);
+
   const handleFormSubmit = (values: z.infer<typeof formSchema>) => {
     try {
-      // Additional sanitization layer
+      // Additional sanitization layer - ✅ Removed max limits
       const sanitizedValues = {
         name: sanitizeInput(values.name),
         phone: sanitizePhoneNumber(values.phone),
         email: sanitizeInput(values.email.toLowerCase()),
-        totalPassangers: Math.max(
-          1,
-          Math.min(100, Math.floor(values.totalPassangers))
-        ),
-        totalVehicles: Math.max(
-          1,
-          Math.min(10, Math.floor(values.totalVehicles))
-        ),
+        totalPassangers: Math.max(1, Math.floor(values.totalPassangers)),
+        totalVehicles: Math.max(1, Math.floor(values.totalVehicles)),
       };
 
       // Validate email format one more time
@@ -225,14 +311,13 @@ const Step1 = ({
         return;
       }
 
-      const tomorrow = new Date();
+      let newDate = new Date(startDate);
+
       if (orderData.trip.length > 0) {
         const lastDate = new Date(
           orderData.trip[orderData.trip.length - 1].date
         );
-        tomorrow.setTime(lastDate.getTime() + 24 * 60 * 60 * 1000); // Add one day to last date
-      } else {
-        tomorrow.setDate(tomorrow.getDate() + 1); // Tomorrow from today if no dates exist
+        newDate = new Date(lastDate.getTime() + 24 * 60 * 60 * 1000); // Add one day to last date
       }
 
       setOrderData((prev: OrderData) => ({
@@ -240,9 +325,11 @@ const Step1 = ({
         trip: [
           ...prev.trip,
           {
-            date: tomorrow,
+            date: newDate,
             location: [{ lat: null, lng: null, address: "", time: null }],
             startTime: "",
+            distance: 0,
+            duration: 0,
           },
         ],
       }));
@@ -255,6 +342,18 @@ const Step1 = ({
   const formatLocalizedDate = (date: Date) => {
     // Format the date as "Senin, 05 Mei 2025"
     return format(date, "EEEE, dd MMMM yyyy", { locale: id });
+  };
+
+  // ✅ Helper function to handle number input without leading zeros
+  const handleNumberInput = (
+    value: string,
+    onChange: (value: number) => void
+  ) => {
+    // Remove leading zeros and convert to number
+    const cleanedValue = value.replace(/^0+/, "") || "0";
+    const numericValue = parseInt(cleanedValue) || 0;
+    const clampedValue = Math.max(0, numericValue);
+    onChange(clampedValue);
   };
 
   return (
@@ -283,7 +382,7 @@ const Step1 = ({
                     <FormControl>
                       <Input
                         placeholder="Yanto"
-                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary"
+                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400"
                         {...field}
                         onChange={(e) => {
                           // Real-time sanitization while typing
@@ -307,7 +406,7 @@ const Step1 = ({
                     <FormControl>
                       <Input
                         placeholder="08123456789"
-                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary"
+                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400"
                         {...field}
                         onChange={(e) => {
                           // Allow only numbers and + sign
@@ -329,13 +428,13 @@ const Step1 = ({
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-2">
                     <FormLabel className="font-medium">Email</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="Yanto123@gmail.com"
-                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary"
+                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400"
                         {...field}
                         onChange={(e) => {
                           // Real-time sanitization while typing
@@ -352,13 +451,14 @@ const Step1 = ({
               />
             </div>
 
+            {/* ✅ Fixed Grid Layout for Passengers & Vehicles with Aligned Heights */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Passenger Count */}
               <FormField
                 control={form.control}
                 name="totalPassangers"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel className="font-medium">
                       Jumlah Penumpang
                     </FormLabel>
@@ -367,19 +467,24 @@ const Step1 = ({
                         type="number"
                         placeholder="40"
                         min="1"
-                        max="100"
-                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary"
-                        {...field}
+                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400"
+                        value={field.value || ""}
                         onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          const clampedValue = Math.max(
-                            0,
-                            Math.min(100, value)
-                          );
-                          field.onChange(clampedValue);
+                          handleNumberInput(e.target.value, field.onChange);
                         }}
                       />
                     </FormControl>
+                    {/* ✅ Vehicle Capacity Info with fixed height */}
+                    <div className="min-h-[2.5rem] flex items-start">
+                      {vehicleInfo && (
+                        <FormDescription className="text-xs text-gray-500 leading-tight">
+                          💺 Kapasitas ideal per kendaraan:{" "}
+                          <span className="font-medium text-transpo-primary">
+                            {vehicleInfo.description}
+                          </span>
+                        </FormDescription>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -390,30 +495,33 @@ const Step1 = ({
                 control={form.control}
                 name="totalVehicles"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel className="font-medium">Jumlah Armada</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="4"
                         min="1"
-                        max="10"
-                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary"
-                        {...field}
+                        className="bg-gray-50 border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400"
+                        value={field.value || ""}
                         onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          const clampedValue = Math.max(0, Math.min(10, value));
-                          field.onChange(clampedValue);
+                          handleNumberInput(e.target.value, field.onChange);
                         }}
                       />
                     </FormControl>
+                    {/* ✅ Description with fixed height to match left field */}
+                    <div className="min-h-[2.5rem] flex items-start">
+                      <FormDescription className="text-xs text-gray-500 leading-tight">
+                        🚐 Jumlah armada akan otomatis terisi berdasarkan jumlah
+                        penumpang, namun tetap bisa diubah manual
+                      </FormDescription>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
-            {/* ...existing code... */}
             {/* Order Dates */}
             <div className="space-y-4 py-2">
               <Label className="font-medium">Tanggal Pesanan</Label>
@@ -427,16 +535,17 @@ const Step1 = ({
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
+                            type="button"
                             variant="outline"
                             className="w-full justify-start font-normal hover:bg-gray-100 hover:text-gray-800 border-gray-200 focus:ring-transpo-primary focus:ring-offset-0"
                           >
                             <CalendarIcon className="mr-2 h-4 w-4 text-transpo-primary" />
                             {destination.date ? (
-                              <span className="font-medium">
+                              <span className="font-medium text-gray-900">
                                 {formatLocalizedDate(destination.date)}
                               </span>
                             ) : (
-                              <span className="text-gray-500">
+                              <span className="text-gray-400">
                                 Pilih tanggal
                               </span>
                             )}
@@ -456,38 +565,36 @@ const Step1 = ({
                         </PopoverContent>
                       </Popover>
                     </div>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="flex-shrink-0 h-8 w-8 rounded-md"
-                      onClick={() => {
-                        if (orderData.trip.length > 1) {
+                    {orderData.trip.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="flex-shrink-0 h-8 w-8 rounded-md"
+                        onClick={() => {
                           setOrderData((prev: OrderData) => ({
                             ...prev,
                             trip: prev.trip.filter((_, i) => i !== index),
                           }));
-                        } else {
-                          toast.error("Minimal harus ada 1 tanggal pesanan.");
-                        }
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        }}
                       >
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                      </svg>
-                    </Button>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18"></path>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        </svg>
+                      </Button>
+                    )}
                   </div>
                 ))}
 

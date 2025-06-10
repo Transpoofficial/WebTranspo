@@ -46,9 +46,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     directions: [],
   });
 
-  // Debug: Log vehicleName
-  console.log("Step2 vehicleName:", vehicleName);
-
   // Format date for display (e.g. "Senin, 05 Mei 2025")
   const formatLocalizedDate = (date: Date) => {
     return format(date, "EEEE, dd MMMM yyyy", { locale: id });
@@ -441,24 +438,23 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
             )}
           </div>
         </CardContent>
+        {/* Navigation buttons */}
+        <div className="flex justify-end gap-3 mt-6 mr-4">
+          <Button
+            onClick={onBack}
+            variant="secondary"
+            className="border-gray-300 hover:bg-gray-100 text-gray-700"
+          >
+            Kembali
+          </Button>
+          <Button
+            onClick={handleContinue}
+            className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
+          >
+            Selanjutnya
+          </Button>
+        </div>
       </Card>
-
-      {/* Navigation buttons */}
-      <div className="flex justify-end gap-3 mt-6">
-        <Button
-          onClick={onBack}
-          variant="secondary"
-          className="bg-gray-300 hover:bg-gray-400 text-gray-700"
-        >
-          Kembali
-        </Button>
-        <Button
-          onClick={handleContinue}
-          className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
-        >
-          Selanjutnya
-        </Button>
-      </div>
     </div>
   );
 };
