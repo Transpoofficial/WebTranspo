@@ -93,6 +93,7 @@ const OrderTransportPage = () => {
     vehicleTypeId: "",
     totalPrice: 0,
   });
+  console.log({ orderData });
   const [paymentData, setPaymentData] = useState<{
     id: string;
     amount: number;

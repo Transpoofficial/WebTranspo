@@ -74,6 +74,23 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
     }
   };
 
+  // ✅ Enhanced duration formatter - converts seconds to hours and minutes
+  const formatDuration = (seconds: number) => {
+    if (!seconds || seconds === 0) return "0 menit";
+
+    const totalMinutes = Math.round(seconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours > 0 && minutes > 0) {
+      return `${hours} jam ${minutes} menit`;
+    } else if (hours > 0) {
+      return `${hours} jam`;
+    } else {
+      return `${minutes} menit`;
+    }
+  };
+
   // Group trips by date for better display
   const tripsByDate: Record<string, TripsByDateItem> = orderData.trip.reduce(
     (acc: Record<string, TripsByDateItem>, trip) => {
@@ -133,6 +150,11 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
 
       // Add price for payment creation
       formData.append("totalPrice", orderData.totalPrice.toString());
+
+      // ✅ Add note if it exists
+      if (orderData.note && orderData.note.trim()) {
+        formData.append("note", orderData.note.trim());
+      }
 
       // Add all destinations with their full details
       orderData.trip.forEach((trip, tripIndex) => {
@@ -284,6 +306,16 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
               </div>
             </div>
 
+            {/* ✅ Display note if exists */}
+            {orderData.note && orderData.note.trim() && (
+              <div className="space-y-1">
+                <div className="text-gray-500 text-sm">Catatan Tambahan</div>
+                <div className="font-medium bg-gray-50 p-3 rounded-md border-l-4 border-transpo-primary">
+                  {orderData.note}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1 mt-2">
               <div className="text-gray-500 text-sm">Total Biaya Pesanan</div>
               <div className="font-semibold text-lg text-transpo-primary">
@@ -325,7 +357,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                       ? "bg-blue-100 text-blue-700"
                       : locIndex === trip.location.length - 1
                       ? "bg-red-100 text-red-700"
-                      : "bg-transpo-primary-light text-transpo-primary"
+                      : " text-transpo-primary"
                   }
                 `}
                                   >
@@ -391,7 +423,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                         )}
                       </div>
 
-                      {/* Trip details (distance, duration) */}
+                      {/* Trip details (distance, duration) - ✅ Updated duration format */}
                       {(trip.distance || trip.duration) && (
                         <div className="mt-4 ml-4 p-3 bg-gray-50 rounded-md border border-gray-200">
                           <div className="text-sm font-medium text-gray-700 mb-1">
@@ -416,7 +448,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                                   className="text-transpo-primary"
                                 />
                                 <span>
-                                  Durasi: {Math.floor(trip.duration / 60)} menit
+                                  Durasi: {formatDuration(trip.duration)}
                                 </span>
                               </div>
                             )}

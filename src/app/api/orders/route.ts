@@ -90,6 +90,7 @@ export const POST = async (req: NextRequest) => {
       phoneNumber?: string; // Add phoneNumber field
       email?: string; // Add email field
       totalPassengers?: string; // Add totalPassengers field
+      note?: string; // ✅ Add note field
     }
 
     interface Destination {
@@ -318,6 +319,7 @@ export const POST = async (req: NextRequest) => {
       phoneNumber,
       email,
       totalPassengers,
+      note,
     } = body;
 
     // Verify required fields
@@ -358,9 +360,28 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
+    // ✅ Helper function to sanitize note
+    const sanitizeNote = (input: string | undefined): string | null => {
+      if (!input || typeof input !== "string") return null;
+
+      const trimmed = input.trim();
+      if (trimmed.length === 0) return null;
+
+      // Basic sanitization - remove HTML tags and limit length
+      const sanitized = trimmed
+        .replace(/<[^>]*>/g, "") // Remove HTML tags
+        .replace(/[<>]/g, "") // Remove angle brackets
+        .substring(0, 500); // Limit to 500 characters
+
+      return sanitized.length > 0 ? sanitized : null;
+    };
+
+    // ✅ Sanitize note
+    const sanitizedNote = sanitizeNote(note);
+
     // Create order and include payment in the transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create order - Fix: Use proper enum and include user details
+      // ✅ Create order - Include sanitized note
       const createdOrder = await tx.order.create({
         data: {
           orderType: orderType.toUpperCase() as OrderType,
@@ -371,8 +392,14 @@ export const POST = async (req: NextRequest) => {
           email: email || userExists.email || null,
           totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
           vehicleTypeId: vehicleTypeId || null,
+          note: sanitizedNote,
         },
       });
+
+      // ✅ Log order creation with note
+      console.log(
+        `Order created with ID: ${createdOrder.id}, Note: ${sanitizedNote}`
+      );
 
       if (orderType.toUpperCase() === "TRANSPORT") {
         // Create transportation order
@@ -457,6 +484,9 @@ export const POST = async (req: NextRequest) => {
         payment: payment,
       };
     });
+
+    // ✅ Log successful creation with note
+    console.log(`Order successfully created with note: "${sanitizedNote}"`);
 
     // Return created order with payment data
     return NextResponse.json(

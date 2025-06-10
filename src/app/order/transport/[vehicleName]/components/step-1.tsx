@@ -602,7 +602,7 @@ const Step1 = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-1 text-transpo-primary border-transpo-primary hover:bg-transpo-primary-light hover:text-transpo-primary"
+                  className="flex items-center gap-1 text-transpo-primary border-transpo-primary hover:border-transpo-primary-light hover:text-transpo-primary-light"
                   onClick={addDateField}
                 >
                   <PlusIcon className="h-4 w-4" />

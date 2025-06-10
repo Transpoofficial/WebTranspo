@@ -6,6 +6,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { AlertTriangle, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -15,6 +17,7 @@ import axios from "axios";
 import { OrderData } from "../page";
 import Map2, { Trip, DirectionInfo, Location } from "@/app/components/map-2";
 import { useParams } from "next/navigation";
+import DOMPurify from "dompurify";
 
 interface Step2Props {
   orderData: OrderData;
@@ -24,6 +27,7 @@ interface Step2Props {
 }
 
 const MAX_DESTINATIONS_PER_TRIP = 10;
+const MAX_NOTE_LENGTH = 500;
 
 const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   const params = useParams();
@@ -36,6 +40,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [directions, setDirections] = useState<DirectionInfo[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [note, setNote] = useState(orderData.note || "");
   const initialLoadRef = useRef(true);
   const directionLoadedRef = useRef(false);
   const mapStateRef = useRef<{
@@ -67,6 +72,46 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     }
     return `${minutes} menit`;
   };
+
+  // ✅ Helper function to sanitize note input
+  const sanitizeNote = (input: string): string => {
+    if (typeof window === "undefined") {
+      // Server-side fallback
+      return input.trim().replace(/[<>]/g, "");
+    }
+
+    // Client-side sanitization
+    return DOMPurify.sanitize(input.trim(), {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
+  };
+
+  // ✅ Handle note input changes
+  const handleNoteChange = (value: string) => {
+    // Limit character count
+    if (value.length > MAX_NOTE_LENGTH) {
+      toast.error(`Catatan maksimal ${MAX_NOTE_LENGTH} karakter`);
+      return;
+    }
+
+    // Real-time sanitization
+    const sanitized = value.replace(/[<>]/g, "");
+    setNote(sanitized);
+
+    // Update orderData in real-time
+    setOrderData((prev: OrderData) => ({
+      ...prev,
+      note: sanitized,
+    }));
+  };
+
+  // ✅ Initialize note from orderData
+  useEffect(() => {
+    if (orderData.note && orderData.note !== note) {
+      setNote(orderData.note);
+    }
+  }, [orderData.note]);
 
   // Create initial directions based on orderData when returning to step 2
   const createInitialDirectionsFromOrderData = () => {
@@ -276,12 +321,16 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       0
     );
 
+    // ✅ Final sanitization of note before saving
+    const finalNote = sanitizeNote(note);
+
     // Update orderData
     setOrderData((prev: OrderData) => ({
       ...prev,
       trip: updatedTrip,
       totalDistance,
       totalDuration,
+      note: finalNote, // ✅ Include sanitized note
     }));
 
     // Calculate price via API
@@ -382,6 +431,32 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 </div>
               </div>
             )}
+
+            {/* ✅ Note Input Field */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <Label
+                htmlFor="note"
+                className="font-medium text-gray-700 mb-2 block"
+              >
+                Catatan Tambahan (Opsional)
+              </Label>
+              <Textarea
+                id="note"
+                placeholder="Tambahkan catatan khusus untuk perjalanan Anda..."
+                className="bg-white border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400 resize-none"
+                rows={4}
+                value={note}
+                onChange={(e) => handleNoteChange(e.target.value)}
+                maxLength={MAX_NOTE_LENGTH}
+              />
+              <div className="mt-1 text-xs text-gray-500 text-right">
+                {note.length}/{MAX_NOTE_LENGTH} karakter
+              </div>
+              <div className="mt-2 text-xs text-gray-600">
+                <span className="font-medium">Contoh:</span> Butuh kursi roda,
+                ada bayi, pick up pagi-pagi, dll.
+              </div>
+            </div>
 
             {/* Warning message */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
