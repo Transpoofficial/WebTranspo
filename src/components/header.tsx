@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   scrollToAdvantage?: () => void;
@@ -34,20 +33,20 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
-  const router = useRouter();
+  // const router = useRouter();
 
-  const handleButtonClick = (scrollFunction?: () => void) => {
-    if (scrollFunction) {
-      scrollFunction();
-    } else if (
-      !scrollToAdvantage &&
-      !scrollToHowToOrder &&
-      !scrollToFAQAndContact &&
-      !scrollToReview
-    ) {
-      router.push("/");
-    }
-  };
+  // const handleButtonClick = (scrollFunction?: () => void) => {
+  //   if (scrollFunction) {
+  //     scrollFunction();
+  //   } else if (
+  //     !scrollToAdvantage &&
+  //     !scrollToHowToOrder &&
+  //     !scrollToFAQAndContact &&
+  //     !scrollToReview
+  //   ) {
+  //     router.push("/");
+  //   }
+  // };
 
   const handleSignOut = () => {
     signOut();
