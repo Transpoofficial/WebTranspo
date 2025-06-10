@@ -47,7 +47,6 @@ const Header: React.FC<HeaderProps> = ({
   //     router.push("/");
   //   }
   // };
-
   const handleSignOut = () => {
     signOut();
   };
@@ -177,12 +176,12 @@ const Header: React.FC<HeaderProps> = ({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {session.user?.role === "ADMIN" ||
-                  (session.user?.role === "SUPER_ADMIN" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">Halaman admin</Link>
-                    </DropdownMenuItem>
-                  ))}
+                {(session.user?.role === "ADMIN" ||
+                  session.user?.role === "SUPER_ADMIN") && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Halaman admin</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href="/settings/profile">Profil</Link>
                 </DropdownMenuItem>
