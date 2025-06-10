@@ -79,6 +79,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -168,6 +170,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -204,6 +208,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.original.payment?.paymentStatus || "");
 		},
@@ -256,6 +262,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			// Filter berdasarkan nama kendaraan jika ada
 			const vt = vehicleTypes.find(
