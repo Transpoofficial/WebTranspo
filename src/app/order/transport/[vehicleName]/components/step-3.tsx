@@ -309,7 +309,6 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                       {formatLocalizedDate(item.date)}
                     </h3>
                   </div>
-
                   {item.trips.map((trip, tripIndex) => (
                     <div key={tripIndex} className="ml-2 space-y-4">
                       <div className="ml-4 space-y-6">
@@ -320,13 +319,15 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                                 <div className="mr-4 relative">
                                   <div
                                     className={`
-                                    w-10 h-10 rounded-full flex items-center justify-center 
-                                    ${
-                                      locIndex === 0
-                                        ? "bg-blue-100 text-blue-700"
-                                        : "bg-transpo-primary-light text-transpo-primary"
-                                    }
-                                  `}
+                  w-10 h-10 rounded-full flex items-center justify-center 
+                  ${
+                    locIndex === 0
+                      ? "bg-blue-100 text-blue-700"
+                      : locIndex === trip.location.length - 1
+                      ? "bg-red-100 text-red-700"
+                      : "bg-transpo-primary-light text-transpo-primary"
+                  }
+                `}
                                   >
                                     <MapPin size={18} />
                                   </div>
@@ -356,11 +357,34 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                                     </span>
                                   </div>
 
-                                  {locIndex === 0 && (
-                                    <div className="mt-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block">
-                                      Penjemputan
-                                    </div>
-                                  )}
+                                  {/* Labels for pickup and destination */}
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {locIndex === 0 && (
+                                      <div className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block border border-blue-200">
+                                        <span className="font-medium">
+                                          📍 Penjemputan
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {locIndex === trip.location.length - 1 &&
+                                      trip.location.length > 1 && (
+                                        <div className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded inline-block border border-red-200">
+                                          <span className="font-medium">
+                                            🏁 Tujuan Akhir
+                                          </span>
+                                        </div>
+                                      )}
+
+                                    {locIndex > 0 &&
+                                      locIndex < trip.location.length - 1 && (
+                                        <div className="text-xs bg-gray-50 text-gray-700 px-2 py-0.5 rounded inline-block border border-gray-200">
+                                          <span className="font-medium">
+                                            ⚫ Transit
+                                          </span>
+                                        </div>
+                                      )}
+                                  </div>
                                 </div>
                               </div>
                             )
