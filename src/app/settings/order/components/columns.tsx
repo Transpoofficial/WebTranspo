@@ -31,7 +31,7 @@ export const columns: ColumnDef<Order>[] = [
 			);
 		},
 		enableSorting: true,
-		enableHiding: false,
+		enableHiding: true,
 		filterFn: (row, id, value) => {
 			const searchValue = value.toLowerCase();
 			const fullName = String(row.getValue(id)).toLowerCase();
@@ -120,7 +120,7 @@ export const columns: ColumnDef<Order>[] = [
 			return <div className="w-[80px]">{distance}</div>;
 		},
 		enableSorting: true,
-		enableHiding: false,
+		enableHiding: true,
 		sortingFn: (rowA, rowB) => {
 			const distanceA = rowA.original.transportation?.totalDistance || 0;
 			const distanceB = rowB.original.transportation?.totalDistance || 0;
