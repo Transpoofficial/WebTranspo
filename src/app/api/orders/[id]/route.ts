@@ -25,6 +25,7 @@ export const GET = async (
           },
         },
         packageOrder: true,
+        review: true,
       },
     });
     if (!order) {

@@ -16,7 +16,7 @@ export const columns: ColumnDef<Order>[] = [
 			<DataTableColumnHeader column={column} title="Pemesan" />
 		),
 		cell: ({ row }) => {
-			const user = row.original.user;
+			const user = row.original;
 
 			return (
 				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
@@ -178,6 +178,42 @@ export const columns: ColumnDef<Order>[] = [
 		},
 	},
 	{
+		accessorKey: "paymentStatus",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Status Pembayaran" />
+		),
+		cell: ({ row }) => {
+			const paymentStatus = row.original.payment?.paymentStatus;
+
+			// Map payment status to display status
+			const statusMap: {
+				[key: string]: {
+					label: string;
+					variant: "default" | "secondary" | "destructive" | "outline";
+				};
+			} = {
+				PENDING: { label: "Menunggu", variant: "outline" },
+				APPROVED: { label: "Disetujui", variant: "default" },
+				REJECTED: { label: "Ditolak", variant: "destructive" },
+			};
+
+			const status =
+				statusMap[paymentStatus || ""] || {
+					label: paymentStatus || "Belum ada",
+					variant: "outline" as const,
+				};
+
+			return (
+				<div className="flex w-[100px] items-center">
+					<Badge variant={status.variant}>{status.label}</Badge>
+				</div>
+			);
+		},
+		filterFn: (row, id, value) => {
+			return value.includes(row.original.payment?.paymentStatus || "");
+		},
+	},
+	{
 		accessorKey: "roundTrip",
 		header: ({ column }) => (
 			<DataTableColumnHeader column={column} title="Tipe Perjalanan" />
@@ -211,11 +247,12 @@ export const columns: ColumnDef<Order>[] = [
 			const order = row.original;
 			let vehicle = "-";
 
-			if (order.orderType === "TRANSPORT" && order.transportation) {
-				const vehicleType = vehicleTypes.find(
-					(type) => type.value === order.transportation?.vehicleType
+			if (order.vehicleType && order.vehicleType.name) {
+				// Cari label dari vehicleTypes jika ada
+				const vt = vehicleTypes.find(
+					(type) => type.label.toLowerCase() === order.vehicleType.name.toLowerCase()
 				);
-				vehicle = vehicleType?.label || "-";
+				vehicle = vt ? vt.label : order.vehicleType.name;
 			}
 
 			return (
@@ -225,8 +262,12 @@ export const columns: ColumnDef<Order>[] = [
 			);
 		},
 		filterFn: (row, id, value) => {
-			if (!row.original.transportation) return false;
-			return value.includes(row.original.transportation.vehicleType);
+			// Filter berdasarkan nama kendaraan jika ada
+			const vt = vehicleTypes.find(
+				(type) => type.label.toLowerCase() === row.original.vehicleType?.name?.toLowerCase()
+			);
+			const label = vt ? vt.label : row.original.vehicleType?.name;
+			return value.includes(label);
 		},
 	},
 ];

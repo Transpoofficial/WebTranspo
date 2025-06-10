@@ -39,7 +39,7 @@ export function DataTableToolbar<TData>({
         {table.getColumn("orderStatus") && (
           <DataTableFacetedFilter
             column={table.getColumn("orderStatus")}
-            title="Status"
+            title="Status pesanan"
             options={[
               { label: "Menunggu", value: "PENDING" },
               { label: "Dikonfirmasi", value: "CONFIRMED" },
@@ -54,6 +54,17 @@ export function DataTableToolbar<TData>({
             column={table.getColumn("vehicleType")}
             title="Kendaraan"
             options={vehicleTypes}
+          />
+        )}
+        {table.getColumn("paymentStatus") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("paymentStatus")}
+            title="Status pembayaran"
+            options={[
+              { label: "Menunggu", value: "PENDING" },
+              { label: "Disetujui", value: "APPROVED" },
+              { label: "Ditolak", value: "REJECTED" },
+            ]}
           />
         )}
         {isFiltered && (

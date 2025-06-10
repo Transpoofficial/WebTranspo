@@ -68,15 +68,15 @@ export const priorities = [
 
 export const vehicleTypes = [
   {
-    value: "ANGKOT",
+    value: "Angkot",
     label: "Angkot",
   },
   {
     value: "HIACE",
-    label: "Hiace",
+    label: "HIACE",
   },
   {
-    value: "ELF",
+    value: "Elf",
     label: "Elf",
   },
 ]
