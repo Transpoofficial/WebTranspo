@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 
 export const columns: ColumnDef<Order>[] = [
 	{
-		accessorKey: "user",
+		id: "fullName",
+		accessorFn: (row) => `${row.fullName} ${row.email} ${row.phoneNumber}`,
 		header: ({ column }) => (
 			<DataTableColumnHeader column={column} title="Pemesan" />
 		),
@@ -32,15 +33,9 @@ export const columns: ColumnDef<Order>[] = [
 		enableSorting: true,
 		enableHiding: false,
 		filterFn: (row, id, value) => {
-			return (
-				row.original.user.fullName
-					.toLowerCase()
-					.includes(value.toLowerCase()) ||
-				(row.original.user.phoneNumber
-					?.toLowerCase()
-					.includes(value.toLowerCase()) || "") ||
-				row.original.user.email.toLowerCase().includes(value.toLowerCase())
-			);
+			const searchValue = value.toLowerCase();
+			const fullName = String(row.getValue(id)).toLowerCase();
+			return fullName.includes(searchValue);
 		},
 	},
 	{

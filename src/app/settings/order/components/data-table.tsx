@@ -473,9 +473,9 @@ export function DataTable<TData extends Order, TValue>({
         <div className="flex flex-col gap-y-4">
           <p className="text-xs text-[#6A6A6A]">Pemesan</p>
           <div className="flex flex-col gap-y-2">
-            <p className="text-sm">{order.user.fullName}</p>
-            <p className="text-sm">{order.user.email}</p>
-            <p className="text-sm">{order.user.phoneNumber}</p>
+            <p className="text-sm">{order.fullName}</p>
+            <p className="text-sm">{order.email}</p>
+            <p className="text-sm">{order.phoneNumber}</p>
           </div>
         </div>
 
