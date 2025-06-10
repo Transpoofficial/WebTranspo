@@ -39,7 +39,10 @@
   --color-card: var(--card);
   --color-transpo-primary: var(--transpo-primary);
   --color-transpo-primary-dark: var(--transpo-primary-dark);
-  --transpo-primary-light: var(--transpo-primary-light);
+  --color-transpo-primary-light: var(--transpo-primary-light);
+  --color-transpo-secondary: var(--transpo-secondary);
+  --color-transpo-accent: var(--transpo-accent);
+  --color-transpo-elf: var(--transpo-elf);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -82,6 +85,9 @@
   --transpo-primary: #2ca6bc;
   --transpo-primary-dark: #248a9e;
   --transpo-primary-light: #45b9cd;
+  --transpo-secondary: #ffc107;
+  --transpo-accent: #ff6b6b;
+  --transpo-elf: #20c997;
 }
 
 .dark {

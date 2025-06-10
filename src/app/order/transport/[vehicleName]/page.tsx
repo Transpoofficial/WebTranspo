@@ -12,6 +12,7 @@ import Step4 from "./components/step-4";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import Header from "@/components/header";
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -281,6 +282,7 @@ const OrderTransportPage = () => {
 
   return (
     <>
+      <Header isLandingPage={false} />
       <div className="container mx-auto py-8">
         {/* Progress steps */}
         <div className="flex justify-center mb-12">
