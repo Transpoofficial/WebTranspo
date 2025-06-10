@@ -132,16 +132,18 @@ export const authOptions: NextAuthOptions = {
         session.user.id = user.id;
         session.user.fullName = user.fullName;
         session.user.email = user.email;
+        session.user.role = user.role;
       } else {
         // Jika menggunakan JWT, ambil data terbaru dari database
         const dbUser = await prisma.user.findUnique({
           where: { email: session.user.email },
-          select: { id: true, fullName: true, email: true },
+          select: { id: true, fullName: true, email: true, role: true },
         });
         if (dbUser) {
           session.user.id = dbUser.id;
           session.user.fullName = dbUser.fullName;
           session.user.email = dbUser.email;
+          session.user.role = dbUser.role;
         }
       }
       return session;
