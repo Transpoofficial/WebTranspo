@@ -50,7 +50,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { FlagTriangleRight } from "lucide-react";
+import { FlagTriangleRight, Star } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -99,12 +100,11 @@ export function DataTable<TData extends Order, TValue>({
     React.useState(false);
   const [isUpdateOrderStatusOpen, setIsUpdateOrderStatusOpen] =
     React.useState(false);
-  const [selectedPaymentStatus, setSelectedPaymentStatus] = React.useState<string>(
-    ""
-  );
-  const [selectedOrderStatus, setSelectedOrderStatus] = React.useState<string>(
-    ""
-  );
+  const [selectedPaymentStatus, setSelectedPaymentStatus] =
+    React.useState<string>("");
+  const [selectedOrderStatus, setSelectedOrderStatus] =
+    React.useState<string>("");
+  const [note, setNote] = React.useState("");
   const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -133,8 +133,16 @@ export function DataTable<TData extends Order, TValue>({
   });
 
   const orderStatusMutation = useMutation({
-    mutationFn: async ({ orderId, orderStatus }: { orderId: string; orderStatus: string }) => {
-      const { data } = await axios.put(`/api/orders/${orderId}/status`, { orderStatus });
+    mutationFn: async ({
+      orderId,
+      orderStatus,
+    }: {
+      orderId: string;
+      orderStatus: string;
+    }) => {
+      const { data } = await axios.put(`/api/orders/${orderId}/status`, {
+        orderStatus,
+      });
       return data;
     },
     onSuccess: () => {
@@ -149,13 +157,25 @@ export function DataTable<TData extends Order, TValue>({
   });
 
   const paymentStatusMutation = useMutation({
-    mutationFn: async ({ paymentId, status }: { paymentId: string; status: string }) => {
-      const { data } = await axios.put(`/api/payments/${paymentId}/status`, { status });
+    mutationFn: async ({
+      paymentId,
+      status,
+      note,
+    }: {
+      paymentId: string;
+      status: string;
+      note?: string;
+    }) => {
+      const { data } = await axios.put(`/api/payments/${paymentId}/status`, {
+        status,
+        note,
+      });
       return data;
     },
     onSuccess: () => {
       toast.success("Status pembayaran berhasil diperbarui");
       setIsUpdatePaymentStatusOpen(false);
+      setNote("");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
     onError: (error) => {
@@ -203,19 +223,26 @@ export function DataTable<TData extends Order, TValue>({
     setIsPaymentProofDialogOpen(true);
   };
 
-  const handleUpdatePaymentStatus = () => {
-    if (!selectedRow?.payment.id || !selectedPaymentStatus) return;
-    paymentStatusMutation.mutate({
-      paymentId: selectedRow.payment.id,
-      status: selectedPaymentStatus,
-    });
-  };
-
   const handleUpdateOrderStatus = () => {
     if (!selectedRow?.id || !selectedOrderStatus) return;
     orderStatusMutation.mutate({
       orderId: selectedRow.id,
       orderStatus: selectedOrderStatus,
+    });
+  };
+
+  const handleUpdatePaymentStatus = () => {
+    if (!selectedRow?.payment.id || !selectedPaymentStatus) return;
+
+    if (selectedPaymentStatus === "REJECTED" && !note.trim()) {
+      toast.error("Note wajib diisi untuk status Rejected");
+      return;
+    }
+
+    paymentStatusMutation.mutate({
+      paymentId: selectedRow.payment.id,
+      status: selectedPaymentStatus,
+      note: note.trim() || undefined,
     });
   };
 
@@ -402,7 +429,9 @@ export function DataTable<TData extends Order, TValue>({
       variant: "outline" as const,
     };
 
-    const paymentStatus = paymentStatusMap[order.payment?.paymentStatus || ""] || {
+    const paymentStatus = paymentStatusMap[
+      order.payment?.paymentStatus || ""
+    ] || {
       label: order.payment?.paymentStatus || "Belum ada",
       variant: "outline" as const,
     };
@@ -443,9 +472,9 @@ export function DataTable<TData extends Order, TValue>({
         <div className="flex flex-col gap-y-4">
           <p className="text-xs text-[#6A6A6A]">Pemesan</p>
           <div className="flex flex-col gap-y-2">
-            <p className="text-sm">{order.user.fullName}</p>
-            <p className="text-sm">{order.user.email}</p>
-            <p className="text-sm">{order.user.phoneNumber}</p>
+            <p className="text-sm">{order.fullName}</p>
+            <p className="text-sm">{order.email}</p>
+            <p className="text-sm">{order.phoneNumber}</p>
           </div>
         </div>
 
@@ -530,6 +559,45 @@ export function DataTable<TData extends Order, TValue>({
             </div>
           </div>
         )}
+
+        {/* Review Section */}
+        {order.orderStatus === "COMPLETED" && (
+          <div className="flex flex-col gap-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-[#6A6A6A]">Penilaian</p>
+            </div>
+            {order.review ? (
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center gap-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={20}
+                      className={
+                        i < order.review!.rating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-gray-200 text-gray-200"
+                      }
+                    />
+                  ))}
+                  <span className="text-sm ml-2">{order.review.rating}/5</span>
+                </div>
+                <p className="text-sm mt-2">{order.review.content}</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {format(
+                    new Date(order.review.createdAt),
+                    "dd MMM yyyy HH:mm",
+                    {
+                      locale: id,
+                    }
+                  )}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Belum ada penilaian</p>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -580,22 +648,31 @@ export function DataTable<TData extends Order, TValue>({
                     </TableRow>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleViewDetail(row.original)}>
+                    <ContextMenuItem
+                      onClick={() => handleViewDetail(row.original)}
+                    >
                       Lihat detail
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleViewPaymentProof(row.original)}>
+                    <ContextMenuItem
+                      onClick={() => handleViewPaymentProof(row.original)}
+                    >
                       Lihat bukti pembayaran
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => {
-                      setSelectedRow(row.original);
-                      setIsUpdatePaymentStatusOpen(true);
-                    }}>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setSelectedRow(row.original);
+                        setNote(row.original.payment.note || ""); // Initialize note state with existing note
+                        setIsUpdatePaymentStatusOpen(true);
+                      }}
+                    >
                       Update status pembayaran
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => {
-                      setSelectedRow(row.original);
-                      setIsUpdateOrderStatusOpen(true);
-                    }}>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setSelectedRow(row.original);
+                        setIsUpdateOrderStatusOpen(true);
+                      }}
+                    >
                       Update status pesanan
                     </ContextMenuItem>
                   </ContextMenuContent>
@@ -709,12 +786,52 @@ export function DataTable<TData extends Order, TValue>({
         open={isPaymentProofDialogOpen}
         onOpenChange={setIsPaymentProofDialogOpen}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[calc(100dvh-5rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Bukti Pembayaran</DialogTitle>
           </DialogHeader>
           {selectedRow?.payment?.proofUrl ? (
             <>
+              <div className="text-sm space-y-1">
+                {selectedRow.payment.senderName && (
+                  <div>
+                    <span className="font-medium">Nama Pengirim: </span>
+                    {selectedRow.payment.senderName}
+                  </div>
+                )}
+                {selectedRow.payment.transferDate && (
+                  <div>
+                    <span className="font-medium">Tanggal Transfer: </span>
+                    {format(
+                      new Date(selectedRow.payment.transferDate),
+                      "dd MMM yyyy",
+                      { locale: id }
+                    )}
+                  </div>
+                )}
+                {selectedRow.payment.note && (
+                  <div className={`mt-2 border rounded-md p-3 ${
+                    selectedRow.payment.paymentStatus === "REJECTED" 
+                      ? "bg-red-100 border-red-200" 
+                      : ""
+                  }`}>
+                    <span className={`font-medium ${
+                      selectedRow.payment.paymentStatus === "REJECTED"
+                        ? "text-red-600"
+                        : ""
+                    }`}>
+                      Catatan:{" "}
+                    </span>
+                    <p className={`mt-1 text-sm ${
+                      selectedRow.payment.paymentStatus === "REJECTED"
+                        ? "text-red-600"
+                        : ""
+                    }`}>
+                      {selectedRow.payment.note}
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="relative w-full aspect-[3/4]">
                 <Image
                   src={selectedRow.payment.proofUrl}
@@ -723,26 +840,9 @@ export function DataTable<TData extends Order, TValue>({
                   className="object-contain"
                 />
               </div>
-              {/* Tambahkan info senderName dan transferDate jika ada */}
-              {(selectedRow.payment.senderName || selectedRow.payment.transferDate) && (
-                <div className="mt-4 text-sm space-y-1">
-                  {selectedRow.payment.senderName && (
-                    <div>
-                      <span className="font-medium">Nama Pengirim: </span>
-                      {selectedRow.payment.senderName}
-                    </div>
-                  )}
-                  {selectedRow.payment.transferDate && (
-                    <div>
-                      <span className="font-medium">Tanggal Transfer: </span>
-                      {format(new Date(selectedRow.payment.transferDate), "dd MMM yyyy", { locale: id })}
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           ) : (
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-sm text-center text-muted-foreground py-8">
               Belum memberikan bukti pembayaran
             </div>
           )}
@@ -779,13 +879,16 @@ export function DataTable<TData extends Order, TValue>({
       )}
 
       {/* Update Order Status Dialog */}
-      <Dialog open={isUpdateOrderStatusOpen} onOpenChange={setIsUpdateOrderStatusOpen}>
+      <Dialog
+        open={isUpdateOrderStatusOpen}
+        onOpenChange={setIsUpdateOrderStatusOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Status Pesanan</DialogTitle>
           </DialogHeader>
-          <Select 
-            onValueChange={setSelectedOrderStatus} 
+          <Select
+            onValueChange={setSelectedOrderStatus}
             defaultValue={selectedRow?.orderStatus}
           >
             <SelectTrigger className="w-full">
@@ -799,11 +902,14 @@ export function DataTable<TData extends Order, TValue>({
             </SelectContent>
           </Select>
           <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => setIsUpdateOrderStatusOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsUpdateOrderStatusOpen(false)}
+            >
               Batal
             </Button>
-            <Button 
-              onClick={handleUpdateOrderStatus} 
+            <Button
+              onClick={handleUpdateOrderStatus}
               disabled={orderStatusMutation.isPending}
             >
               {orderStatusMutation.isPending ? "Memperbarui..." : "Update"}
@@ -813,30 +919,61 @@ export function DataTable<TData extends Order, TValue>({
       </Dialog>
 
       {/* Update Payment Status Dialog */}
-      <Dialog open={isUpdatePaymentStatusOpen} onOpenChange={setIsUpdatePaymentStatusOpen}>
+      <Dialog
+        open={isUpdatePaymentStatusOpen}
+        onOpenChange={(open) => {
+          setIsUpdatePaymentStatusOpen(open);
+          if (!open) setNote("");
+          if (open && selectedRow) {
+            setNote(selectedRow.payment.note || ""); // Initialize note when dialog opens
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Status Pembayaran</DialogTitle>
           </DialogHeader>
-          <Select 
-            onValueChange={setSelectedPaymentStatus}
-            defaultValue={selectedRow?.payment.paymentStatus}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Pilih status pembayaran" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="APPROVED">Approved</SelectItem>
-              <SelectItem value="REJECTED">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="space-y-4">
+            <Select
+              onValueChange={setSelectedPaymentStatus}
+              defaultValue={selectedRow?.payment.paymentStatus}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih status pembayaran" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="APPROVED">Approved</SelectItem>
+                <SelectItem value="REJECTED">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Note{" "}
+                {selectedPaymentStatus === "REJECTED" && (
+                  <span className="text-red-500">*</span>
+                )}
+              </label>
+              <Textarea
+                placeholder="Tambahkan catatan..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
           <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => setIsUpdatePaymentStatusOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsUpdatePaymentStatusOpen(false);
+                setNote("");
+              }}
+            >
               Batal
             </Button>
-            <Button 
-              onClick={handleUpdatePaymentStatus} 
+            <Button
+              onClick={handleUpdatePaymentStatus}
               disabled={paymentStatusMutation.isPending}
             >
               {paymentStatusMutation.isPending ? "Memperbarui..." : "Update"}

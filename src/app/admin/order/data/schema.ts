@@ -15,11 +15,19 @@ export const destinationSchema = z.object({
   updatedAt: z.string(),
 });
 
+// Schema for vehicle type data
+export const vehicleTypeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  pricePerKm: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 // Schema for transportation data
 export const transportationSchema = z.object({
   id: z.string(),
   orderId: z.string(),
-  vehicleType: z.enum(["ANGKOT", "HIACE", "ELF"]),
   vehicleCount: z.number().int().positive(),
   roundTrip: z.boolean(),
   totalDistance: z.number().positive(),
@@ -51,15 +59,17 @@ export const paymentSchema = z.object({
   paymentStatus: z.enum(["PENDING", "APPROVED", "REJECTED"]),
   totalPrice: z.string(),
   approvedByAdminId: z.string().nullable(),
+  note: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
-// Schema for vehicleType data
-export const vehicleTypeSchema = z.object({
+// Schema for review data
+export const reviewSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  pricePerKm: z.string(),
+  orderId: z.string(),
+  rating: z.number(),
+  content: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -70,15 +80,22 @@ export const orderSchema = z.object({
   userId: z.string(),
   orderType: z.enum(["TRANSPORT", "TOUR"]),
   orderStatus: z.enum(["PENDING", "CONFIRMED", "CANCELED", "COMPLETED", "REFUNDED"]),
+  fullName: z.string(),
+  phoneNumber: z.string(),
+  email: z.string(),
+  totalPassengers: z.number(),
+  vehicleTypeId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
   user: userSchema,
   transportation: transportationSchema.nullable(),
   packageOrder: z.unknown().nullable(),
   payment: paymentSchema,
-  vehicleType: vehicleTypeSchema, // Add this line
+  vehicleType: vehicleTypeSchema,
+  review: reviewSchema.nullable(), // Menambahkan review yang bisa null
 });
 
+export type Review = z.infer<typeof reviewSchema>;
 export type Destination = z.infer<typeof destinationSchema>;
 export type Transportation = z.infer<typeof transportationSchema>;
 export type User = z.infer<typeof userSchema>;

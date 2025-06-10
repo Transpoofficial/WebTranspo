@@ -11,12 +11,13 @@ import { Badge } from "@/components/ui/badge";
 
 export const columns: ColumnDef<Order>[] = [
 	{
-		accessorKey: "user",
+		id: "fullName",
+		accessorFn: (row) => `${row.fullName} ${row.email} ${row.phoneNumber}`,
 		header: ({ column }) => (
 			<DataTableColumnHeader column={column} title="Pemesan" />
 		),
 		cell: ({ row }) => {
-			const user = row.original.user;
+			const user = row.original;
 
 			return (
 				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
@@ -30,17 +31,11 @@ export const columns: ColumnDef<Order>[] = [
 			);
 		},
 		enableSorting: true,
-		enableHiding: false,
+		enableHiding: true,
 		filterFn: (row, id, value) => {
-			return (
-				row.original.user.fullName
-					.toLowerCase()
-					.includes(value.toLowerCase()) ||
-				(row.original.user.phoneNumber
-					?.toLowerCase()
-					.includes(value.toLowerCase()) || "") ||
-				row.original.user.email.toLowerCase().includes(value.toLowerCase())
-			);
+			const searchValue = value.toLowerCase();
+			const fullName = String(row.getValue(id)).toLowerCase();
+			return fullName.includes(searchValue);
 		},
 	},
 	{
@@ -84,6 +79,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -122,8 +119,23 @@ export const columns: ColumnDef<Order>[] = [
 
 			return <div className="w-[80px]">{distance}</div>;
 		},
-		enableSorting: false,
-		enableHiding: false,
+		enableSorting: true,
+		enableHiding: true,
+		sortingFn: (rowA, rowB) => {
+			const distanceA = rowA.original.transportation?.totalDistance || 0;
+			const distanceB = rowB.original.transportation?.totalDistance || 0;
+			return distanceA - distanceB;
+		},
+		filterFn: (row, id, value) => {
+			const order = row.original;
+			if (!order.transportation?.totalDistance) return false;
+			
+			const distanceKm = order.transportation.totalDistance / 1000;
+			const searchValue = parseFloat(value);
+			
+			if (isNaN(searchValue)) return true;
+			return distanceKm === searchValue;
+		},
 	},
 	{
 		accessorKey: "createdAt",
@@ -173,6 +185,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -209,6 +223,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.original.payment?.paymentStatus || "");
 		},
@@ -261,6 +277,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			// Filter berdasarkan nama kendaraan jika ada
 			const vt = vehicleTypes.find(
