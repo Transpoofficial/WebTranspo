@@ -242,7 +242,10 @@ const Step4 = ({ paymentData }: Step4Props) => {
   }
 
   return (
-    <Card className="mx-auto max-w-2xl shadow-lg border-0">
+    <Card
+      className="mx-auto max-w-2xl shadow-lg border-0 text-gray-700"
+      style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
+    >
       <CardHeader className="text-center border-b">
         <CardTitle className="text-2xl font-semibold">
           Upload Bukti Transfer

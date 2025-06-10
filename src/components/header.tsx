@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   scrollToAdvantage?: () => void;
@@ -33,6 +34,20 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const router = useRouter();
+
+  const handleButtonClick = (scrollFunction?: () => void) => {
+    if (scrollFunction) {
+      scrollFunction();
+    } else if (
+      !scrollToAdvantage &&
+      !scrollToHowToOrder &&
+      !scrollToFAQAndContact &&
+      !scrollToReview
+    ) {
+      router.push("/");
+    }
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -169,8 +184,12 @@ const Header: React.FC<HeaderProps> = ({
                       <Link href="/admin">Halaman admin</Link>
                     </DropdownMenuItem>
                   ))}
-                <DropdownMenuItem>Profil</DropdownMenuItem>
-                <DropdownMenuItem>Pesanan</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/profile">Profil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/order">Pesanan</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   Log out

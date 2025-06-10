@@ -126,15 +126,23 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          fullName: token.fullName,
-          role: token.role,
-        };
+    async session({ session, user }) {
+      // Jika menggunakan adapter, user akan tersedia
+      if (user) {
+        session.user.id = user.id;
+        session.user.fullName = user.fullName;
+        session.user.email = user.email;
+      } else {
+        // Jika menggunakan JWT, ambil data terbaru dari database
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, fullName: true, email: true },
+        });
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.fullName = dbUser.fullName;
+          session.user.email = dbUser.email;
+        }
       }
       return session;
     },

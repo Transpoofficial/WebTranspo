@@ -10,7 +10,7 @@ import {
   Newspaper,
   TreePalm,
   User,
-} from "lucide-react"
+} from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -30,7 +30,7 @@ import { useSession } from "next-auth/react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const {data: session} = useSession();
+  const { data: session } = useSession();
 
   const data = {
     user: {
