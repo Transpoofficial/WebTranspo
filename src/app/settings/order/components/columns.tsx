@@ -119,8 +119,23 @@ export const columns: ColumnDef<Order>[] = [
 
 			return <div className="w-[80px]">{distance}</div>;
 		},
-		enableSorting: false,
+		enableSorting: true,
 		enableHiding: false,
+		sortingFn: (rowA, rowB) => {
+			const distanceA = rowA.original.transportation?.totalDistance || 0;
+			const distanceB = rowB.original.transportation?.totalDistance || 0;
+			return distanceA - distanceB;
+		},
+		filterFn: (row, id, value) => {
+			const order = row.original;
+			if (!order.transportation?.totalDistance) return false;
+			
+			const distanceKm = order.transportation.totalDistance / 1000;
+			const searchValue = parseFloat(value);
+			
+			if (isNaN(searchValue)) return true;
+			return distanceKm === searchValue;
+		},
 	},
 	{
 		accessorKey: "createdAt",
