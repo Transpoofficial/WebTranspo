@@ -1,167 +1,102 @@
 "use client";
 
-import React from "react";
-import OrderTable from "./components/order-table";
-import { Button } from "@/components/ui/button";
-import { ListFilter } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarLabel,
-  MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import axios from "axios";
 
-const Order = () => {
+import { columns } from "./components/columns";
+import { DataTable } from "./components/data-table";
+import { Order } from "./data/schema";
 
-  // Table data
-  const data = [
-    {
-      id: "INV001",
-      name: "Fathan Alfariel Adhyaksa",
-      orderType: "transport",
-      vehicle: "HIACE",
-      destinations: [
-        { dest: "Malang", dateTime: "Senin, 5 May 2025 20:15 WIB" },
-        { dest: "Surabaya", dateTime: "Senin, 5 May 2025 20:15 WIB" },
-        { dest: "Madura", dateTime: "Rabu, 7 May 2025 08:00 WIB" },
-      ],
-      paymentStatus: "approved",
-      payment: { total: 50000, paid: 25000 },
-      status: "pending",
-      createdAt: "Rabu, 6 Mei 2025",
+interface OrderResponse {
+  message: string;
+  data: Order[];
+  pagination: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
+
+// Fetch orders function
+const fetchOrders = async (): Promise<OrderResponse> => {
+  const response = await axios.get("/api/orders", {
+    headers: {
+      "Content-Type": "application/json",
     },
-    {
-      id: "INV002",
-      name: "Fathan Alfariel Adhyaksa",
-      orderType: "tour",
-      vehicle: "",
-      destinations: [],
-      paymentStatus: "pending",
-      payment: { total: 100000, paid: 100000 },
-      status: "pending",
-      createdAt: "Rabu, 6 Mei 2025",
-    },
-  ];
-
-  return (
-    <>
-      <h2 className="text-3xl font-bold tracking-tight first:mt-0">Pesanan</h2>
-
-      <div className="mt-4">
-        <p className="flex items-center gap-x-2 text-sm font-medium">
-          <ListFilter size={16} />
-          Filter
-        </p>
-
-        <Menubar className="whitespace-nowrap overflow-x-auto overflow-y-hidden mt-2">
-          {/* Filter by name */}
-          <MenubarMenu>
-            <MenubarTrigger>Nama</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Nama</MenubarLabel>
-              <MenubarSeparator />
-
-              <Input type="text" />
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by order type */}
-          <MenubarMenu>
-            <MenubarTrigger>Tipe pesanan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Tipe pesanan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="transport">
-                <MenubarRadioItem value="transport">Transport</MenubarRadioItem>
-                <MenubarRadioItem value="tour">Tour</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by vehicle */}
-          <MenubarMenu>
-            <MenubarTrigger>Kendaraan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Kendaraan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="angkot">
-                <MenubarRadioItem value="angkot">Angkot</MenubarRadioItem>
-                <MenubarRadioItem value="elf">Elf</MenubarRadioItem>
-                <MenubarRadioItem value="hiace">HIACE</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by payment status */}
-          <MenubarMenu>
-            <MenubarTrigger>Status pembayaran</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Status pembayaran</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="pending">
-                <MenubarRadioItem value="pending">Pending</MenubarRadioItem>
-                <MenubarRadioItem value="approved">Approved</MenubarRadioItem>
-                <MenubarRadioItem value="rejected">Rejected</MenubarRadioItem>
-                <MenubarRadioItem value="refunded">Refunded</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by order status */}
-          <MenubarMenu>
-            <MenubarTrigger>Status pesanan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Status pesanan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="pending">
-                <MenubarRadioItem value="pending">Pending</MenubarRadioItem>
-                <MenubarRadioItem value="confirmed">Confirmed</MenubarRadioItem>
-                <MenubarRadioItem value="canceled">Canceled</MenubarRadioItem>
-                <MenubarRadioItem value="completed">Completed</MenubarRadioItem>
-                <MenubarRadioItem value="refunded">Refunded</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-        </Menubar>
-
-        <OrderTable data={data} />
-      </div>
-    </>
-  );
+  });
+  return response.data;
 };
 
-export default Order;
+export default function OrderPage() {
+  const { data: session, status } = useSession();
+
+  // Query to fetch orders
+  const {
+    data: orderResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["orders"],
+    queryFn: fetchOrders,
+    enabled: !!session?.user, // Only fetch when user is authenticated
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
+  });
+
+  if (status === "loading") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">Loading session...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">Please log in to view orders.</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center w-full">
+        <div className="border-y-2 border-black w-6 h-6 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-red-600">
+            Error loading orders: {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+          <button 
+            onClick={() => refetch()} 
+            className="ml-2 text-blue-600 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full space-y-4">
+      <h1 className="text-2xl font-bold tracking-tight">Pesanan</h1>
+
+      <DataTable data={orderResponse?.data || []} columns={columns} />
+    </div>
+  );
+}
