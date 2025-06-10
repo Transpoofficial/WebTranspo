@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { OrderData } from "../page";
 import Map2, { Trip, DirectionInfo, Location } from "@/app/components/map-2";
+import { useParams } from "next/navigation";
 
 interface Step2Props {
   orderData: OrderData;
@@ -25,6 +26,13 @@ interface Step2Props {
 const MAX_DESTINATIONS_PER_TRIP = 10;
 
 const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
+  const params = useParams();
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  );
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [directions, setDirections] = useState<DirectionInfo[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -37,6 +45,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     trips: [],
     directions: [],
   });
+
+  // Debug: Log vehicleName
+  console.log("Step2 vehicleName:", vehicleName);
 
   // Format date for display (e.g. "Senin, 05 Mei 2025")
   const formatLocalizedDate = (date: Date) => {
@@ -384,7 +395,15 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                     Catatan Penting: Batas Tambahan Perjalanan
                   </div>
                   <p className="text-amber-700 mt-1">
-                    Jika ingin menambah/mengurangi hari perjalanan:
+                    {vehicleName.toLowerCase() === "angkot" ? (
+                      <>
+                        Angkot hanya tersedia di area Malang Kota dan Kabupaten.
+                        <br />
+                        Jika ingin menambah/mengurangi hari perjalanan:
+                      </>
+                    ) : (
+                      "Jika ingin menambah/mengurangi hari perjalanan:"
+                    )}
                     <ul className="list-disc ml-4 mt-1">
                       <li>Klik tombol Kembali</li>
                       <li>Tambah/kurangi tanggal di step sebelumnya</li>
@@ -392,6 +411,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                       <li>
                         Maksimal {MAX_DESTINATIONS_PER_TRIP} destinasi per hari
                       </li>
+                      {vehicleName.toLowerCase() === "angkot" && (
+                        <li>Area terbatas: Malang Kota dan Kabupaten</li>
+                      )}
                     </ul>
                   </p>
                 </div>
@@ -414,6 +436,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 onDirectionsChange={handleDirectionsChange}
                 maxLocationsPerTrip={MAX_DESTINATIONS_PER_TRIP}
                 height="500px"
+                vehicleName={vehicleName} // Pass vehicleName to Map2
               />
             )}
           </div>

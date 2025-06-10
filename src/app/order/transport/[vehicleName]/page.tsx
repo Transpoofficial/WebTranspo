@@ -104,6 +104,7 @@ const OrderTransportPage = () => {
     "hiace premio",
     "elf",
   ].includes(vehicleName.toLowerCase());
+  console.log({ orderData });
 
   // Check for payment ID in localStorage and fetch payment data if exists
   useEffect(() => {

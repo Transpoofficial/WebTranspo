@@ -79,7 +79,93 @@ interface Map2Props {
   showUI?: boolean;
   height?: string;
   maxLocationsPerTrip?: number;
+  vehicleName?: string; // Add vehicleName prop
 }
+
+// Koordinat pusat dan radius untuk area Malang berdasarkan data yang diberikan
+const MALANG_CENTERS = [
+  {
+    name: "Kota Malang",
+    lat: -7.983908,
+    lng: 112.621391,
+    radius: 15000, // 15 km radius untuk Kota Malang
+  },
+  {
+    name: "Kabupaten Malang",
+    lat: -8.16667,
+    lng: 112.66667,
+    radius: 50000, // 50 km radius untuk Kabupaten Malang (area lebih luas)
+  },
+];
+
+// Function to calculate distance between two points using Haversine formula
+const calculateDistance = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number => {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in meters
+};
+
+// Enhanced function to check if coordinates are within Malang area using radius-based validation
+const isWithinMalangArea = (lat: number, lng: number): boolean => {
+  for (const center of MALANG_CENTERS) {
+    const distance = calculateDistance(lat, lng, center.lat, center.lng);
+
+    console.log(`🔍 Distance Check for ${center.name}:`, {
+      targetPoint: { lat, lng },
+      center: { lat: center.lat, lng: center.lng },
+      distance: `${(distance / 1000).toFixed(2)} km`,
+      radius: `${(center.radius / 1000).toFixed(2)} km`,
+      withinRadius: distance <= center.radius,
+    });
+
+    // If point is within any of the Malang areas, return true
+    if (distance <= center.radius) {
+      console.log(`✅ Location is within ${center.name}`);
+      return true;
+    }
+  }
+
+  console.log("❌ Location is outside all Malang areas");
+  return false;
+};
+
+// Create bounds for autocomplete based on all Malang centers
+const createMalangBounds = (): google.maps.LatLngBounds => {
+  const bounds = new google.maps.LatLngBounds();
+
+  MALANG_CENTERS.forEach((center) => {
+    // Add points around each center to create encompassing bounds
+    const radiusInDegrees = center.radius / 111000; // Rough conversion: 1 degree ≈ 111km
+
+    bounds.extend(
+      new google.maps.LatLng(
+        center.lat - radiusInDegrees,
+        center.lng - radiusInDegrees
+      )
+    );
+    bounds.extend(
+      new google.maps.LatLng(
+        center.lat + radiusInDegrees,
+        center.lng + radiusInDegrees
+      )
+    );
+  });
+
+  return bounds;
+};
 
 const SortableLocationItem = ({
   location,
@@ -166,10 +252,11 @@ const Map2: React.FC<Map2Props> = ({
   showUI = true,
   height = "100dvh",
   maxLocationsPerTrip = 10,
+  vehicleName = "", // Default empty string
 }) => {
   const libraries = useMemo(() => ["places"], []);
   const mapCenter = useMemo(
-    () => ({ lat: -7.966913168381078, lng: 112.63315537047333 }),
+    () => ({ lat: -7.983908, lng: 112.621391 }), // Use Kota Malang center
     []
   );
   const mapOptions = useMemo<google.maps.MapOptions>(
@@ -185,6 +272,17 @@ const Map2: React.FC<Map2Props> = ({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
     libraries: libraries as any,
   });
+
+  // Check if vehicle is angkot with debugging
+  const isAngkot = useMemo(() => {
+    const result = vehicleName.toLowerCase() === "angkot";
+    console.log("🚐 Vehicle Check:", {
+      vehicleName,
+      lowercased: vehicleName.toLowerCase(),
+      isAngkot: result,
+    });
+    return result;
+  }, [vehicleName]);
 
   // Generate default trips if no initial trips provided
   const defaultTrips = useMemo(() => {
@@ -251,7 +349,7 @@ const Map2: React.FC<Map2Props> = ({
   // Update local trips when initialTrips changes, but only if they're different
   useEffect(() => {
     if (initialTrips.length > 0 && !initialLoadDone.current) {
-      console.log("Setting trips from initialTrips", initialTrips);
+      console.log("🔄 Setting trips from initialTrips", initialTrips);
       setTrips(initialTrips);
       initialLoadDone.current = true;
     }
@@ -271,16 +369,46 @@ const Map2: React.FC<Map2Props> = ({
     }
   }, [directions, onDirectionsChange]);
 
+  // Enhanced validation function - only check coordinates for accuracy
+  const validateLocationForAngkot = useCallback(
+    (lat: number, lng: number): boolean => {
+      if (!isAngkot) return true;
+
+      const isValid = isWithinMalangArea(lat, lng);
+
+      console.log("✅ Final Validation:", {
+        lat,
+        lng,
+        isAngkot,
+        isValid,
+      });
+
+      return isValid;
+    },
+    [isAngkot]
+  );
+
   // Handle map click to set location
   const handleMapClick = useCallback(
     (e: google.maps.MapMouseEvent) => {
       if (!e.latLng || activeInput === null) return;
       const latLng = e.latLng.toJSON();
 
+      console.log("🗺️ Map clicked:", { latLng, isAngkot, activeInput });
+
+      // Validate location for angkot FIRST before geocoding
+      if (!validateLocationForAngkot(latLng.lat, latLng.lng)) {
+        toast.error(
+          "❌ Angkot hanya tersedia di area Malang Kota dan Kabupaten"
+        );
+        return;
+      }
+
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode({ location: latLng }, (results, status) => {
         if (status === "OK" && results && results[0]) {
           const address = results[0].formatted_address;
+
           setTrips((prevTrips) => {
             const updatedTrips = [...prevTrips];
             if (!updatedTrips[activeInput.tripIndex]) return prevTrips;
@@ -303,7 +431,7 @@ const Map2: React.FC<Map2Props> = ({
         }
       });
     },
-    [activeInput]
+    [activeInput, validateLocationForAngkot]
   );
 
   // Initialize or reinitialize autocomplete for an input
@@ -318,69 +446,112 @@ const Map2: React.FC<Map2Props> = ({
         // Create a unique key for this input
         const inputKey = `${tripIndex}-${locIndex}`;
 
-        // Check if we already have an autocomplete instance for this input
-        let autocomplete = autocompleteRefs.current[inputKey];
-
-        if (!autocomplete) {
-          // Create a new autocomplete instance with the right configuration
-          autocomplete = new google.maps.places.Autocomplete(inputElement, {
-            fields: ["geometry", "formatted_address"],
-            componentRestrictions: { country: "id" }, // Restrict to Indonesia
-          });
-
-          // Store the autocomplete instance for future reference
-          autocompleteRefs.current[inputKey] = autocomplete;
-
-          // Add the place_changed event listener
-          autocomplete.addListener("place_changed", () => {
-            if (!autocomplete) return;
-
-            const place = autocomplete.getPlace();
-
-            if (!place.geometry || !place.geometry.location) {
-              toast.error("Lokasi tidak ditemukan");
-              return;
-            }
-
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            const address = place.formatted_address || "";
-
-            setTrips((prevTrips) => {
-              const updatedTrips = [...prevTrips];
-              if (!updatedTrips[tripIndex]) return prevTrips;
-
-              const updatedLocations = [...updatedTrips[tripIndex].locations];
-              if (!updatedLocations[locIndex]) return prevTrips;
-
-              updatedLocations[locIndex] = {
-                ...updatedLocations[locIndex],
-                lat,
-                lng,
-                address,
-              };
-
-              updatedTrips[tripIndex] = {
-                ...updatedTrips[tripIndex],
-                locations: updatedLocations,
-              };
-
-              return updatedTrips;
-            });
-
-            // Pan map to the selected location
-            if (mapRef.current) {
-              mapRef.current.panTo({ lat, lng });
-              mapRef.current.setZoom(15);
-            }
-          });
+        // Remove existing autocomplete if any
+        if (autocompleteRefs.current[inputKey]) {
+          google.maps.event.clearInstanceListeners(
+            autocompleteRefs.current[inputKey]
+          );
+          autocompleteRefs.current[inputKey] = null;
         }
+
+        // Configure autocomplete options based on vehicle type
+        const autocompleteOptions: google.maps.places.AutocompleteOptions = {
+          fields: ["geometry", "formatted_address", "place_id", "name"],
+          componentRestrictions: { country: "id" }, // Restrict to Indonesia
+        };
+
+        // For angkot, add strict location bias to Malang area
+        if (isAngkot) {
+          const malangBounds = createMalangBounds();
+
+          autocompleteOptions.bounds = malangBounds;
+          autocompleteOptions.strictBounds = true; // Enforce strict bounds for angkot
+
+          console.log(
+            "🎯 Autocomplete configured for Angkot with strict bounds:",
+            {
+              bounds: malangBounds.toJSON(),
+              strictBounds: true,
+            }
+          );
+        }
+
+        // Create a new autocomplete instance with the right configuration
+        const autocomplete = new google.maps.places.Autocomplete(
+          inputElement,
+          autocompleteOptions
+        );
+
+        // Store the autocomplete instance for future reference
+        autocompleteRefs.current[inputKey] = autocomplete;
+
+        // Add the place_changed event listener
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+
+          if (!place.geometry || !place.geometry.location) {
+            toast.error("Lokasi tidak ditemukan");
+            return;
+          }
+
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          const address = place.formatted_address || "";
+
+          console.log("📍 Autocomplete place selected:", {
+            lat,
+            lng,
+            address,
+            isAngkot,
+          });
+
+          // Validate location for angkot IMMEDIATELY
+          if (!validateLocationForAngkot(lat, lng)) {
+            toast.error(
+              "❌ Angkot hanya tersedia di area Malang Kota dan Kabupaten"
+            );
+            // Clear the input
+            inputElement.value = "";
+            // Force blur and focus to reset autocomplete
+            inputElement.blur();
+            setTimeout(() => inputElement.focus(), 100);
+            return;
+          }
+
+          setTrips((prevTrips) => {
+            const updatedTrips = [...prevTrips];
+            if (!updatedTrips[tripIndex]) return prevTrips;
+
+            const updatedLocations = [...updatedTrips[tripIndex].locations];
+            if (!updatedLocations[locIndex]) return prevTrips;
+
+            updatedLocations[locIndex] = {
+              ...updatedLocations[locIndex],
+              lat,
+              lng,
+              address,
+            };
+
+            updatedTrips[tripIndex] = {
+              ...updatedTrips[tripIndex],
+              locations: updatedLocations,
+            };
+
+            return updatedTrips;
+          });
+
+          // Pan map to the selected location
+          if (mapRef.current) {
+            mapRef.current.panTo({ lat, lng });
+            mapRef.current.setZoom(15);
+          }
+        });
       } catch (error) {
         console.error("Error initializing autocomplete:", error);
         toast.error("Gagal mengaktifkan pencarian alamat");
       }
     },
-    []
+    [isAngkot, validateLocationForAngkot]
   );
 
   // Handle input value changes
@@ -766,7 +937,7 @@ const Map2: React.FC<Map2Props> = ({
     <div className="relative" style={{ height }}>
       <GoogleMap
         options={mapOptions}
-        zoom={12}
+        zoom={11}
         center={mapCenter}
         mapContainerStyle={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
@@ -823,8 +994,9 @@ const Map2: React.FC<Map2Props> = ({
             <div className="pt-4 px-6 flex-shrink-0">
               <div className="text-lg font-semibold">Inisiasi perjalanan</div>
               <p className="text-xs text-muted-foreground">
-                Klik input lalu pilih lokasi di peta atau ketik manual. Tarik &
-                lepas untuk mengubah urutan.
+                {isAngkot
+                  ? "🚐 Klik input lalu pilih lokasi di peta atau ketik manual. Angkot hanya tersedia di area Malang (radius 15-50km dari pusat)."
+                  : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
               </p>
             </div>
 
@@ -832,7 +1004,7 @@ const Map2: React.FC<Map2Props> = ({
               <Accordion
                 type="single"
                 collapsible
-                defaultValue="item-0"
+                defaultValue={"item-" + activeTrip}
                 className="gap-y-2 w-full"
               >
                 {trips.map((trip, tripIndex) => {
