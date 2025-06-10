@@ -192,7 +192,10 @@ const DashboardPage = () => {
                 <p>{getOrderDescription(nearestOrder)}</p>
                 <p>Tanggal: {formatOrderDate(nearestOrder)}</p>
                 <div className="flex justify-end mt-2">
-                  <button className="bg-transpo-primary text-white px-4 py-1 rounded-md">
+                  <button
+                    onClick={() => router.push("/settings/order")}
+                    className="bg-transpo-primary text-white px-4 py-1 rounded-md"
+                  >
                     Cek Pesanan
                   </button>
                 </div>
