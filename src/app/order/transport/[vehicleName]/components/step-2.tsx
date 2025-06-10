@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, CalendarIcon } from "lucide-react";
+import { AlertTriangle, CalendarIcon, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -51,6 +51,85 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     directions: [],
   });
 
+  // ✅ Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in kilometers
+  };
+
+  // ✅ Calculate inter-trip distances and additional charges
+  const calculateInterTripCharges = () => {
+    if (trips.length <= 1) return { distances: [], totalCharge: 0 };
+
+    const interTripDistances: {
+      from: string;
+      to: string;
+      distance: number;
+      charge: number;
+    }[] = [];
+    let totalAdditionalCharge = 0;
+
+    for (let i = 0; i < trips.length - 1; i++) {
+      const currentTrip = trips[i];
+      const nextTrip = trips[i + 1];
+
+      // Get last location of current trip and first location of next trip
+      const lastLocationCurrent =
+        currentTrip.locations[currentTrip.locations.length - 1];
+      const firstLocationNext = nextTrip.locations[0];
+
+      if (
+        lastLocationCurrent?.lat &&
+        lastLocationCurrent?.lng &&
+        firstLocationNext?.lat &&
+        firstLocationNext?.lng
+      ) {
+        const distance = calculateDistance(
+          lastLocationCurrent.lat,
+          lastLocationCurrent.lng,
+          firstLocationNext.lat,
+          firstLocationNext.lng
+        );
+
+        let charge = 0;
+        if (distance > 50) {
+          // Calculate additional charge based on distance brackets
+          const excessDistance = distance - 50;
+          const brackets = Math.ceil(excessDistance / 10);
+          charge = brackets * 50000;
+        }
+
+        interTripDistances.push({
+          from: lastLocationCurrent.address || "Lokasi tidak diketahui",
+          to: firstLocationNext.address || "Lokasi tidak diketahui",
+          distance: Math.round(distance * 10) / 10, // Round to 1 decimal
+          charge,
+        });
+
+        totalAdditionalCharge += charge;
+      }
+    }
+
+    return {
+      distances: interTripDistances,
+      totalCharge: totalAdditionalCharge,
+    };
+  };
+
   // Format date for display (e.g. "Senin, 05 Mei 2025")
   const formatLocalizedDate = (date: Date) => {
     return format(date, "EEEE, dd MMMM yyyy", { locale: id });
@@ -71,6 +150,17 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       return `${hours} jam ${minutes} menit`;
     }
     return `${minutes} menit`;
+  };
+
+  // ✅ Format Rupiah
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    })
+      .format(amount)
+      .replace("Rp", "Rp.");
   };
 
   // ✅ Helper function to sanitize note input
@@ -333,12 +423,13 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       note: finalNote, // ✅ Include sanitized note
     }));
 
-    // Calculate price via API
+    // ✅ Calculate price via API with trip locations for inter-trip distance calculation
     try {
       const response = await axios.post("/api/calculate-price", {
         vehicleTypeId: orderData.vehicleTypeId,
         totalDistance: totalDistance,
         vehicleCount: orderData.userData.totalVehicles || 1,
+        trips: updatedTrip, // ✅ Send trip data for inter-trip distance calculation
       });
 
       if (response.status === 200) {
@@ -367,6 +458,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     // Move to next step
     onContinue();
   };
+
+  // ✅ Get inter-trip charges for display
+  const interTripCharges = calculateInterTripCharges();
 
   return (
     <div className="mx-auto mt-8 max-w-full pb-10">
@@ -432,6 +526,36 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               </div>
             )}
 
+            {/* ✅ Inter-trip Distance Charges Display */}
+            {interTripCharges.distances.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="font-medium text-orange-800 mb-2">
+                  Biaya Tambahan Antar Hari
+                </div>
+                {interTripCharges.distances.map((item, idx) => (
+                  <div key={idx} className="text-sm text-orange-700 mb-1">
+                    <div className="font-medium">
+                      Hari {idx + 1} → Hari {idx + 2}
+                    </div>
+                    <div>Jarak: {item.distance} km</div>
+                    {item.charge > 0 && (
+                      <div className="text-red-600 font-medium">
+                        + {formatRupiah(item.charge)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {interTripCharges.totalCharge > 0 && (
+                  <div className="mt-2 pt-2 border-t border-orange-300">
+                    <div className="font-semibold text-orange-800">
+                      Total Biaya Tambahan:{" "}
+                      {formatRupiah(interTripCharges.totalCharge)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ✅ Note Input Field */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <Label
@@ -455,6 +579,36 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               <div className="mt-2 text-xs text-gray-600">
                 <span className="font-medium">Contoh:</span> Butuh kursi roda,
                 ada bayi, pick up pagi-pagi, dll.
+              </div>
+            </div>
+
+            {/* ✅ Inter-trip Distance Pricing Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex gap-2 items-start">
+                <Info className="text-blue-500 shrink-0" size={20} />
+                <div className="text-sm">
+                  <div className="font-medium text-blue-800 mb-2">
+                    Informasi Biaya Tambahan Antar Hari
+                  </div>
+                  <p className="text-blue-700 mb-2">
+                    Jika jarak antara destinasi terakhir hari ini dengan
+                    destinasi pertama hari selanjutnya melebihi 50 km, akan
+                    dikenakan biaya tambahan:
+                  </p>
+                  <div className="text-blue-700 text-xs space-y-1">
+                    <div>• 50-60 km: + {formatRupiah(50000)}</div>
+                    <div>• 60-70 km: + {formatRupiah(100000)}</div>
+                    <div>• 70-80 km: + {formatRupiah(150000)}</div>
+                    <div>• 80-90 km: + {formatRupiah(200000)}</div>
+                    <div>
+                      • Dan seterusnya (+ {formatRupiah(50000)} per 10 km)
+                    </div>
+                  </div>
+                  <p className="text-blue-600 text-xs mt-2 font-medium">
+                    💡 Tip: Pilih destinasi yang berdekatan untuk menghindari
+                    biaya tambahan
+                  </p>
+                </div>
               </div>
             </div>
 
