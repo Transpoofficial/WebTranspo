@@ -348,7 +348,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                           (loc, locIndex) =>
                             loc.address && (
                               <div key={locIndex} className="flex items-start">
-                                <div className="mr-4 relative">
+                                <div className="mr-4 ">
                                   <div
                                     className={`
                   w-10 h-10 rounded-full flex items-center justify-center 
@@ -364,7 +364,8 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                                     <MapPin size={18} />
                                   </div>
                                   {locIndex < trip.location.length - 1 && (
-                                    <div className="absolute top-10 bottom-0 left-1/2 w-0.5 h-16 bg-gray-300 -translate-x-1/2"></div>
+                                    // <div className="absolute top-10 bottom-0 left-1/2 w-0.5 h-16 bg-gray-300 -translate-x-1/2"></div>
+                                    <div />
                                   )}
                                 </div>
 
