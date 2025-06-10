@@ -6,7 +6,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CalendarIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, CalendarIcon, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -14,6 +16,15 @@ import { toast } from "sonner";
 import axios from "axios";
 import { OrderData } from "../page";
 import Map2, { Trip, DirectionInfo, Location } from "@/app/components/map-2";
+import { useParams } from "next/navigation";
+import DOMPurify from "dompurify";
+// ✅ Import utils functions for consistent calculation
+import {
+  calculateDistance,
+  calculateInterTripCharges,
+  calculateTotalPrice,
+  Trip as UtilsTrip,
+} from "@/utils/order";
 
 interface Step2Props {
   orderData: OrderData;
@@ -23,11 +34,20 @@ interface Step2Props {
 }
 
 const MAX_DESTINATIONS_PER_TRIP = 10;
+const MAX_NOTE_LENGTH = 500;
 
 const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
+  const params = useParams();
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  );
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [directions, setDirections] = useState<DirectionInfo[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [note, setNote] = useState(orderData.note || "");
   const initialLoadRef = useRef(true);
   const directionLoadedRef = useRef(false);
   const mapStateRef = useRef<{
@@ -37,6 +57,65 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     trips: [],
     directions: [],
   });
+
+  // ✅ Use consistent calculation from utils with proper typing
+  const calculateInterTripChargesLocal = (tripsData: UtilsTrip[]) => {
+    if (tripsData.length <= 1) return { distances: [], totalCharge: 0 };
+
+    const interTripDistances: {
+      from: string;
+      to: string;
+      distance: number;
+      charge: number;
+    }[] = [];
+    let totalAdditionalCharge = 0;
+
+    for (let i = 0; i < tripsData.length - 1; i++) {
+      const currentTrip = tripsData[i];
+      const nextTrip = tripsData[i + 1];
+
+      // Get last location of current trip and first location of next trip
+      const lastLocationCurrent =
+        currentTrip.location[currentTrip.location.length - 1];
+      const firstLocationNext = nextTrip.location[0];
+
+      if (
+        lastLocationCurrent?.lat &&
+        lastLocationCurrent?.lng &&
+        firstLocationNext?.lat &&
+        firstLocationNext?.lng
+      ) {
+        const distance = calculateDistance(
+          lastLocationCurrent.lat,
+          lastLocationCurrent.lng,
+          firstLocationNext.lat,
+          firstLocationNext.lng
+        );
+
+        let charge = 0;
+        if (distance > 50) {
+          // ✅ Use same calculation as backend
+          const excessDistance = distance - 50;
+          const brackets = Math.ceil(excessDistance / 10);
+          charge = brackets * 50000;
+        }
+
+        interTripDistances.push({
+          from: lastLocationCurrent.address || "Lokasi tidak diketahui",
+          to: firstLocationNext.address || "Lokasi tidak diketahui",
+          distance: Math.round(distance * 10) / 10,
+          charge,
+        });
+
+        totalAdditionalCharge += charge;
+      }
+    }
+
+    return {
+      distances: interTripDistances,
+      totalCharge: totalAdditionalCharge,
+    };
+  };
 
   // Format date for display (e.g. "Senin, 05 Mei 2025")
   const formatLocalizedDate = (date: Date) => {
@@ -59,6 +138,57 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     }
     return `${minutes} menit`;
   };
+
+  // ✅ Format Rupiah
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    })
+      .format(amount)
+      .replace("Rp", "Rp.");
+  };
+
+  // ✅ Helper function to sanitize note input
+  const sanitizeNote = (input: string): string => {
+    if (typeof window === "undefined") {
+      // Server-side fallback
+      return input.trim().replace(/[<>]/g, "");
+    }
+
+    // Client-side sanitization
+    return DOMPurify.sanitize(input.trim(), {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
+  };
+
+  // ✅ Handle note input changes
+  const handleNoteChange = (value: string) => {
+    // Limit character count
+    if (value.length > MAX_NOTE_LENGTH) {
+      toast.error(`Catatan maksimal ${MAX_NOTE_LENGTH} karakter`);
+      return;
+    }
+
+    // Real-time sanitization
+    const sanitized = value.replace(/[<>]/g, "");
+    setNote(sanitized);
+
+    // Update orderData in real-time
+    setOrderData((prev: OrderData) => ({
+      ...prev,
+      note: sanitized,
+    }));
+  };
+
+  // ✅ Initialize note from orderData
+  useEffect(() => {
+    if (orderData.note && orderData.note !== note) {
+      setNote(orderData.note);
+    }
+  }, [orderData.note]);
 
   // Create initial directions based on orderData when returning to step 2
   const createInitialDirectionsFromOrderData = () => {
@@ -268,48 +398,57 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       0
     );
 
+    // ✅ Final sanitization of note before saving
+    const finalNote = sanitizeNote(note);
+
+    // ✅ Use consistent price calculation from utils
+    const priceResult = calculateTotalPrice(
+      vehicleName,
+      totalDistance / 1000, // Convert to km
+      orderData.userData.totalVehicles || 1,
+      updatedTrip
+    );
+
+    console.log("💰 Frontend calculated price:", priceResult);
+
     // Update orderData
     setOrderData((prev: OrderData) => ({
       ...prev,
       trip: updatedTrip,
       totalDistance,
       totalDuration,
+      note: finalNote,
+      totalPrice: priceResult.totalPrice, // ✅ Use calculated price
     }));
-
-    // Calculate price via API
-    try {
-      const response = await axios.post("/api/calculate-price", {
-        vehicleTypeId: orderData.vehicleTypeId,
-        totalDistance: totalDistance,
-        vehicleCount: orderData.userData.totalVehicles || 1,
-      });
-
-      if (response.status === 200) {
-        setOrderData((prev: OrderData) => ({
-          ...prev,
-          totalPrice: response.data.data.totalPrice,
-        }));
-      } else {
-        toast.error("Failed to calculate price. Using estimate instead.");
-        const estimatedPrice = totalDistance * 1000 + 150000;
-        setOrderData((prev: OrderData) => ({
-          ...prev,
-          totalPrice: estimatedPrice,
-        }));
-      }
-    } catch (error) {
-      console.error("Error calculating price:", error);
-      toast.error("Failed to calculate price. Using estimate instead.");
-      const estimatedPrice = totalDistance * 1000 + 150000;
-      setOrderData((prev: OrderData) => ({
-        ...prev,
-        totalPrice: estimatedPrice,
-      }));
-    }
 
     // Move to next step
     onContinue();
   };
+
+  // ✅ Get inter-trip charges for display using consistent calculation - Fixed type issues
+  const convertedTrips: UtilsTrip[] = trips
+    .map((trip) => {
+      const validLocations = trip.locations.filter(
+        (loc) => loc.lat !== null && loc.lng !== null && loc.address
+      );
+      if (validLocations.length < 2) return null;
+
+      return {
+        date: trip.date!,
+        location: validLocations.map((loc) => ({
+          lat: loc.lat!,
+          lng: loc.lng!,
+          address: loc.address,
+          time: loc.time || null,
+        })),
+        distance: 0,
+        duration: 0,
+        startTime: "09:00",
+      };
+    })
+    .filter((trip) => trip !== null) as UtilsTrip[]; // ✅ Fixed type assertion
+
+  const interTripCharges = calculateInterTripChargesLocal(convertedTrips);
 
   return (
     <div className="mx-auto mt-8 max-w-full pb-10">
@@ -375,6 +514,92 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               </div>
             )}
 
+            {/* ✅ Inter-trip Distance Charges Display */}
+            {interTripCharges.distances.length > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="font-medium text-orange-800 mb-2">
+                  Biaya Tambahan Antar Hari
+                </div>
+                {interTripCharges.distances.map((item, idx) => (
+                  <div key={idx} className="text-sm text-orange-700 mb-1">
+                    <div className="font-medium">
+                      Hari {idx + 1} → Hari {idx + 2}
+                    </div>
+                    <div>Jarak: {item.distance} km</div>
+                    {item.charge > 0 && (
+                      <div className="text-red-600 font-medium">
+                        + {formatRupiah(item.charge)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {interTripCharges.totalCharge > 0 && (
+                  <div className="mt-2 pt-2 border-t border-orange-300">
+                    <div className="font-semibold text-orange-800">
+                      Total Biaya Tambahan:{" "}
+                      {formatRupiah(interTripCharges.totalCharge)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ✅ Note Input Field */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <Label
+                htmlFor="note"
+                className="font-medium text-gray-700 mb-2 block"
+              >
+                Catatan Tambahan (Opsional)
+              </Label>
+              <Textarea
+                id="note"
+                placeholder="Tambahkan catatan khusus untuk perjalanan Anda..."
+                className="bg-white border-gray-200 focus-visible:ring-transpo-primary text-gray-900 placeholder:text-gray-400 resize-none"
+                rows={4}
+                value={note}
+                onChange={(e) => handleNoteChange(e.target.value)}
+                maxLength={MAX_NOTE_LENGTH}
+              />
+              <div className="mt-1 text-xs text-gray-500 text-right">
+                {note.length}/{MAX_NOTE_LENGTH} karakter
+              </div>
+              <div className="mt-2 text-xs text-gray-600">
+                <span className="font-medium">Contoh:</span> Butuh kursi roda,
+                ada bayi, pick up pagi-pagi, dll.
+              </div>
+            </div>
+
+            {/* ✅ Inter-trip Distance Pricing Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex gap-2 items-start">
+                <Info className="text-blue-500 shrink-0" size={20} />
+                <div className="text-sm">
+                  <div className="font-medium text-blue-800 mb-2">
+                    Informasi Biaya Tambahan Antar Hari
+                  </div>
+                  <p className="text-blue-700 mb-2">
+                    Jika jarak antara destinasi terakhir hari ini dengan
+                    destinasi pertama hari selanjutnya melebihi 50 km, akan
+                    dikenakan biaya tambahan:
+                  </p>
+                  <div className="text-blue-700 text-xs space-y-1">
+                    <div>• 50-60 km: + {formatRupiah(50000)}</div>
+                    <div>• 60-70 km: + {formatRupiah(100000)}</div>
+                    <div>• 70-80 km: + {formatRupiah(150000)}</div>
+                    <div>• 80-90 km: + {formatRupiah(200000)}</div>
+                    <div>
+                      • Dan seterusnya (+ {formatRupiah(50000)} per 10 km)
+                    </div>
+                  </div>
+                  <p className="text-blue-600 text-xs mt-2 font-medium">
+                    💡 Tip: Pilih destinasi yang berdekatan untuk menghindari
+                    biaya tambahan
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Warning message */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
               <div className="flex gap-2 items-start">
@@ -384,7 +609,15 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                     Catatan Penting: Batas Tambahan Perjalanan
                   </div>
                   <p className="text-amber-700 mt-1">
-                    Jika ingin menambah/mengurangi hari perjalanan:
+                    {vehicleName.toLowerCase() === "angkot" ? (
+                      <>
+                        Angkot hanya tersedia di area Malang Kota dan Kabupaten.
+                        <br />
+                        Jika ingin menambah/mengurangi hari perjalanan:
+                      </>
+                    ) : (
+                      "Jika ingin menambah/mengurangi hari perjalanan:"
+                    )}
                     <ul className="list-disc ml-4 mt-1">
                       <li>Klik tombol Kembali</li>
                       <li>Tambah/kurangi tanggal di step sebelumnya</li>
@@ -392,6 +625,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                       <li>
                         Maksimal {MAX_DESTINATIONS_PER_TRIP} destinasi per hari
                       </li>
+                      {vehicleName.toLowerCase() === "angkot" && (
+                        <li>Area terbatas: Malang Kota dan Kabupaten</li>
+                      )}
                     </ul>
                   </p>
                 </div>
@@ -414,28 +650,28 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 onDirectionsChange={handleDirectionsChange}
                 maxLocationsPerTrip={MAX_DESTINATIONS_PER_TRIP}
                 height="500px"
+                vehicleName={vehicleName} // Pass vehicleName to Map2
               />
             )}
           </div>
         </CardContent>
+        {/* Navigation buttons */}
+        <div className="flex justify-end gap-3 mt-6 mr-4">
+          <Button
+            onClick={onBack}
+            variant="secondary"
+            className="border-gray-300 hover:bg-gray-100 text-gray-700"
+          >
+            Kembali
+          </Button>
+          <Button
+            onClick={handleContinue}
+            className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
+          >
+            Selanjutnya
+          </Button>
+        </div>
       </Card>
-
-      {/* Navigation buttons */}
-      <div className="flex justify-end gap-3 mt-6">
-        <Button
-          onClick={onBack}
-          variant="secondary"
-          className="bg-gray-300 hover:bg-gray-400 text-gray-700"
-        >
-          Kembali
-        </Button>
-        <Button
-          onClick={handleContinue}
-          className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
-        >
-          Selanjutnya
-        </Button>
-      </div>
     </div>
   );
 };

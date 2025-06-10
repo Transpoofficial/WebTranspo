@@ -12,6 +12,8 @@ import Step4 from "./components/step-4";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import Header from "@/components/header";
+import { useSession } from "next-auth/react";
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -59,6 +61,7 @@ const getStartDate = (vehicleName: string) => {
 
 const OrderTransportPage = () => {
   const params = useParams();
+  const { data, status } = useSession();
   const vehicleName = decodeURIComponent(
     Array.isArray(params.vehicleName)
       ? params.vehicleName[0]
@@ -66,7 +69,6 @@ const OrderTransportPage = () => {
   );
   const startDate = getStartDate(vehicleName as string);
   const router = useRouter();
-
   const [step, setStep] = useState(1);
   const [orderData, setOrderData] = useState<OrderData>({
     userData: {
@@ -91,6 +93,7 @@ const OrderTransportPage = () => {
     vehicleTypeId: "",
     totalPrice: 0,
   });
+  console.log({ orderData });
   const [paymentData, setPaymentData] = useState<{
     id: string;
     amount: number;
@@ -103,6 +106,24 @@ const OrderTransportPage = () => {
     "hiace premio",
     "elf",
   ].includes(vehicleName.toLowerCase());
+
+  // Update user data when session data changes
+  useEffect(() => {
+    if (data?.user && status === "authenticated") {
+      setOrderData((prevData) => ({
+        ...prevData,
+        userData: {
+          ...prevData.userData,
+          name: data.user.fullName || "",
+          email: data.user.email || "",
+          // Keep existing phone, totalPassangers, totalVehicles if already filled
+          phone: prevData.userData.phone || "",
+          totalPassangers: prevData.userData.totalPassangers || 0,
+          totalVehicles: prevData.userData.totalVehicles || 0,
+        },
+      }));
+    }
+  }, [data, status]);
 
   // Check for payment ID in localStorage and fetch payment data if exists
   useEffect(() => {
@@ -189,6 +210,9 @@ const OrderTransportPage = () => {
   };
 
   const handlePreviousStep = () => {
+    if (step === 1) {
+      router.back();
+    }
     setStep(step - 1);
   };
 
@@ -281,6 +305,7 @@ const OrderTransportPage = () => {
 
   return (
     <>
+      <Header isLandingPage={false} />
       <div className="container mx-auto py-8">
         {/* Progress steps */}
         <div className="flex justify-center mb-12">

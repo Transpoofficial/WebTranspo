@@ -1,33 +1,35 @@
-"use client"
+"use client";
 
-import { Table } from "@tanstack/react-table"
-import { X } from "lucide-react"
+import { Table } from "@tanstack/react-table";
+import { X } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-import { orderTypes, vehicleTypes } from "../data/data"
-import { DataTableFacetedFilter } from "./data-table-faceted-filter"
+import { orderTypes, vehicleTypes } from "../data/data";
+import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 
 interface DataTableToolbarProps<TData> {
-  table: Table<TData>
+  table: Table<TData>;
 }
 
 export function DataTableToolbar<TData>({
   table,
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table.getState().columnFilters.length > 0
+  const isFiltered = table.getState().columnFilters.length > 0;
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2 overflow-x-auto">
         <Input
           placeholder="Cari nama, email, atau nomor telepon..."
-          value={(table.getColumn("fullName")?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn("fullName")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) => {
-            const value = event.target.value
+            const value = event.target.value;
             // Hanya gunakan satu kolom untuk pencarian global
-            table.getColumn("fullName")?.setFilterValue(value)
+            table.getColumn("fullName")?.setFilterValue(value);
           }}
           className="h-8 min-w-[150px] w-[150px] lg:min-w-[250px] lg:w-[250px]"
         />
@@ -81,5 +83,5 @@ export function DataTableToolbar<TData>({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -52,7 +52,7 @@ model Order {
   phoneNumber             String?
   email                   String?
   totalPassengers         Int?
-  
+  note                    String?
   transportation          TransportationOrder?
   packageOrder            PackageOrder?
   vehicleTypeId           String?            

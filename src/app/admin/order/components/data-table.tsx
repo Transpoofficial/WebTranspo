@@ -810,23 +810,29 @@ export function DataTable<TData extends Order, TValue>({
                   </div>
                 )}
                 {selectedRow.payment.note && (
-                  <div className={`mt-2 border rounded-md p-3 ${
-                    selectedRow.payment.paymentStatus === "REJECTED" 
-                      ? "bg-red-100 border-red-200" 
-                      : ""
-                  }`}>
-                    <span className={`font-medium ${
+                  <div
+                    className={`mt-2 border rounded-md p-3 ${
                       selectedRow.payment.paymentStatus === "REJECTED"
-                        ? "text-red-600"
+                        ? "bg-red-100 border-red-200"
                         : ""
-                    }`}>
+                    }`}
+                  >
+                    <span
+                      className={`font-medium ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
                       Catatan:{" "}
                     </span>
-                    <p className={`mt-1 text-sm ${
-                      selectedRow.payment.paymentStatus === "REJECTED"
-                        ? "text-red-600"
-                        : ""
-                    }`}>
+                    <p
+                      className={`mt-1 text-sm ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
                       {selectedRow.payment.note}
                     </p>
                   </div>

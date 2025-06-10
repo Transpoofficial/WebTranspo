@@ -116,7 +116,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
     }
 
     // Redirect to orders page
-    router.push("/dashboard/orders");
+    router.push("/settings/order");
   };
 
   // Validate file before accepting
@@ -208,7 +208,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
 
         // Navigate to the orders page after successful upload
         setTimeout(() => {
-          router.push("/dashboard/orders");
+          router.push("/settings/order");
         }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
@@ -379,7 +379,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
               className="border-gray-300 hover:bg-gray-100 text-gray-700"
               disabled={isSubmitting}
             >
-              Kembali
+              Kembali ke Pesanan Saya
             </Button>
             <Button
               type="submit"
