@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadFiles } from "@/utils/supabase";
 import { PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
+import { emailTemplates } from "@/lib/email-templates";
 
 export const POST = async (
   req: NextRequest,
@@ -62,9 +63,7 @@ export const POST = async (
     }
 
     // Get the public URL from the upload result
-    const fileUrl = uploadResult[0].photoUrl.data.publicUrl;
-
-    // Update payment record
+    const fileUrl = uploadResult[0].photoUrl.data.publicUrl; // Update payment record
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
       data: {
@@ -73,7 +72,37 @@ export const POST = async (
         proofUrl: fileUrl,
         paymentStatus: PaymentStatus.PENDING, // Update status to indicate proof was uploaded
       },
-    });
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    }); // Send email notification to user
+    try {
+      if (
+        updatedPayment.order.user.email &&
+        updatedPayment.order.user.fullName
+      ) {
+        await emailTemplates.sendPaymentVerification(
+          updatedPayment.order.user.email,
+          updatedPayment.order.user.fullName
+        );
+
+        console.log(
+          `Payment verification email sent to: ${updatedPayment.order.user.email}`
+        );
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the main request
+      console.error("Failed to send email notification:", emailError);
+    }
 
     return NextResponse.json(
       {
