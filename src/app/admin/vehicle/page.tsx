@@ -1,49 +1,39 @@
-import React from "react";
-import VehicleTable from "./components/vehicle-table";
+"use client";
+import React, { useState } from "react";
 import VehicleTypeTable from "./components/vehicle-type-table";
-import { Separator } from "@/components/ui/separator";
-import AddVehicleMenu from "./components/add-vehicle-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import VehicleTypeCreateDialog from "./components/vehicle-type-create-dialog";
 
 const Vehicle = () => {
+  const [isVehicleTypeCreateDialogOpen, setIsVehicleTypeCreateDialogOpen] =
+    useState<boolean>(false);
+
+  const handleOpenVehicleTypeCreateDialog = (): void => {
+    setIsVehicleTypeCreateDialogOpen(true);
+  };
+
   return (
     <>
-      <h2 className="text-3xl font-bold tracking-tight first:mt-0">
+      <h1 className="text-2xl font-bold tracking-tight">
         Kendaraan
-      </h2>
+      </h1>
 
-      <div className="flex justify-end mt-4">
-        <AddVehicleMenu />
+      <div className="my-4">
+        <Button
+          onClick={handleOpenVehicleTypeCreateDialog}
+          className="cursor-pointer"
+        >
+          Tambah kendaraan
+        </Button>
       </div>
 
-      {/* Desktop and Tablet View */}
-      <div className="hidden md:block mt-2">
-        <div className="flex items-start">
-          <div className="w-1/3">
-            <VehicleTypeTable />
-          </div>
+      {/* Vehicle type dialog */}
+      <VehicleTypeCreateDialog
+        isVehicleTypeCreateDialogOpen={isVehicleTypeCreateDialogOpen}
+        setIsVehicleTypeCreateDialogOpen={setIsVehicleTypeCreateDialogOpen}
+      />
 
-          <Separator orientation="vertical" className="mx-4" />
-
-          <div className="w-full">
-            <VehicleTable />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile View */}
-      <Tabs defaultValue="vehicleType" className="block md:hidden mt-2">
-        <TabsList className="mb-2.5">
-          <TabsTrigger value="vehicleType">Tipe kendaraan</TabsTrigger>
-          <TabsTrigger value="vehicle">Kendaraan</TabsTrigger>
-        </TabsList>
-        <TabsContent value="vehicleType">
-          <VehicleTypeTable />
-        </TabsContent>
-        <TabsContent value="vehicle">
-          <VehicleTable />
-        </TabsContent>
-      </Tabs>
+      <VehicleTypeTable />
     </>
   );
 };

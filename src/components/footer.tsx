@@ -6,30 +6,6 @@ import { Button } from "./ui/button";
 import { Facebook, Instagram, Store, Twitter } from "lucide-react";
 
 const Footer = () => {
-  // const footerFixedRef = useRef(null);
-  // const [isFooterFixedVisible, setIsFooterFixedVisible] = useState<boolean>(true);
-
-  // useEffect(() => {
-  //   const observer = new IntersectionObserver((entries) => {
-  //     const [entry] = entries;
-  //     setIsFooterFixedVisible(entry.isIntersecting); // Show element when the element is visible
-  //   }, {
-  //     threshold: 0.1,
-  //   });
-
-  //   // Observing the Element
-  //   if (footerFixedRef.current) {
-  //     observer.observe(footerFixedRef.current);
-  //   }
-
-  //   // Cleaning the observer when components are unmounted
-  //   return () => {
-  //     if (footerFixedRef.current) {
-  //       observer.unobserve(footerFixedRef.current);
-  //     }
-  //   }
-  // }, []); // Empty dependencies to be run only once
-
   return (
     <>
       <footer className="grid grid-cols-12 gap-x-4 py-4 px-4 md:px-10 bg-[#0897B1]">
@@ -37,7 +13,7 @@ const Footer = () => {
           <div className="flex items-center gap-x-4">
             <div className="flex flex-col items-center">
               <Image
-                src="/logo_2.png"
+                src="/images/logo/logo_2.png"
                 alt="logo_2.png"
                 width={100}
                 height={100}

@@ -3,9 +3,11 @@ import { Role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { checkAuth } from "@/lib/auth";
+import { getPaginationParams } from "@/utils/pagination";
 
 export const GET = async (req: NextRequest) => {
   try {
+    const { skip, limit } = getPaginationParams(req.url);
     const { searchParams } = new URL(req.url);
     const role = (["USER", "ADMIN", "SUPER_ADMIN"] as const).includes(
       searchParams.get("role") as "USER" | "ADMIN" | "SUPER_ADMIN"
@@ -19,17 +21,36 @@ export const GET = async (req: NextRequest) => {
     };
 
     const mappedRole = roleMapping[role];
-    console.log({ role });
+
+    // Get total count with role filter
+    const totalCount = await prisma.user.count({
+      where: {
+        role: mappedRole,
+      },
+    });
+
     const users = await prisma.user.findMany({
       where: {
         role: mappedRole,
       },
+      skip,
+      take: limit,
       omit: {
         password: true,
       },
     });
+
     return NextResponse.json(
-      { message: "Users retrieved successfully", data: users },
+      {
+        message: "Users retrieved successfully",
+        data: users,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + users.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
