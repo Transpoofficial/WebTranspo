@@ -1,12 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import {
-  calculateAngkotPrice,
-  calculateElfPrice,
-  calculateHiaceCommuterPrice,
-  calculateHiacePremioPrice,
-  calculateInterTripCharges,
-  calculateDistance,
-} from "@/utils/order";
+import { calculateTotalPrice, calculateDistance } from "@/utils/order";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types for trip data
@@ -143,8 +136,8 @@ export async function POST(req: NextRequest) {
         });
 
         return {
-          ...trip,
-          date: tripDateString,
+          date: new Date(tripDateString),
+          location: validLocations,
           distance: 0,
         };
       }
@@ -164,8 +157,7 @@ export async function POST(req: NextRequest) {
       });
 
       return {
-        ...trip,
-        date: tripDateString,
+        date: new Date(tripDateString),
         location: validLocations,
         distance: tripDistance,
       };
@@ -173,31 +165,15 @@ export async function POST(req: NextRequest) {
 
     console.log(`Total calculated distance: ${totalDistanceKm.toFixed(2)} km`);
 
-    // Calculate base price based on vehicle type
-    const vehicleTypeName = vehicleType.name.toLowerCase();
-    let basePrice = 0;
+    // Use the same calculateTotalPrice function as the orders endpoint
+    const priceResult = calculateTotalPrice(
+      vehicleType.name,
+      totalDistanceKm,
+      vehicleCount,
+      processedTrips
+    );
 
-    if (vehicleTypeName.includes("angkot")) {
-      basePrice = calculateAngkotPrice(totalDistanceKm, vehicleCount);
-    } else if (
-      vehicleTypeName.includes("hiace") &&
-      vehicleTypeName.includes("commuter")
-    ) {
-      basePrice = calculateHiaceCommuterPrice(totalDistanceKm, vehicleCount);
-    } else if (
-      vehicleTypeName.includes("hiace") &&
-      vehicleTypeName.includes("premio")
-    ) {
-      basePrice = calculateHiacePremioPrice(totalDistanceKm, vehicleCount);
-    } else if (vehicleTypeName.includes("elf")) {
-      basePrice = calculateElfPrice(totalDistanceKm, vehicleCount);
-    } else {
-      // Fallback to a default calculation for unknown vehicle types
-      const defaultRate = 6000;
-      basePrice = defaultRate * totalDistanceKm * vehicleCount;
-    }
-
-    // Calculate inter-trip additional charges with detailed breakdown
+    // Calculate inter-trip additional charges with detailed breakdown for response
     const interTripDetails: Array<{
       from: string;
       to: string;
@@ -205,16 +181,10 @@ export async function POST(req: NextRequest) {
       charge: number;
     }> = [];
 
-    let totalInterTripCharges = 0;
-
     if (processedTrips.length > 1) {
       // Sort trips by date to ensure correct order
       const sortedTrips = processedTrips.sort((a, b) => {
-        const dateA =
-          typeof a.date === "string" ? a.date : formatDateString(a.date);
-        const dateB =
-          typeof b.date === "string" ? b.date : formatDateString(b.date);
-        return dateA.localeCompare(dateB);
+        return a.date.getTime() - b.date.getTime();
       });
 
       for (let i = 0; i < sortedTrips.length - 1; i++) {
@@ -253,8 +223,6 @@ export async function POST(req: NextRequest) {
               charge,
             });
 
-            totalInterTripCharges += charge;
-
             console.log(`Inter-trip ${i} to ${i + 1}:`, {
               from: lastLocationCurrent.address?.split(",")[0],
               to: firstLocationNext.address?.split(",")[0],
@@ -266,25 +234,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Calculate final total price
-    const totalPrice = basePrice + totalInterTripCharges;
-
     console.log("Price calculation result:", {
       vehicleType: vehicleType.name,
       distanceKm: totalDistanceKm.toFixed(2),
       vehicleCount,
-      basePrice,
-      interTripCharges: totalInterTripCharges,
-      totalPrice,
+      basePrice: priceResult.basePrice,
+      interTripCharges: priceResult.interTripCharges,
+      totalPrice: priceResult.totalPrice,
     });
 
     const responseData: PriceCalculationResponse = {
       vehicleType: vehicleType.name,
       totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
       vehicleCount,
-      basePrice: Math.round(basePrice),
-      interTripCharges: Math.round(totalInterTripCharges),
-      totalPrice: Math.round(totalPrice),
+      basePrice: priceResult.basePrice,
+      interTripCharges: priceResult.interTripCharges,
+      totalPrice: priceResult.totalPrice,
       breakdown: {
         tripDistances,
         interTripDetails,
