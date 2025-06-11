@@ -59,6 +59,7 @@ export const paymentSchema = z.object({
   paymentStatus: z.enum(["PENDING", "APPROVED", "REJECTED"]),
   totalPrice: z.string(),
   approvedByAdminId: z.string().nullable(),
+  note: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

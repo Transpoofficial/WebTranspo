@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
-import { orderTypes, vehicleTypes } from "../data/data";
+import { orderTypes } from "../data/data";
 import { Order } from "../data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ export const columns: ColumnDef<Order>[] = [
 
 			return (
 				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-					<div className="text-sm font-medium text-gray-900">
+					<div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1">
 						{user.fullName}
 					</div>
 					<div className="text-xs text-gray-500">
@@ -261,15 +261,7 @@ export const columns: ColumnDef<Order>[] = [
 		),
 		cell: ({ row }) => {
 			const order = row.original;
-			let vehicle = "-";
-
-			if (order.vehicleType && order.vehicleType.name) {
-				// Cari label dari vehicleTypes jika ada
-				const vt = vehicleTypes.find(
-					(type) => type.label.toLowerCase() === order.vehicleType.name.toLowerCase()
-				);
-				vehicle = vt ? vt.label : order.vehicleType.name;
-			}
+			const vehicle = order.vehicleType?.name || "-";
 
 			return (
 				<div className="flex items-center">
@@ -280,12 +272,8 @@ export const columns: ColumnDef<Order>[] = [
 		enableSorting: false,
 		enableHiding: false,
 		filterFn: (row, id, value) => {
-			// Filter berdasarkan nama kendaraan jika ada
-			const vt = vehicleTypes.find(
-				(type) => type.label.toLowerCase() === row.original.vehicleType?.name?.toLowerCase()
-			);
-			const label = vt ? vt.label : row.original.vehicleType?.name;
-			return value.includes(label);
+			const vehicleName = row.original.vehicleType?.name || "";
+			return value.includes(vehicleName);
 		},
 	},
 ];

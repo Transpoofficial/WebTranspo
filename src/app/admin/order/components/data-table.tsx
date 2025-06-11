@@ -856,6 +856,7 @@ export function DataTable<TData extends Order, TValue>({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+      
       {/* Payment Proof Dialog */}
       <Dialog
         open={isPaymentProofDialogOpen}

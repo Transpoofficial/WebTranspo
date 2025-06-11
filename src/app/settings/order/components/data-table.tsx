@@ -73,6 +73,24 @@ import { Star } from "lucide-react"; // Add this import
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onSearch: (value: string) => void;
+  onOrderTypeFilter: (values: string[]) => void;
+  onOrderStatusFilter: (values: string[]) => void;
+  onVehicleTypeFilter: (values: string[]) => void;
+  onPaymentStatusFilter: (values: string[]) => void;
+  pagination: {
+    pageIndex: number;
+    pageSize: number;
+    pageCount: number;
+    onPageChange: (pageIndex: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
+  searchValue?: string; // Add this prop
+  orderTypeFilter: string[];
+  orderStatusFilter: string[];
+  vehicleTypeFilter: string[];
+  paymentStatusFilter: string[];
+  vehicleTypes: { value: string; label: string }[];
 }
 
 interface ReviewFormData {
@@ -89,6 +107,18 @@ interface ReviewPayload {
 export function DataTable<TData extends Order, TValue>({
   columns,
   data,
+  onSearch,
+  onOrderTypeFilter,
+  onOrderStatusFilter,
+  onVehicleTypeFilter,
+  onPaymentStatusFilter,
+  pagination,
+  searchValue = "", // Add default value
+  orderTypeFilter = [],
+  orderStatusFilter = [],
+  vehicleTypeFilter = [],
+  paymentStatusFilter = [],
+  vehicleTypes,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -119,12 +149,29 @@ export function DataTable<TData extends Order, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination: {
+        pageIndex: pagination.pageIndex,
+        pageSize: pagination.pageSize,
+      },
     },
-    enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const newState = updater({
+          pageIndex: pagination.pageIndex,
+          pageSize: pagination.pageSize,
+        });
+        pagination.onPageChange(newState.pageIndex);
+        if (newState.pageSize !== pagination.pageSize) {
+          pagination.onPageSizeChange(newState.pageSize);
+        }
+      }
+    },
+    pageCount: pagination.pageCount,
+    manualPagination: true, // Enable manual pagination
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -657,7 +704,20 @@ export function DataTable<TData extends Order, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar
+        table={table}
+        onSearch={onSearch}
+        searchValue={searchValue}
+        orderTypeFilter={orderTypeFilter}
+        orderStatusFilter={orderStatusFilter}
+        vehicleTypeFilter={vehicleTypeFilter}
+        paymentStatusFilter={paymentStatusFilter}
+        onOrderTypeFilter={onOrderTypeFilter}
+        onOrderStatusFilter={onOrderStatusFilter}
+        onVehicleTypeFilter={onVehicleTypeFilter}
+        onPaymentStatusFilter={onPaymentStatusFilter}
+        vehicleTypes={vehicleTypes}
+      />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -749,7 +809,10 @@ export function DataTable<TData extends Order, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination
+        table={table}
+        totalCount={pagination.pageCount * pagination.pageSize}
+      />
 
       {/* Action Drawer for Mobile */}
       <Drawer open={isActionDrawerOpen} onOpenChange={setIsActionDrawerOpen}>
@@ -861,8 +924,54 @@ export function DataTable<TData extends Order, TValue>({
           <DialogHeader>
             <DialogTitle>Bukti Pembayaran</DialogTitle>
           </DialogHeader>
-          {selectedRow?.payment?.proofUrl && (
+          {selectedRow?.payment?.proofUrl ? (
             <>
+              <div className="text-sm space-y-1">
+                {selectedRow.payment.senderName && (
+                  <div>
+                    <span className="font-medium">Nama Pengirim: </span>
+                    {selectedRow.payment.senderName}
+                  </div>
+                )}
+                {selectedRow.payment.transferDate && (
+                  <div>
+                    <span className="font-medium">Tanggal Transfer: </span>
+                    {format(
+                      new Date(selectedRow.payment.transferDate),
+                      "dd MMM yyyy",
+                      { locale: id }
+                    )}
+                  </div>
+                )}
+                {selectedRow.payment.note && (
+                  <div
+                    className={`mt-2 border rounded-md p-3 ${
+                      selectedRow.payment.paymentStatus === "REJECTED"
+                        ? "bg-red-100 border-red-200"
+                        : ""
+                    }`}
+                  >
+                    <span
+                      className={`font-medium ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
+                      Catatan:{" "}
+                    </span>
+                    <p
+                      className={`mt-1 text-sm ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
+                      {selectedRow.payment.note}
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="relative w-full aspect-[3/4]">
                 <Image
                   src={selectedRow.payment.proofUrl}
@@ -871,29 +980,11 @@ export function DataTable<TData extends Order, TValue>({
                   className="object-contain"
                 />
               </div>
-              {/* Tambahkan info senderName dan transferDate jika ada */}
-              {(selectedRow.payment.senderName ||
-                selectedRow.payment.transferDate) && (
-                <div className="mt-4 text-sm space-y-1">
-                  {selectedRow.payment.senderName && (
-                    <div>
-                      <span className="font-medium">Nama Pengirim: </span>
-                      {selectedRow.payment.senderName}
-                    </div>
-                  )}
-                  {selectedRow.payment.transferDate && (
-                    <div>
-                      <span className="font-medium">Tanggal Transfer: </span>
-                      {format(
-                        new Date(selectedRow.payment.transferDate),
-                        "dd MMM yyyy",
-                        { locale: id }
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </>
+          ) : (
+            <div className="text-sm text-center text-muted-foreground py-8">
+              Belum memberikan bukti pembayaran
+            </div>
           )}
         </DialogContent>
       </Dialog>
