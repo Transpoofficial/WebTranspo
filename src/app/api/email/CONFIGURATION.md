@@ -2,7 +2,7 @@
 
 ## Gmail Configuration
 
-Untuk menggunakan Gmail sebagai SMTP server:
+To use Gmail as an SMTP server:
 
 ```env
 SMTP_HOST=smtp.gmail.com
@@ -13,11 +13,11 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
-**Catatan untuk Gmail:**
+**Notes for Gmail:**
 
-1. Aktifkan 2-Factor Authentication di akun Gmail
-2. Generate App Password di Google Account Settings
-3. Gunakan App Password sebagai SMTP_PASS (bukan password biasa)
+1. Enable 2-Factor Authentication on your Gmail account
+2. Generate App Password in Google Account Settings
+3. Use App Password as SMTP_PASS (not your regular password)
 
 ## Outlook/Hotmail Configuration
 
@@ -32,7 +32,7 @@ SMTP_PASS=your-password
 
 ## Mailtrap (Development/Testing)
 
-Untuk testing email tanpa mengirim ke email asli:
+For testing emails without sending to real email addresses:
 
 ```env
 SMTP_HOST=smtp.mailtrap.io
@@ -56,27 +56,27 @@ SMTP_PASS=your-sendgrid-api-key
 
 ## Testing Email Configuration
 
-1. Copy salah satu konfigurasi di atas ke file `.env` Anda
-2. Sesuaikan dengan kredensial email Anda
-3. Test dengan upload bukti transfer
-4. Periksa inbox email user untuk konfirmasi
+1. Copy one of the configurations above to your `.env` file
+2. Adjust it with your email credentials
+3. Test by uploading a transfer receipt
+4. Check the user's email inbox for confirmation
 
 ## Troubleshooting
 
 ### Error: "Invalid login"
 
-- Pastikan username dan password benar
-- Untuk Gmail, gunakan App Password
-- Periksa apakah 2FA aktif
+- Make sure username and password are correct
+- For Gmail, use App Password
+- Check if 2FA is active
 
 ### Error: "Connection timeout"
 
-- Periksa SMTP_HOST dan SMTP_PORT
-- Pastikan firewall tidak memblokir koneksi
-- Coba ganti SMTP_SECURE ke true/false
+- Check SMTP_HOST and SMTP_PORT
+- Make sure firewall is not blocking the connection
+- Try switching SMTP_SECURE to true/false
 
 ### Error: "Message rejected"
 
-- Periksa format email FROM
-- Pastikan domain sender terverifikasi (untuk service berbayar)
-- Periksa spam folder penerima
+- Check the FROM email format
+- Make sure the sender domain is verified (for paid services)
+- Check recipient's spam folder
