@@ -1,15 +1,19 @@
 import React from "react";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { format } from "date-fns";
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { format, eachDayOfInterval, parseISO, subDays } from "date-fns";
 
 interface OrderLineChartProps {
   orders: Array<{ createdAt: string }>;
-
+  dateFilter: string;
+  dateRange?: { from: Date; to: Date } | undefined;
   chartConfig: {
     [key: string]: {
       label: string;
@@ -20,85 +24,144 @@ interface OrderLineChartProps {
 
 const OrderLineChart: React.FC<OrderLineChartProps> = ({
   orders = [],
-  chartConfig,
+  dateFilter,
+  dateRange,
 }) => {
   const chartData = React.useMemo(() => {
     if (!orders || orders.length === 0) return [];
 
-    // Create a map of all dates with their order counts
-    const dateMap = new Map<string, number>();
+    let endDate = new Date();
+    let startDate: Date;
 
-    // Sort orders by date
-    const sortedOrders = [...orders].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-
-    // Get start and end dates
-    const startDate = new Date(sortedOrders[0].createdAt);
-    const endDate = new Date(sortedOrders[sortedOrders.length - 1].createdAt);
-
-    // Fill in all dates in the range
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const dateStr = format(currentDate, "dd MMM");
-      dateMap.set(dateStr, 0);
-      currentDate.setDate(currentDate.getDate() + 1);
+    if (dateRange?.from && dateRange?.to) {
+      // Untuk custom date range, gunakan tanggal yang dipilih
+      startDate = dateRange.from;
+      endDate = dateRange.to;
+    } else if (dateFilter === "custom") {
+      // Jika mode custom tapi tidak ada range, gunakan 7 hari
+      startDate = subDays(endDate, 6);
+    } else {
+      // Untuk preset filter
+      const days = parseInt(dateFilter);
+      startDate = !isNaN(days) ? subDays(endDate, days - 1) : subDays(endDate, 6);
     }
 
-    // Count orders for each date
-    orders.forEach((order) => {
-      const dateStr = format(new Date(order.createdAt), "dd MMM");
-      dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+    // Generate array of all dates in the range (inclusive)
+    const datesInRange = eachDayOfInterval({
+      start: startDate,
+      end: endDate,
     });
 
-    // Convert map to array
-    return Array.from(dateMap.entries()).map(([date, count]) => ({
-      date,
-      orders: count,
-    }));
-  }, [orders]);
+    // Initialize map with all dates set to 0
+    const dateMap = new Map<string, number>();
+    datesInRange.forEach((date) => {
+      const dateStr = format(date, "dd MMM");
+      dateMap.set(dateStr, 0);
+    });
+
+    // Count orders for each date, using exact date comparison
+    orders.forEach((order) => {
+      const orderDate = parseISO(order.createdAt);
+      if (orderDate >= startDate && orderDate <= endDate) {
+        const dateStr = format(orderDate, "dd MMM");
+        dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+      }
+    });
+
+    // Convert map to array for chart and ensure it's sorted by date
+    return Array.from(dateMap.entries())
+      .map(([date, count]) => ({
+        date,
+        orders: count,
+      }))
+      .sort((a, b) => {
+        return datesInRange.findIndex(
+          (d) => format(d, "dd MMM") === a.date
+        ) - datesInRange.findIndex(
+          (d) => format(d, "dd MMM") === b.date
+        );
+      });
+  }, [orders, dateFilter, dateRange]);
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+      <div className="flex h-[350px] items-center justify-center text-muted-foreground">
         Tidak ada data untuk ditampilkan
       </div>
     );
   }
 
   return (
-    <>
-      {/* Line Chart */}
-      <ChartContainer className="max-h-118 w-full" config={chartConfig}>
+    <div className="h-[350px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart
-          accessibilityLayer
           data={chartData}
           margin={{
-            left: 12,
-            right: 12,
+            top: 5,
+            right: 10,
+            left: 10,
+            bottom: 0,
           }}
         >
-          <CartesianGrid vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
             tickLine={false}
             axisLine={false}
             tickMargin={8}
+            fontSize={12}
           />
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent hideLabel />}
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            fontSize={12}
+            tickFormatter={(value) => `${value}`}
+          />
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="rounded-lg border bg-background p-2 shadow-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-[0.70rem] uppercase text-muted-foreground">
+                          Tanggal
+                        </span>
+                        <span className="font-bold">
+                          {payload[0].payload.date}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[0.70rem] uppercase text-muted-foreground">
+                          Pesanan
+                        </span>
+                        <span className="font-bold">
+                          {payload[0].payload.orders}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            }}
           />
           <Line
+            type="monotone"
             dataKey="orders"
-            type="linear"
-            stroke="var(--color-orders)"
             strokeWidth={2}
-            dot={false}
+            activeDot={{
+              r: 6,
+              style: { fill: "var(--primary)" },
+            }}
+            style={{
+              stroke: "var(--primary)",
+            }}
           />
         </LineChart>
-      </ChartContainer>
-    </>
+      </ResponsiveContainer>
+    </div>
   );
 };
 

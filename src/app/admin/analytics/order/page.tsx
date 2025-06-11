@@ -23,8 +23,6 @@ import {
   endOfDay,
   startOfDay,
   subDays,
-  isBefore,
-  isAfter,
   format,
 } from "date-fns";
 
@@ -81,31 +79,30 @@ const OrderAnalysis = () => {
 
     try {
       if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
-        startDate = startOfDay(new Date(dateRange.from));
-        endDate = endOfDay(new Date(dateRange.to));
+        // Untuk custom date range, gunakan waktu 00:00 untuk from dan 23:59 untuk to
+        startDate = startOfDay(dateRange.from);
+        endDate = endOfDay(dateRange.to);
       } else {
+        // Untuk preset filter
         const days = parseInt(dateFilter);
-        startDate = startOfDay(subDays(now, days));
-        endDate = endOfDay(now);
+        if (!isNaN(days)) {
+          startDate = startOfDay(subDays(now, days - 1));
+          endDate = endOfDay(now);
+        } else {
+          startDate = startOfDay(subDays(now, 6));
+          endDate = endOfDay(now);
+        }
       }
 
-      const dateFiltered = ordersData.data.filter((order) => {
+      let filtered = ordersData.data.filter((order) => {
         const orderDate = new Date(order.createdAt);
-        return (
-          isAfter(orderDate, startDate) ||
-          orderDate.getTime() === startDate.getTime()
-        )
-          ? isBefore(orderDate, endDate) ||
-            orderDate.getTime() === endDate.getTime()
-          : false;
+        return orderDate >= startDate && orderDate <= endDate;
       });
 
-      let filtered = dateFiltered;
-      
       if (vehicleType !== "all") {
         filtered = filtered.filter((order) => order.vehicleType.name === vehicleType);
       }
-      
+
       if (orderStatus !== "all") {
         filtered = filtered.filter((order) => order.orderStatus === orderStatus);
       }
@@ -180,11 +177,15 @@ const OrderAnalysis = () => {
             <OrderLineChart
               orders={filteredOrders}
               chartConfig={chartConfig}
+              dateFilter={dateFilter}
+              dateRange={dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined}
             />
           ) : chartType === "bar" ? (
             <OrderBarChart
               orders={filteredOrders}
               chartConfig={chartConfig}
+              dateFilter={dateFilter}
+              dateRange={dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined}
             />
           ) : (
             <p className="text-sm">Tidak ada chart</p>

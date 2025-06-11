@@ -34,6 +34,15 @@ const DateFilter: React.FC<DateFilterProps> = ({
 }) => {
   const [date, setDate] = useState<DateRange | undefined>();
 
+  // Add this function to handle preset filter changes
+  const handleFilterChange = (value: string) => {
+    setDateFilter(value);
+    if (value !== "custom") {
+      setDate(undefined);
+      onDateRangeChange?.(undefined);
+    }
+  };
+
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     setDate(range);
     if (onDateRangeChange && range?.from && range?.to) {
@@ -53,9 +62,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
     <div className="flex gap-2">
       <Select
         value={dateFilter}
-        onValueChange={(value) => {
-          setDateFilter(value);
-        }}
+        onValueChange={handleFilterChange}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Filter tanggal" />
