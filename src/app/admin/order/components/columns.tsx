@@ -3,8 +3,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
-import { orderTypes, vehicleTypes } from "../data/data";
+import { orderTypes } from "../data/data";
 import { Order } from "../data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +23,7 @@ export const columns: ColumnDef<Order>[] = [
 
       return (
         <div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-          <div className="text-sm font-medium text-gray-900">
+          <div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1 text-ellipsis">
             {user.fullName}
           </div>
           <div className="text-xs text-gray-500">
@@ -30,8 +32,8 @@ export const columns: ColumnDef<Order>[] = [
         </div>
       );
     },
-    enableSorting: true,
-    enableHiding: true,
+    enableSorting: false,
+    enableHiding: false,
     filterFn: (row, id, value) => {
       const searchValue = value.toLowerCase();
       const fullName = String(row.getValue(id)).toLowerCase();
@@ -119,8 +121,8 @@ export const columns: ColumnDef<Order>[] = [
 
       return <div className="w-[80px]">{distance}</div>;
     },
-    enableSorting: true,
-    enableHiding: true,
+    enableSorting: false,
+    enableHiding: false,
     sortingFn: (rowA, rowB) => {
       const distanceA = rowA.original.transportation?.totalDistance || 0;
       const distanceB = rowB.original.transportation?.totalDistance || 0;
@@ -150,6 +152,8 @@ export const columns: ColumnDef<Order>[] = [
         </div>
       );
     },
+    enableSorting: false,
+    enableHiding: false,
   },
   {
     accessorKey: "orderStatus",
@@ -248,6 +252,8 @@ export const columns: ColumnDef<Order>[] = [
         </div>
       );
     },
+    enableSorting: false,
+    enableHiding: false,
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
@@ -258,35 +264,39 @@ export const columns: ColumnDef<Order>[] = [
       <DataTableColumnHeader column={column} title="Jenis Kendaraan" />
     ),
     cell: ({ row }) => {
-      const order = row.original;
-      let vehicle = "-";
+      const VehicleCell = () => {
+        interface VehicleType {
+          name: string;
+        }
 
-      if (order.vehicleType && order.vehicleType.name) {
-        // Cari label dari vehicleTypes jika ada
-        const vt = vehicleTypes.find(
-          (type) =>
-            type.label.toLowerCase() === order.vehicleType.name.toLowerCase()
+        const { data: vehicleTypesResponse } = useQuery({
+          queryKey: ["vehicle-types"],
+          queryFn: async () => {
+            const response = await axios.get("/api/vehicle-types");
+            return response.data;
+          },
+        });
+
+        const order = row.original;
+        let vehicle = "-";
+
+        if (order.vehicleType?.name) {
+          const foundVehicle = vehicleTypesResponse?.data?.find(
+            (type: VehicleType) => type.name === order.vehicleType?.name
+          );
+          vehicle = foundVehicle ? foundVehicle.name : order.vehicleType.name;
+        }
+
+        return (
+          <div className="flex items-center">
+            <Badge variant="outline">{vehicle}</Badge>
+          </div>
         );
-        vehicle = vt ? vt.label : order.vehicleType.name;
-      }
+      };
 
-      return (
-        <div className="flex items-center">
-          <Badge variant="outline">{vehicle}</Badge>
-        </div>
-      );
+      return <VehicleCell />;
     },
     enableSorting: false,
     enableHiding: false,
-    filterFn: (row, id, value) => {
-      // Filter berdasarkan nama kendaraan jika ada
-      const vt = vehicleTypes.find(
-        (type) =>
-          type.label.toLowerCase() ===
-          row.original.vehicleType?.name?.toLowerCase()
-      );
-      const label = vt ? vt.label : row.original.vehicleType?.name;
-      return value.includes(label);
-    },
   },
 ];

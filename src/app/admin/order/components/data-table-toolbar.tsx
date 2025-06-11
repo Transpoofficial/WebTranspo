@@ -3,25 +3,28 @@
 import * as React from "react";
 import { Table } from "@tanstack/react-table";
 import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { orderTypes, vehicleTypes } from "../data/data";
+import { orderTypes } from "../data/data";
 import { BackendDataTableFacetedFilter } from "./backend-data-table-faceted-filter";
+
+interface Filters {
+  search?: string;
+  orderType: string;
+  orderStatus: string;
+  vehicleType: string;
+  paymentStatus: string;
+}
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
-  filters?: {
-    search?: string;
-    orderType: string;
-    orderStatus: string;
-    vehicleType: string;
-    paymentStatus: string;
-  };
+  filters?: Filters;
   searchInput?: string;
   onSearchChange?: (search: string) => void;
-  onFiltersChange?: (filters: any) => void;
+  onFiltersChange?: (filters: Partial<Filters>) => void;
   isLoading?: boolean;
 }
 
@@ -32,6 +35,29 @@ export function DataTableToolbar<TData>({
   onFiltersChange,
   isLoading = false,
 }: DataTableToolbarProps<TData>) {
+  // Update query to handle the response structure correctly
+  const { data: vehicleTypesResponse, isLoading: isVehicleTypesLoading } = useQuery({
+    queryKey: ["vehicle-types"],
+    queryFn: async () => {
+      const response = await axios.get("/api/vehicle-types");
+      return response.data;
+    },
+  });
+
+  interface VehicleType {
+    name: string;
+    id: string;
+  }
+
+  // Format vehicle types for filter options
+  const vehicleTypes = React.useMemo(() => {
+    if (!vehicleTypesResponse?.data) return [];
+    return vehicleTypesResponse.data.map((type: VehicleType) => ({
+      label: type.name,
+      value: type.name,
+    }));
+  }, [vehicleTypesResponse]);
+
   const isFiltered =
     searchInput || // Check searchInput untuk filtered state
     filters?.orderType ||
@@ -54,8 +80,10 @@ export function DataTableToolbar<TData>({
   );
 
   const handleReset = React.useCallback(() => {
-    onSearchChange?.(""); // Reset search langsung
+    onSearchChange?.(""); // Reset search
+    // Reset all filters to empty string to trigger removal from URL
     onFiltersChange?.({
+      search: "",
       orderType: "",
       orderStatus: "",
       vehicleType: "",
@@ -100,7 +128,7 @@ export function DataTableToolbar<TData>({
           options={vehicleTypes}
           value={filters?.vehicleType ?? ""}
           onValueChange={(value) => handleFilterChange("vehicleType", value)}
-          disabled={isLoading}
+          disabled={isLoading || isVehicleTypesLoading}
         />
         <BackendDataTableFacetedFilter
           title="Status pembayaran"

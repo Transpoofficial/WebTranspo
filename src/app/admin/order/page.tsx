@@ -3,7 +3,8 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
@@ -58,53 +59,61 @@ const fetchOrders = async (
 
 export default function OrderPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Pagination state
-  const [skip, setSkip] = useState(0);
-  const [limit, setLimit] = useState(10);
+  // Get initial filters from URL
+  const initialFilters = {
+    search: searchParams.get("search") || "",
+    orderType: searchParams.get("orderType") || "",
+    orderStatus: searchParams.get("orderStatus") || "",
+    vehicleType: searchParams.get("vehicleType") || "",
+    paymentStatus: searchParams.get("paymentStatus") || "",
+  };
 
-  // Separate search input state for immediate UI response
-  const [searchInput, setSearchInput] = useState("");
+  // State management
+  const [skip, setSkip] = useState(parseInt(searchParams.get("skip") || "0"));
+  const [limit, setLimit] = useState(parseInt(searchParams.get("limit") || "10"));
+  const [searchInput, setSearchInput] = useState(initialFilters.search);
+  const [filters, setFilters] = useState(initialFilters);
 
-  // Filter state (excluding search which is handled separately)
-  const [filters, setFilters] = useState({
-    orderType: "",
-    orderStatus: "",
-    vehicleType: "",
-    paymentStatus: "",
-  });
-
-  // Debounce only the search input for API calls
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  // Combine debounced search with other filters for API calls
-  const apiFilters = useMemo(
-    () => ({
-      search: debouncedSearch,
-      ...filters,
-    }),
-    [debouncedSearch, filters]
-  );
+  // Update URL with filters - modified to remove empty params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (filters.orderType) params.set("orderType", filters.orderType);
+    if (filters.orderStatus) params.set("orderStatus", filters.orderStatus);
+    if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
+    if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+    if (skip > 0) params.set("skip", skip.toString());
+    if (limit !== 10) params.set("limit", limit.toString());
 
-  // Reset pagination when filters change
-  const resetPagination = useCallback(() => {
-    setSkip(0);
-  }, []);
+    // Use replaceState instead of push to avoid adding to browser history
+    router.replace(`?${params.toString()}`);
+  }, [debouncedSearch, filters, skip, limit, router]);
 
-  // Query to fetch orders with search and pagination
+  // Query to fetch orders
   const {
     data: orderResponse,
     isLoading,
     error,
     refetch,
-  } = useQuery<OrderResponse>({
-    queryKey: ["orders", skip, limit, apiFilters],
-    queryFn: () => fetchOrders(skip, limit, apiFilters),
-    enabled: !!session?.user, // Only fetch when user is authenticated
-    staleTime: 30 * 1000, // 30 seconds - reduced for more responsive search
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: keepPreviousData, // Keep previous data while loading new data
+  } = useQuery({
+    queryKey: ["orders", skip, limit, debouncedSearch, filters],
+    queryFn: () => fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
+    enabled: !!session?.user,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
+
+  // Define resetPagination before using it
+  const resetPagination = useCallback(() => {
+    setSkip(0);
+  }, []);
 
   // Update search function - immediate UI update
   const updateSearch = useCallback(
@@ -115,10 +124,21 @@ export default function OrderPage() {
     [resetPagination]
   );
 
-  // Update filters function - immediate UI update
+  // Update filters function - modified to handle empty values
   const updateFilters = useCallback(
     (newFilters: Partial<typeof filters>) => {
-      setFilters((prev) => ({ ...prev, ...newFilters }));
+      setFilters((prev) => {
+        const updated = { ...prev };
+        // For each new filter value, either set it or delete it if empty
+        Object.entries(newFilters).forEach(([key, value]) => {
+          if (value === "") {
+            delete updated[key as keyof typeof filters];
+          } else {
+            updated[key as keyof typeof filters] = value;
+          }
+        });
+        return updated;
+      });
       resetPagination();
     },
     [resetPagination]
