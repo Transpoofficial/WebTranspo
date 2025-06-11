@@ -16,7 +16,7 @@ import ChartFilter from "./components/chart_filter";
 import DateFilter from "./components/date_filter";
 import OrderTable from "./components/table";
 import { DateRange } from "react-day-picker";
-import VehicleFilter from "../order/components/vehicle_filter";
+import VehicleFilter from "./components/vehicle_filter";
 import {
   endOfDay,
   startOfDay,
