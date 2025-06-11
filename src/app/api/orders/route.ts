@@ -369,13 +369,100 @@ const handleTourPackageOrder = async (
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
+    const { searchParams } = new URL(req.url);
 
-    // Get total count
-    const totalCount = await prisma.order.count();
+    // Search parameters
+    const search = searchParams.get("search") || "";
+    const orderType = searchParams.get("orderType") || "";
+    const orderStatus = searchParams.get("orderStatus") || "";
+    const vehicleType = searchParams.get("vehicleType") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+
+    // Build filter conditions
+    const whereConditions: any = {}; // Search filter - searches across user info, order details
+    if (search) {
+      whereConditions.OR = [
+        {
+          fullName: {
+            contains: search,
+            // mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: search,
+            // mode: "insensitive",
+          },
+        },
+        {
+          phoneNumber: {
+            contains: search,
+            // mode: "insensitive",
+          },
+        },
+        {
+          user: {
+            fullName: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+        },
+        {
+          user: {
+            email: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+        },
+        {
+          user: {
+            phoneNumber: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+        },
+      ];
+    }
+
+    // Order type filter
+    if (orderType) {
+      whereConditions.orderType = orderType;
+    }
+
+    // Order status filter
+    if (orderStatus) {
+      whereConditions.orderStatus = orderStatus;
+    }
+
+    // Vehicle type filter
+    if (vehicleType) {
+      whereConditions.vehicleType = {
+        name: vehicleType,
+      };
+    }
+
+    // Payment status filter
+    if (paymentStatus) {
+      whereConditions.payment = {
+        paymentStatus: paymentStatus,
+      };
+    }
+
+    // Get total count with filters
+    const totalCount = await prisma.order.count({
+      where: whereConditions,
+    });
 
     const orders = await prisma.order.findMany({
+      where: whereConditions,
       skip,
       take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
       include: {
         user: true,
         transportation: {

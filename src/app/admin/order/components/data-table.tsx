@@ -76,11 +76,39 @@ import { Textarea } from "@/components/ui/textarea";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  pagination?: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+    pageIndex: number;
+    pageSize: number;
+    pageCount: number;
+  } | null;
+  filters?: {
+    search?: string;
+    orderType: string;
+    orderStatus: string;
+    vehicleType: string;
+    paymentStatus: string;
+  };
+  searchInput?: string;
+  onSearchChange?: (search: string) => void;
+  onFiltersChange?: (filters: any) => void;
+  onPaginationChange?: (skip: number, limit?: number) => void;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData extends Order, TValue>({
   columns,
   data,
+  pagination,
+  filters,
+  searchInput,
+  onSearchChange,
+  onFiltersChange,
+  onPaginationChange,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -118,12 +146,41 @@ export function DataTable<TData extends Order, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination: pagination
+        ? {
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+          }
+        : {
+            pageIndex: 0,
+            pageSize: 10,
+          },
     },
+    pageCount: pagination?.pageCount ?? -1,
+    manualPagination: true,
+    manualFiltering: true,
+    manualSorting: true,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: (updater) => {
+      if (!onPaginationChange) return;
+
+      const currentState = pagination
+        ? {
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+          }
+        : { pageIndex: 0, pageSize: 10 };
+
+      const newState =
+        typeof updater === "function" ? updater(currentState) : updater;
+      const newSkip = newState.pageIndex * newState.pageSize;
+
+      onPaginationChange(newSkip, newState.pageSize);
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -601,10 +658,17 @@ export function DataTable<TData extends Order, TValue>({
       </div>
     );
   };
-
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      {" "}
+      <DataTableToolbar
+        table={table}
+        filters={filters}
+        searchInput={searchInput}
+        onSearchChange={onSearchChange}
+        onFiltersChange={onFiltersChange}
+        isLoading={isLoading}
+      />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -624,7 +688,20 @@ export function DataTable<TData extends Order, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              // Loading skeleton
+              Array.from({ length: pagination?.pageSize || 10 }).map(
+                (_, index) => (
+                  <TableRow key={index}>
+                    {columns.map((_, colIndex) => (
+                      <TableCell key={colIndex}>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              )
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <ContextMenu key={row.id}>
                   <ContextMenuTrigger asChild>
@@ -691,8 +768,9 @@ export function DataTable<TData extends Order, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
-
+      {pagination && (
+        <DataTablePagination table={table} pagination={pagination} />
+      )}
       {/* Action Drawer for Mobile */}
       <Drawer open={isActionDrawerOpen} onOpenChange={setIsActionDrawerOpen}>
         <DrawerContent>
@@ -739,7 +817,6 @@ export function DataTable<TData extends Order, TValue>({
           </div>
         </DrawerContent>
       </Drawer>
-
       {/* Detail Drawer */}
       <Drawer open={isDetailDrawerOpen} onOpenChange={setIsDetailDrawerOpen}>
         <DrawerContent>
@@ -759,7 +836,6 @@ export function DataTable<TData extends Order, TValue>({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
       {/* Cancel Confirmation Drawer */}
       <Drawer open={isDeleteDrawerOpen} onOpenChange={setIsDeleteDrawerOpen}>
         <DrawerContent>
@@ -780,7 +856,6 @@ export function DataTable<TData extends Order, TValue>({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
       {/* Payment Proof Dialog */}
       <Dialog
         open={isPaymentProofDialogOpen}
@@ -854,7 +929,6 @@ export function DataTable<TData extends Order, TValue>({
           )}
         </DialogContent>
       </Dialog>
-
       {/* Desktop Sheet */}
       {isDesktop && (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -866,7 +940,6 @@ export function DataTable<TData extends Order, TValue>({
           </SheetContent>
         </Sheet>
       )}
-
       {/* Mobile Drawer */}
       {!isDesktop && (
         <Drawer open={isDetailDrawerOpen} onOpenChange={setIsDetailDrawerOpen}>
@@ -883,7 +956,6 @@ export function DataTable<TData extends Order, TValue>({
           </DrawerContent>
         </Drawer>
       )}
-
       {/* Update Order Status Dialog */}
       <Dialog
         open={isUpdateOrderStatusOpen}
@@ -923,7 +995,6 @@ export function DataTable<TData extends Order, TValue>({
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Update Payment Status Dialog */}
       <Dialog
         open={isUpdatePaymentStatusOpen}
