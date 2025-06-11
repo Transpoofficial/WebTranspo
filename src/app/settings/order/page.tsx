@@ -38,15 +38,23 @@ const fetchOrders = async (params: {
   if (params.orderType?.length)
     params.orderType.forEach((type) => searchParams.append("orderType", type));
   if (params.orderStatus?.length)
-    params.orderStatus.forEach((status) => searchParams.append("orderStatus", status));
+    params.orderStatus.forEach((status) =>
+      searchParams.append("orderStatus", status)
+    );
   if (params.vehicleType?.length)
-    params.vehicleType.forEach((type) => searchParams.append("vehicleType", type));
+    params.vehicleType.forEach((type) =>
+      searchParams.append("vehicleType", type)
+    );
   if (params.paymentStatus?.length)
-    params.paymentStatus.forEach((status) => searchParams.append("paymentStatus", status));
+    params.paymentStatus.forEach((status) =>
+      searchParams.append("paymentStatus", status)
+    );
 
   // Add pagination params
-  if (params.skip !== undefined) searchParams.append("skip", params.skip.toString());
-  if (params.limit !== undefined) searchParams.append("limit", params.limit.toString());
+  if (params.skip !== undefined)
+    searchParams.append("skip", params.skip.toString());
+  if (params.limit !== undefined)
+    searchParams.append("limit", params.limit.toString());
 
   const response = await axios.get(`/api/orders?${searchParams.toString()}`, {
     headers: {
@@ -63,8 +71,12 @@ export default function OrderPage() {
   const router = useRouter();
 
   // Initialize state from URL params
-  const [pageIndex, setPageIndex] = useState(Number(searchParams.get("page")) || 0);
-  const [pageSize, setPageSize] = useState(Number(searchParams.get("limit")) || 10);
+  const [pageIndex, setPageIndex] = useState(
+    Number(searchParams.get("page")) || 0
+  );
+  const [pageSize, setPageSize] = useState(
+    Number(searchParams.get("limit")) || 10
+  );
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [orderTypeFilter, setOrderTypeFilter] = useState<string[]>(
     searchParams.getAll("orderType") || []
@@ -82,7 +94,9 @@ export default function OrderPage() {
   const debouncedSearch = useDebounce(search, 1000); // 1 second debounce
 
   // Function to update URL params
-  const updateURLParams = (updates: Record<string, string[] | string | number | null>) => {
+  const updateURLParams = (
+    updates: Record<string, string[] | string | number | null>
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -166,17 +180,20 @@ export default function OrderPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Filter orders by current user's userId
-  const userOrders = orderResponse?.data?.filter(
-    (order) => order.userId === session?.user?.id
-  ) || [];
+  // Remove manual filtering since it's now handled by backend
+  const userOrders = orderResponse?.data || [];
+
+  interface VehicleType {
+    name: string;
+    // Add other properties if they exist in your API response
+  }
 
   // Add vehicle types query
   const { data: vehicleTypes = [] } = useQuery({
-    queryKey: ["vehicleTypes"],
+    queryKey: ["vehicle-types"],
     queryFn: async () => {
       const response = await axios.get("/api/vehicle-types");
-      return response.data.data.map((type: any) => ({
+      return response.data.data.map((type: VehicleType) => ({
         value: type.name,
         label: type.name,
       }));
@@ -189,7 +206,9 @@ export default function OrderPage() {
     return (
       <div className="h-full flex-1 flex-col space-y-4">
         <div className="flex items-center justify-center h-24">
-          <div className="text-sm text-muted-foreground">Loading session...</div>
+          <div className="text-sm text-muted-foreground">
+            Loading session...
+          </div>
         </div>
       </div>
     );
@@ -199,7 +218,9 @@ export default function OrderPage() {
     return (
       <div className="h-full flex-1 flex-col space-y-4">
         <div className="flex items-center justify-center h-24">
-          <div className="text-sm text-muted-foreground">Please log in to view orders.</div>
+          <div className="text-sm text-muted-foreground">
+            Please log in to view orders.
+          </div>
         </div>
       </div>
     );
@@ -220,7 +241,8 @@ export default function OrderPage() {
       <div className="h-full flex-1 flex-col space-y-4">
         <div className="flex items-center justify-center h-24">
           <div className="text-sm text-red-600">
-            Error loading orders: {error instanceof Error ? error.message : "Unknown error"}
+            Error loading orders:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
           </div>
           <button
             onClick={() => refetch()}
@@ -236,7 +258,7 @@ export default function OrderPage() {
   return (
     <div className="h-full">
       <DataTable
-        data={userOrders}
+        data={userOrders} // Use data directly from response
         columns={columns}
         onSearch={handleSearch}
         searchValue={search}
@@ -252,8 +274,9 @@ export default function OrderPage() {
         pagination={{
           pageIndex,
           pageSize,
-          pageCount: Math.ceil((orderResponse?.pagination?.total || 0) / pageSize),
-          total: orderResponse?.pagination?.total || 0,
+          pageCount: Math.ceil(
+            (orderResponse?.pagination?.total || 0) / pageSize
+          ),
           onPageChange: handlePageChange,
           onPageSizeChange: handlePageSizeChange,
         }}

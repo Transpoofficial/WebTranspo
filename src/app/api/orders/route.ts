@@ -363,6 +363,9 @@ export const GET = async (req: NextRequest) => {
     const { skip, limit } = getPaginationParams(req.url);
     const { searchParams } = new URL(req.url);
 
+    // Get user from token
+    const token = await checkAuth(req);
+
     // Search parameters
     const search = searchParams.get("search") || "";
     const orderType = searchParams.get("orderType") || "";
@@ -371,7 +374,10 @@ export const GET = async (req: NextRequest) => {
     const paymentStatus = searchParams.get("paymentStatus") || "";
 
     // Build filter conditions
-    const whereConditions: any = {}; // Search filter - searches across user info, order details
+    const whereConditions: any = {
+      // Add userId filter
+      userId: token.id,
+    }; // Search filter - searches across user info, order details
     if (search) {
       whereConditions.OR = [
         {

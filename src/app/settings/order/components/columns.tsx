@@ -21,7 +21,7 @@ export const columns: ColumnDef<Order>[] = [
 
 			return (
 				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-					<div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1">
+					<div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1 text-ellipsis">
 						{user.fullName}
 					</div>
 					<div className="text-xs text-gray-500">
