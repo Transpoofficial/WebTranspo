@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { uploadFiles } from "@/utils/supabase";
 import { PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { emailTemplates } from "@/lib/email-templates";
 
 export const POST = async (
   req: NextRequest,
@@ -63,7 +62,9 @@ export const POST = async (
     }
 
     // Get the public URL from the upload result
-    const fileUrl = uploadResult[0].photoUrl.data.publicUrl; // Update payment record
+    const fileUrl = uploadResult[0].photoUrl.data.publicUrl;
+
+    // Update payment record
     const updatedPayment = await prisma.payment.update({
       where: { id: paymentId },
       data: {
@@ -84,20 +85,36 @@ export const POST = async (
           },
         },
       },
-    }); // Send email notification to user
+    });
+
+    // Send email notification to user using existing API endpoint
     try {
       if (
         updatedPayment.order.user.email &&
         updatedPayment.order.user.fullName
       ) {
-        await emailTemplates.sendPaymentVerification(
-          updatedPayment.order.user.email,
-          updatedPayment.order.user.fullName
-        );
+        // Call the existing email API endpoint
+        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const emailResponse = await fetch(`${baseUrl}/api/email/send`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: updatedPayment.order.user.email,
+            fullName: updatedPayment.order.user.fullName,
+            emailType: "payment-verification",
+          }),
+        });
 
-        console.log(
-          `Payment verification email sent to: ${updatedPayment.order.user.email}`
-        );
+        if (emailResponse.ok) {
+          console.log(
+            `Payment verification email sent to: ${updatedPayment.order.user.email}`
+          );
+        } else {
+          const errorData = await emailResponse.json();
+          console.error("Failed to send email:", errorData.message);
+        }
       }
     } catch (emailError) {
       // Log email error but don't fail the main request
