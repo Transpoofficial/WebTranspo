@@ -30,8 +30,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
-		enableSorting: true,
-		enableHiding: true,
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			const searchValue = value.toLowerCase();
 			const fullName = String(row.getValue(id)).toLowerCase();
@@ -119,8 +119,8 @@ export const columns: ColumnDef<Order>[] = [
 
 			return <div className="w-[80px]">{distance}</div>;
 		},
-		enableSorting: true,
-		enableHiding: true,
+		enableSorting: false,
+		enableHiding: false,
 		sortingFn: (rowA, rowB) => {
 			const distanceA = rowA.original.transportation?.totalDistance || 0;
 			const distanceB = rowB.original.transportation?.totalDistance || 0;
@@ -150,6 +150,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 	{
 		accessorKey: "orderStatus",
@@ -250,6 +252,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
