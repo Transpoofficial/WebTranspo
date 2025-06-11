@@ -14,16 +14,16 @@ export const GET = async (
       where: { id: orderId },
       include: {
         user: true,
-        transportation: {
-          include: {
-            vehicles: {
-              include: {
-                vehicleType: true,
-              },
-            },
-            destinations: true,
-          },
-        },
+        transportation: true,
+        // include: {
+        //   vehicles: {
+        //     include: {
+        //       vehicleType: true,
+        //     },
+        //   },
+        //   destinations: true,
+        // },
+        // },
         packageOrder: true,
         review: true,
         payment: true,

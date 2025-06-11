@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Table } from "@tanstack/react-table";
 import { X } from "lucide-react";
 
@@ -25,41 +26,42 @@ interface DataTableToolbarProps<TData> {
 }
 
 export function DataTableToolbar<TData>({
-  table,
   filters,
   searchInput,
   onSearchChange,
   onFiltersChange,
   isLoading = false,
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = filters
-    ? Object.values(filters).some((value) => value !== "")
-    : false;
-  const handleSearchChange = (value: string) => {
-    if (onSearchChange) {
-      onSearchChange(value);
-    }
-  };
+  const isFiltered =
+    searchInput || // Check searchInput untuk filtered state
+    filters?.orderType ||
+    filters?.orderStatus ||
+    filters?.vehicleType ||
+    filters?.paymentStatus;
 
-  const handleFilterChange = (key: string, value: string) => {
-    if (onFiltersChange) {
-      onFiltersChange({ [key]: value });
-    }
-  };
+  const handleSearchChange = React.useCallback(
+    (value: string) => {
+      onSearchChange?.(value); // Langsung panggil tanpa delay
+    },
+    [onSearchChange]
+  );
 
-  const handleReset = () => {
-    if (onSearchChange) {
-      onSearchChange("");
-    }
-    if (onFiltersChange) {
-      onFiltersChange({
-        orderType: "",
-        orderStatus: "",
-        vehicleType: "",
-        paymentStatus: "",
-      });
-    }
-  };
+  const handleFilterChange = React.useCallback(
+    (key: string, value: string) => {
+      onFiltersChange?.({ [key]: value });
+    },
+    [onFiltersChange]
+  );
+
+  const handleReset = React.useCallback(() => {
+    onSearchChange?.(""); // Reset search langsung
+    onFiltersChange?.({
+      orderType: "",
+      orderStatus: "",
+      vehicleType: "",
+      paymentStatus: "",
+    });
+  }, [onSearchChange, onFiltersChange]);
 
   return (
     <div className="flex items-center justify-between">
@@ -67,10 +69,11 @@ export function DataTableToolbar<TData>({
         {" "}
         <Input
           placeholder="Cari nama, email, atau nomor telepon..."
-          value={searchInput ?? ""}
-          onChange={(event) => handleSearchChange(event.target.value)}
+          value={searchInput || ""} // Gunakan searchInput langsung
+          onChange={(event) => handleSearchChange(event.target.value)} // Panggil callback langsung
           className="h-8 min-w-[150px] w-[150px] lg:min-w-[250px] lg:w-[250px]"
           disabled={isLoading}
+          autoComplete="off" // Disable autocomplete untuk performa
         />
         <BackendDataTableFacetedFilter
           title="Tipe"

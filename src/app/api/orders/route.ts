@@ -4,15 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
 import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client";
-import {
-  calculateDistance,
-  calculateInterTripCharges,
-  calculateAngkotPrice,
-  calculateHiaceCommuterPrice,
-  calculateHiacePremioPrice,
-  calculateElfPrice,
-  calculateTotalPrice,
-} from "@/utils/order";
+import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 
 // Types
 interface OrderRequestBody {
@@ -455,7 +447,6 @@ export const GET = async (req: NextRequest) => {
     const totalCount = await prisma.order.count({
       where: whereConditions,
     });
-
     const orders = await prisma.order.findMany({
       where: whereConditions,
       skip,
@@ -472,7 +463,20 @@ export const GET = async (req: NextRequest) => {
         },
         packageOrder: true,
         vehicleType: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            senderName: true,
+            transferDate: true,
+            proofUrl: true,
+            paymentStatus: true,
+            totalPrice: true,
+            approvedByAdminId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         review: true,
       },
     });
