@@ -1,10 +1,18 @@
 import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPaginationParams } from "@/utils/pagination";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (req: NextRequest) => {
   try {
+    const { skip, limit } = getPaginationParams(req.url);
+
+    // Get total count
+    const totalCount = await prisma.review.count();
+
     const reviews = await prisma.review.findMany({
+      skip,
+      take: limit,
       include: {
         order: {
           include: {
@@ -17,8 +25,18 @@ export const GET = async (req: NextRequest) => {
         },
       },
     });
+
     return NextResponse.json(
-      { message: "Reviews retrieved successfully", data: reviews },
+      {
+        message: "Reviews retrieved successfully",
+        data: reviews,
+        pagination: {
+          total: totalCount,
+          skip,
+          limit,
+          hasMore: skip + reviews.length < totalCount,
+        },
+      },
       { status: 200 }
     );
   } catch (error) {
@@ -29,7 +47,6 @@ export const GET = async (req: NextRequest) => {
     );
   }
 };
-
 export const POST = async (req: NextRequest) => {
   try {
     const body = await req.json();

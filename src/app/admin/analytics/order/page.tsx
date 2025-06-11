@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import OrderBarChart from "./components/order_barchart";
 import OrderLineChart from "./components/order_linechart";
 import {
@@ -14,15 +16,39 @@ import { ChartConfig } from "@/components/ui/chart";
 import ChartFilter from "./components/chart_filter";
 import DateFilter from "./components/date_filter";
 import OrderTable from "./components/table";
+import VehicleFilter from "./components/vehicle_filter";
+import StatusFilter from "./components/status_filter";
+import { DateRange } from "react-day-picker";
+import {
+  endOfDay,
+  startOfDay,
+  subDays,
+  isBefore,
+  isAfter,
+  format,
+} from "date-fns";
 
-const chartData = [
-  { month: "January", orders: 186 },
-  { month: "February", orders: 305 },
-  { month: "March", orders: 237 },
-  { month: "April", orders: 73 },
-  { month: "May", orders: 209 },
-  { month: "June", orders: 214 },
-];
+interface Order {
+  id: string;
+  fullName: string;
+  totalPassengers: number;
+  orderStatus: string;
+  createdAt: string;
+  vehicleType: {
+    name: string;
+  };
+}
+
+interface OrdersResponse {
+  message: string;
+  data: Order[];
+  pagination: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
 
 const chartConfig = {
   orders: {
@@ -34,6 +60,91 @@ const chartConfig = {
 const OrderAnalysis = () => {
   const [chartType, setChartType] = useState<string>("line");
   const [dateFilter, setDateFilter] = useState<string>("7");
+  const [dateRange, setDateRange] = useState<DateRange>();
+  const [vehicleType, setVehicleType] = useState<string>("all");
+  const [orderStatus, setOrderStatus] = useState<string>("all");
+
+  const { data: ordersData, isLoading } = useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      const { data } = await axios.get<OrdersResponse>("/api/orders");
+      return data;
+    },
+  });
+
+  const filteredOrders = React.useMemo(() => {
+    if (!ordersData?.data) return [];
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    try {
+      if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
+        startDate = startOfDay(new Date(dateRange.from));
+        endDate = endOfDay(new Date(dateRange.to));
+      } else {
+        const days = parseInt(dateFilter);
+        startDate = startOfDay(subDays(now, days));
+        endDate = endOfDay(now);
+      }
+
+      const dateFiltered = ordersData.data.filter((order) => {
+        const orderDate = new Date(order.createdAt);
+        return (
+          isAfter(orderDate, startDate) ||
+          orderDate.getTime() === startDate.getTime()
+        )
+          ? isBefore(orderDate, endDate) ||
+            orderDate.getTime() === endDate.getTime()
+          : false;
+      });
+
+      let filtered = dateFiltered;
+      
+      if (vehicleType !== "all") {
+        filtered = filtered.filter((order) => order.vehicleType.name === vehicleType);
+      }
+      
+      if (orderStatus !== "all") {
+        filtered = filtered.filter((order) => order.orderStatus === orderStatus);
+      }
+
+      return filtered;
+    } catch (error) {
+      console.error("Filtering error:", error);
+      return [];
+    }
+  }, [ordersData?.data, dateFilter, dateRange, vehicleType, orderStatus]);
+
+  const getDateDescription = React.useMemo(() => {
+    try {
+      const now = new Date();
+
+      if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
+        return `${format(new Date(dateRange.from), "d MMMM yyyy")} - ${format(
+          new Date(dateRange.to),
+          "d MMMM yyyy"
+        )}`;
+      }
+
+      const days = parseInt(dateFilter);
+      const startDate = startOfDay(subDays(now, days));
+      return `${days} hari terakhir (${format(startDate, "d MMMM yyyy")} - ${format(
+        now,
+        "d MMMM yyyy"
+      )})`;
+    } catch (error) {
+      console.error("Date description error:", error);
+      return "Silahkan pilih tanggal";
+    }
+  }, [dateFilter, dateRange]);
+
+  if (isLoading) {
+    return (
+      <span className="border-y-2 border-black w-4 h-4 rounded-full animate-spin" />
+    );
+  }
 
   return (
     <>
@@ -41,7 +152,7 @@ const OrderAnalysis = () => {
         <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex flex-col gap-y-1.5">
             <CardTitle>Analisis pemesanan</CardTitle>
-            <CardDescription>January - June 2024</CardDescription>
+            <CardDescription>{getDateDescription}</CardDescription>
           </div>
 
           {/* Filters */}
@@ -49,23 +160,39 @@ const OrderAnalysis = () => {
             {/* Select for chart filter */}
             <ChartFilter chartType={chartType} setChartType={setChartType} />
 
+            {/* Select for vehicle type filter */}
+            <VehicleFilter vehicleType={vehicleType} setVehicleType={setVehicleType} />
+
+            {/* Select for order status filter */}
+            <StatusFilter orderStatus={orderStatus} setOrderStatus={setOrderStatus} />
+
             {/* Select for date filter */}
-            <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+            <DateFilter
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              onDateRangeChange={setDateRange}
+            />
           </div>
         </CardHeader>
         <CardContent>
           {/* Chats */}
           {chartType === "line" ? (
-            <OrderLineChart chartData={chartData} chartConfig={chartConfig} />
+            <OrderLineChart
+              orders={filteredOrders}
+              chartConfig={chartConfig}
+            />
           ) : chartType === "bar" ? (
-            <OrderBarChart chartData={chartData} chartConfig={chartConfig} />
+            <OrderBarChart
+              orders={filteredOrders}
+              chartConfig={chartConfig}
+            />
           ) : (
             <p className="text-sm">Tidak ada chart</p>
           )}
         </CardContent>
       </Card>
 
-      <OrderTable />
+      <OrderTable orders={filteredOrders} />
     </>
   );
 };

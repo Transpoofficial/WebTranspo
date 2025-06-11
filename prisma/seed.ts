@@ -1,5 +1,5 @@
 import { PrismaClient, Role } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -29,6 +29,25 @@ async function main() {
       phoneNumber: "1122334455",
     },
   ];
+
+  // Seed vehicle types
+  const vehicleTypes = [
+    { name: "Angkot", pricePerKm: 5000 },
+    { name: "Hiace Commuter", pricePerKm: 10000 },
+    { name: "Hiace Premio", pricePerKm: 15000 },
+    { name: "ELF", pricePerKm: 12000 },
+  ];
+
+  for (const vehicleType of vehicleTypes) {
+    await prisma.vehicleType.upsert({
+      where: { name: vehicleType.name },
+      update: {},
+      create: {
+        name: vehicleType.name,
+        pricePerKm: vehicleType.pricePerKm,
+      },
+    });
+  }
 
   for (const user of users) {
     await prisma.user.upsert({

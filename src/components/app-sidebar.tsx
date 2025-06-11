@@ -2,58 +2,42 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
-  BookOpen,
   Car,
   ChartColumn,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
+  ClipboardList,
+  FileText,
   House,
-  Map,
-  PieChart,
-  Settings2,
-} from "lucide-react"
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+  Newspaper,
+  TreePalm,
+  User,
+} from "lucide-react";
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
-  // This is sample data.
   const data = {
     user: {
-      name: "shadcn",
-      email: "m@example.com",
+      name: session?.user?.fullName ?? "Guest",
+      email: session?.user?.email ?? "guest@example.com",
       avatar: "/avatars/shadcn.jpg",
     },
-    teams: [
-      {
-        name: "Acme Inc",
-        logo: GalleryVerticalEnd,
-        plan: "Enterprise",
-      },
-      {
-        name: "Acme Corp.",
-        logo: AudioWaveform,
-        plan: "Startup",
-      },
-      {
-        name: "Evil Corp.",
-        logo: Command,
-        plan: "Free",
-      },
-    ],
     navMain: [
       {
         title: "Dashboard",
@@ -64,7 +48,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Analisis",
         url: "#",
         icon: ChartColumn,
-        isActive: pathname.split('/')[2] === "analytics" ? true : false,
+        isActive: pathname.split("/")[2] === "analytics" ? true : false,
         items: [
           {
             title: "Pesanan",
@@ -77,72 +61,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        title: "Vehicle",
+        title: "Kendaraan",
         url: "/admin/vehicle",
         icon: Car,
       },
       {
-        title: "Documentation",
-        url: "#",
-        icon: BookOpen,
-        items: [
-          {
-            title: "Introduction",
-            url: "#",
-          },
-          {
-            title: "Get Started",
-            url: "#",
-          },
-          {
-            title: "Tutorials",
-            url: "#",
-          },
-          {
-            title: "Changelog",
-            url: "#",
-          },
-        ],
+        title: "Paket wisata",
+        url: "/admin/tour-package",
+        icon: TreePalm,
       },
       {
-        title: "Settings",
-        url: "#",
-        icon: Settings2,
-        items: [
-          {
-            title: "General",
-            url: "#",
-          },
-          {
-            title: "Team",
-            url: "#",
-          },
-          {
-            title: "Billing",
-            url: "#",
-          },
-          {
-            title: "Limits",
-            url: "#",
-          },
-        ],
-      },
-    ],
-    projects: [
-      {
-        name: "Design Engineering",
-        url: "#",
-        icon: Frame,
+        title: "Pengguna",
+        url: "/admin/user",
+        icon: User,
       },
       {
-        name: "Sales & Marketing",
-        url: "#",
-        icon: PieChart,
+        title: "Pesanan",
+        url: "/admin/order",
+        icon: ClipboardList,
       },
       {
-        name: "Travel",
-        url: "#",
-        icon: Map,
+        title: "Artikel",
+        url: "/admin/article",
+        icon: Newspaper,
+      },
+      {
+        title: "Laporan",
+        url: "/admin/report",
+        icon: FileText,
       },
     ],
   };
@@ -150,11 +96,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/admin">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Image
+                    src={"/images/logo/logo_3.png"}
+                    alt="logo_3.png"
+                    width={24}
+                    height={24}
+                  />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Transpo</span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

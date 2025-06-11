@@ -5,9 +5,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { format } from "date-fns";
 
 interface OrderLineChartProps {
-  chartData: { month: string; orders: number }[];
+  orders: Array<{ createdAt: string }>;
+
   chartConfig: {
     [key: string]: {
       label: string;
@@ -17,9 +19,53 @@ interface OrderLineChartProps {
 }
 
 const OrderLineChart: React.FC<OrderLineChartProps> = ({
-  chartData,
+  orders = [],
   chartConfig,
 }) => {
+  const chartData = React.useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+
+    // Create a map of all dates with their order counts
+    const dateMap = new Map<string, number>();
+
+    // Sort orders by date
+    const sortedOrders = [...orders].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    // Get start and end dates
+    const startDate = new Date(sortedOrders[0].createdAt);
+    const endDate = new Date(sortedOrders[sortedOrders.length - 1].createdAt);
+
+    // Fill in all dates in the range
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = format(currentDate, "dd MMM");
+      dateMap.set(dateStr, 0);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Count orders for each date
+    orders.forEach((order) => {
+      const dateStr = format(new Date(order.createdAt), "dd MMM");
+      dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+    });
+
+    // Convert map to array
+    return Array.from(dateMap.entries()).map(([date, count]) => ({
+      date,
+      orders: count,
+    }));
+  }, [orders]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+        Tidak ada data untuk ditampilkan
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Line Chart */}
@@ -34,11 +80,10 @@ const OrderLineChart: React.FC<OrderLineChartProps> = ({
         >
           <CartesianGrid vertical={false} />
           <XAxis
-            dataKey="month"
+            dataKey="date"
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            tickFormatter={(value) => value.slice(0, 3)}
           />
           <ChartTooltip
             cursor={false}

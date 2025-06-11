@@ -37,6 +37,12 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-transpo-primary: var(--transpo-primary);
+  --color-transpo-primary-dark: var(--transpo-primary-dark);
+  --color-transpo-primary-light: var(--transpo-primary-light);
+  --color-transpo-secondary: var(--transpo-secondary);
+  --color-transpo-accent: var(--transpo-accent);
+  --color-transpo-elf: var(--transpo-elf);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -76,6 +82,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --transpo-primary: #2ca6bc;
+  --transpo-primary-dark: #248a9e;
+  --transpo-primary-light: #45b9cd;
+  --transpo-secondary: #ffc107;
+  --transpo-accent: #ff6b6b;
+  --transpo-elf: #20c997;
 }
 
 .dark {
@@ -119,4 +131,39 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Add these custom styles to your globals.css */
+
+.step-circles {
+  position: relative;
+}
+
+.step-circles::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  border-top: 2px dashed #e5e7eb;
+  transform: translateY(-50%);
+}
+
+.step-circle-active {
+  background-color: #1aa1b1;
+  color: white;
+}
+
+.step-circle-inactive {
+  border: 2px solid #d1d5db;
+  color: #9ca3af;
+}
+
+.step-dot-active {
+  background-color: #1aa1b1;
+}
+
+.step-dot-inactive {
+  background-color: #d1d5db;
 }
