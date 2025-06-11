@@ -74,15 +74,15 @@ export const POST = async (req: NextRequest) => {
       );
     }
     // Check if vehicleId exists in the database
-    const vehicle = await prisma.vehicle.findUnique({
-      where: { id: vehicleId },
-    });
-    if (!vehicle) {
-      return NextResponse.json(
-        { message: "Vehicle not found", data: [] },
-        { status: 404 }
-      );
-    }
+    // const vehicle = await prisma.vehicle.findUnique({
+    //   where: { id: vehicleId },
+    // });
+    // if (!vehicle) {
+    //   return NextResponse.json(
+    //     { message: "Vehicle not found", data: [] },
+    //     { status: 404 }
+    //   );
+    // }
 
     const files = formData.getAll("photos") as File[];
     if (!files || files.length === 0) {
@@ -108,7 +108,6 @@ export const POST = async (req: NextRequest) => {
     const createdPackage = await prisma.tourPackage.create({
       data: {
         name,
-        vehicleId,
         destination,
         durationDays: parseInt(durationDays),
         advantages: advantagesArray,
