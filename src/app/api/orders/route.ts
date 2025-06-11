@@ -366,6 +366,12 @@ export const GET = async (req: NextRequest) => {
     // Get user from token
     const token = await checkAuth(req);
 
+    // Get user with role information
+    const user = await prisma.user.findUnique({
+      where: { id: token.id },
+      select: { role: true },
+    });
+
     // Search parameters
     const search = searchParams.get("search") || "";
     const orderType = searchParams.get("orderType") || "";
@@ -374,54 +380,23 @@ export const GET = async (req: NextRequest) => {
     const paymentStatus = searchParams.get("paymentStatus") || "";
 
     // Build filter conditions
-    const whereConditions: any = {
-      // Add userId filter
-      userId: token.id,
-    }; // Search filter - searches across user info, order details
+    const whereConditions: any = {};
+
+    // Only filter by userId if user is CUSTOMER
+    // ADMIN and SUPER_ADMIN can see all orders
+    if (user?.role === "CUSTOMER") {
+      whereConditions.userId = token.id;
+    }
+
+    // Search filter - searches across user info, order details
     if (search) {
       whereConditions.OR = [
-        {
-          fullName: {
-            contains: search,
-            // mode: "insensitive",
-          },
-        },
-        {
-          email: {
-            contains: search,
-            // mode: "insensitive",
-          },
-        },
-        {
-          phoneNumber: {
-            contains: search,
-            // mode: "insensitive",
-          },
-        },
-        {
-          user: {
-            fullName: {
-              contains: search,
-              // mode: "insensitive",
-            },
-          },
-        },
-        {
-          user: {
-            email: {
-              contains: search,
-              // mode: "insensitive",
-            },
-          },
-        },
-        {
-          user: {
-            phoneNumber: {
-              contains: search,
-              // mode: "insensitive",
-            },
-          },
-        },
+        { fullName: { contains: search } },
+        { email: { contains: search } },
+        { phoneNumber: { contains: search } },
+        { user: { fullName: { contains: search } } },
+        { user: { email: { contains: search } } },
+        { user: { phoneNumber: { contains: search } } },
       ];
     }
 
