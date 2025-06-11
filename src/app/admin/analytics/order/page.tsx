@@ -142,7 +142,7 @@ const OrderAnalysis = () => {
 
   if (isLoading) {
     return (
-      <span className="border-y-2 border-black w-4 h-4 rounded-full animate-spin" />
+      <div className="border-y-2 border-black w-4 h-4 rounded-full animate-spin" />
     );
   }
 
