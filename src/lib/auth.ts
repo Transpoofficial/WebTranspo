@@ -88,6 +88,18 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin", // Customize your sign-in page if necessary
+    signOut: "/auth/signin", // Add this to redirect to the signin page after logout
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        sameSite: "lax", // Adjust as needed,
+        path: "/", // Cookie path
+      },
+    },
   },
 
   callbacks: {
