@@ -25,17 +25,17 @@ export const PaymentRemainder = ({
     <Head />
     <Preview>Pengingat Pelunasan {`${percentage}%`}</Preview>
     <Tailwind>
-      <Body className="bg-[#0897B1] m-0 p-0 pt-10">
-        <Container className="bg-[#0897B1] max-w-2xl mx-auto p-8 rounded-2xl font-sans">
-          <Section className="bg-white rounded-xl p-6 mb-6">
-            <Text className="text-3xl font-bold m-0 text-center pt-8 px-8">
+      <Body className="bg-[#0897B1] m-0 p-0 py-6">
+        <Container className="bg-[#0897B1] w-full max-w-xl mx-auto p-6 rounded-xl font-sans">
+          <Section className="bg-white rounded-lg p-6 mb-6">
+            <Text className="text-2xl font-bold m-0 text-center pt-6 px-6">
               Transpo
             </Text>
 
-            <Text className="text-2xl font-bold mb-4 text-center px-8">
+            <Text className="text-xl font-bold mb-4 text-center px-6">
               Pengingat Pelunasan {`${percentage}%`}
             </Text>
-            <Text className="text-lg font-light leading-8 px-8">
+            <Text className="text-base font-light leading-6 px-6">
               Yth. {fullName}, <br />
               Kami menginformasikan bahwa saat ini Anda telah melakukan
               pembayaran sebesar{" "}
@@ -53,10 +53,10 @@ export const PaymentRemainder = ({
               Hormat kami,
             </Text>
             <br />
-            <Text className="text-lg font-bold mb-6 px-8">Tim TRANSPO.</Text>
+            <Text className="text-base font-bold mb-6 px-6">Tim TRANSPO.</Text>
           </Section>
           <Section>
-            <Text className="text-white tracking-wide text-base pb-4">
+            <Text className="text-white tracking-wide text-sm pb-4 px-4">
               Email ini dikirim karena Anda telah melakukan pembayaran di
               TRANSPO. Jika Anda tidak merasa melakukan pembayaran, silakan
               abaikan email ini atau hubungi tim kami untuk klarifikasi.
