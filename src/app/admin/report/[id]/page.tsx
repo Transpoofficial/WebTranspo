@@ -55,8 +55,7 @@ export default function ReportDetailPage() {
     return <div className="container mx-auto p-6">No report found</div>;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Basic Info Card */}
         <Card>
           <CardHeader>
@@ -74,7 +73,7 @@ export default function ReportDetailPage() {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center space-x-2 text-muted-foreground">
               <CalendarDays className="h-4 w-4" />
               <span>
@@ -91,7 +90,7 @@ export default function ReportDetailPage() {
             <CardTitle>Statistik Pesanan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Pendapatan
@@ -138,7 +137,7 @@ export default function ReportDetailPage() {
             <CardTitle>Jenis Layanan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">
                   Transport
@@ -157,13 +156,117 @@ export default function ReportDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Report Metadata */}
+        {/* Popular Destinations */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Destinasi Populer</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[300px] overflow-y-auto">
+            {Object.keys(reportData.popularDestinations).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Tidak ada data destinasi
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(reportData.popularDestinations)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .map(([destination, count], index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center"
+                    >
+                      <div className="flex-1">
+                        <p
+                          className="text-sm font-medium truncate"
+                          title={destination}
+                        >
+                          {destination}
+                        </p>
+                      </div>
+                      <Badge variant="secondary">{(count as number)} orders</Badge>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Vehicle Types */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Jenis Kendaraan Teratas</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[300px] overflow-y-auto">
+            {Object.keys(reportData.topVehicleTypes).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Tidak ada data kendaraan
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {(() => {
+                  // Calculate total orders first
+                  const totalVehicleOrders = Object.values(
+                    reportData.topVehicleTypes
+                  ).reduce<number>(
+                    (sum, count) =>
+                      sum + (typeof count === "number" ? count : 0),
+                    0
+                  );
+
+                  return Object.entries(reportData.topVehicleTypes)
+                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                    .map(([vehicleType, count], index) => {
+                      // Calculate percentage
+                      const percentage =
+                        totalVehicleOrders > 0
+                          ? ((count as number) * 100) / totalVehicleOrders
+                          : 0;
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center"
+                        >
+                          <p className="text-sm font-medium">{vehicleType}</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{String(count)} orders</Badge>
+                            <Badge variant="secondary">
+                              {Math.round(percentage)}%
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    });
+                })()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Rating Card - Only show if there's a rating */}
+        {reportData.averageRating && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rating Rata-rata</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold">
+                  {reportData.averageRating.toFixed(1)}
+                </span>
+                <span className="text-2xl text-yellow-500">★</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Report Metadata Card */}
         <Card>
           <CardHeader>
             <CardTitle>Informasi Laporan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Dibuat
@@ -180,6 +283,5 @@ export default function ReportDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
   );
 }
