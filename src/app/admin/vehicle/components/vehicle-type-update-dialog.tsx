@@ -32,6 +32,7 @@ interface VehicleType {
   data: {
     id: string;
     name: string;
+    capacity: number;
     pricePerKm: number;
     createdAt: string;
     updatedAt: string;
@@ -46,7 +47,10 @@ interface VehicleTypeUpdateDialogProps {
 
 const vehicleTypeSchema = z.object({
   name: z.string().min(1, { message: "Tipe kendaraan wajib diisi" }),
-  pricePerKm: z.string().min(1, { message: "Harga per kilometer(km) wajib diisi" }),
+  capacity: z.string().min(1, { message: "Kapasitas wajib diisi" }),
+  pricePerKm: z
+    .string()
+    .min(1, { message: "Harga per kilometer(km) wajib diisi" }),
 });
 
 type VehicleTypeInput = z.infer<typeof vehicleTypeSchema>;
@@ -57,11 +61,11 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
   vehicleTypeId,
 }) => {
   const queryClient = useQueryClient();
-
   const form = useForm<VehicleTypeInput>({
     resolver: zodResolver(vehicleTypeSchema),
     defaultValues: {
       name: "",
+      capacity: "",
       pricePerKm: "",
     },
   });
@@ -79,20 +83,23 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
     },
     enabled: openUpdateDialog && !!vehicleTypeId, // Only fetch when dialog is open and ID is provided
   });
-
   // Update form when vehicle type data is fetched
   useEffect(() => {
     if (vehicleType) {
-      form.reset({ name: vehicleType?.data?.name, pricePerKm: vehicleType?.data?.pricePerKm.toString() });
+      form.reset({
+        name: vehicleType?.data?.name,
+        capacity: vehicleType?.data?.capacity.toString(),
+        pricePerKm: vehicleType?.data?.pricePerKm.toString(),
+      });
     }
   }, [vehicleType, form]);
-
   const vehicleTypeMutation = useMutation({
     mutationFn: async (data: VehicleTypeInput) => {
-      const response = await axios.put(
-        `/api/vehicle-types/${vehicleTypeId}`,
-        data
-      );
+      const response = await axios.put(`/api/vehicle-types/${vehicleTypeId}`, {
+        name: data.name,
+        capacity: parseInt(data.capacity),
+        pricePerKm: parseFloat(data.pricePerKm),
+      });
       return response.data;
     },
     onSuccess: () => {
@@ -161,6 +168,24 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
               ) : (
                 <FormField
                   control={form.control}
+                  name="capacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kapasitas</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="" {...field} />
+                      </FormControl>
+                      {form.formState.errors.capacity && <FormMessage />}
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {isLoading ? (
+                <Skeleton className="h-[58px] w-full" />
+              ) : (
+                <FormField
+                  control={form.control}
                   name="pricePerKm"
                   render={({ field }) => (
                     <FormItem>
@@ -168,14 +193,11 @@ const VehicleTypeUpdateDialog: React.FC<VehicleTypeUpdateDialogProps> = ({
                       <FormControl>
                         <Input type="number" placeholder="" {...field} />
                       </FormControl>
-                      {form.formState.errors.pricePerKm && (
-                        <FormMessage />
-                      )}
+                      {form.formState.errors.pricePerKm && <FormMessage />}
                     </FormItem>
                   )}
                 />
               )}
-              
             </div>
 
             <DialogFooter>

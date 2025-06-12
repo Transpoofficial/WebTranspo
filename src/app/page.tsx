@@ -38,13 +38,36 @@ import Hiace from "./components/hiace";
 import Elf from "./components/elf";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const hurricane = Hurricane({
   weight: "400",
   subsets: ["latin"],
 });
 
+interface Article {
+  id: string;
+  title: string;
+  mainImgUrl: string;
+  createdAt: string;
+  author: {
+    fullName: string;
+  }
+}
+
 const Home = () => {
+  const router = useRouter();
+  
+  const { data: articlesData, isLoading, error } = useQuery({
+    queryKey: ['articles'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/articles');
+      return data;
+    }
+  });
+
   const advantageRef = useRef<HTMLDivElement | null>(null);
   const howToOrderRef = useRef<HTMLDivElement | null>(null);
   const faqAndContactRef = useRef<HTMLDivElement | null>(null);
@@ -324,97 +347,59 @@ const Home = () => {
 
         {/* Articles */}
         <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
-          <h1 className="text-3xl md:text-4xl text-center font-bold">
-            Artikel
-          </h1>
-
-          <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <Image
-                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                  src="/images/angkot/angkot_2.png"
-                  alt="angkot_1.jpeg"
-                  width={500}
-                  height={500}
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <Image
-                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                  src="/images/angkot/angkot_2.png"
-                  alt="angkot_1.jpeg"
-                  width={500}
-                  height={500}
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <Image
-                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                  src="/images/angkot/angkot_2.png"
-                  alt="angkot_1.jpeg"
-                  width={500}
-                  height={500}
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <Image
-                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                  src="/images/angkot/angkot_2.png"
-                  alt="angkot_1.jpeg"
-                  width={500}
-                  height={500}
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
-            <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-              <CardContent>
-                <Image
-                  className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                  src="/images/angkot/angkot_2.png"
-                  alt="angkot_1.jpeg"
-                  width={500}
-                  height={500}
-                />
-                <div className="mt-2 text-lg font-semibold">
-                  Angkutan Umum Kota Malang Bakal Berbasis Aplikasi Online
-                </div>
-              </CardContent>
-              <CardFooter>
-                <p className="text-sm text-muted-foreground">02 Mei 2025</p>
-              </CardFooter>
-            </Card>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl md:text-4xl text-center font-bold">
+              Artikel
+            </h1>
+            <Button 
+              variant="link" 
+              onClick={() => router.push('/articles')}
+              className="text-[#0897B1] hover:text-[#0897B1]/80"
+            >
+              Lihat Semua
+            </Button>
           </div>
+
+          {isLoading ? (
+            <div className="flex justify-center mt-6 md:mt-12">
+              Loading...
+            </div>
+          ) : error ? (
+            <div className="flex justify-center mt-6 md:mt-12 text-red-500">
+              Error loading articles
+            </div>
+          ) : (
+            <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
+              {articlesData?.data?.slice(0, 10).map((article: Article) => (
+                <Card key={article.id} className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
+                  <CardContent>
+                    <Image
+                      className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                      src={article.mainImgUrl || "/images/angkot/angkot_2.png"}
+                      alt={article.title}
+                      width={500}
+                      height={500}
+                    />
+                    <div className="mt-2 text-lg font-semibold line-clamp-2">
+                      {article.title}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      By {article.author.fullName}
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(article.createdAt).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Review */}

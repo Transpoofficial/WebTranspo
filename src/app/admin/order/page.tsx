@@ -3,7 +3,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { columns } from "./components/columns";
@@ -57,7 +57,8 @@ const fetchOrders = async (
   return response.data;
 };
 
-export default function OrderPage() {
+// Component that uses useSearchParams
+function OrderPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,7 +74,9 @@ export default function OrderPage() {
 
   // State management
   const [skip, setSkip] = useState(parseInt(searchParams.get("skip") || "0"));
-  const [limit, setLimit] = useState(parseInt(searchParams.get("limit") || "10"));
+  const [limit, setLimit] = useState(
+    parseInt(searchParams.get("limit") || "10")
+  );
   const [searchInput, setSearchInput] = useState(initialFilters.search);
   const [filters, setFilters] = useState(initialFilters);
 
@@ -82,12 +85,13 @@ export default function OrderPage() {
   // Update URL with filters - modified to remove empty params
   useEffect(() => {
     const params = new URLSearchParams();
-    
+
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (filters.orderType) params.set("orderType", filters.orderType);
     if (filters.orderStatus) params.set("orderStatus", filters.orderStatus);
     if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
-    if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+    if (filters.paymentStatus)
+      params.set("paymentStatus", filters.paymentStatus);
     if (skip > 0) params.set("skip", skip.toString());
     if (limit !== 10) params.set("limit", limit.toString());
 
@@ -103,7 +107,8 @@ export default function OrderPage() {
     refetch,
   } = useQuery({
     queryKey: ["orders", skip, limit, debouncedSearch, filters],
-    queryFn: () => fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
+    queryFn: () =>
+      fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
     enabled: !!session?.user,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -231,5 +236,14 @@ export default function OrderPage() {
         isLoading={isLoading}
       />
     </div>
+  );
+}
+
+// Main exported component with Suspense wrapper
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <OrderPageContent />
+    </Suspense>
   );
 }
