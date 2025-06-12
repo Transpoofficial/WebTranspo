@@ -1,39 +1,59 @@
 "use client";
-import React from "react";
-// import VehicleTypeTable from "./components/vehicle-type-table";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-// import VehicleTypeCreateDialog from "./components/vehicle-type-create-dialog";
+import Link from "next/link";
+import { toast } from "sonner";
+import { DataTable } from "./components/data-table";
+import { columns } from "./components/column";
+import { ArticlesResponse } from "./data/schema";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 const Article = () => {
-  // const [isVehicleTypeCreateDialogOpen, setIsVehicleTypeCreateDialogOpen] =
-  //   useState<boolean>(false);
+  const [skip, setSkip] = useState<number>(0);
+  const [limit, setLimit] = useState<number>(10);
 
-  // const handleOpenVehicleTypeCreateDialog = (): void => {
-  //   setIsVehicleTypeCreateDialogOpen(true);
-  // };
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["articles", skip, limit],
+    queryFn: async (): Promise<ArticlesResponse> => {
+      const response = await axios.get<ArticlesResponse>("/api/articles", {
+        params: { skip, limit },
+      });
+      return response.data;
+    },
+  });
+
+  if (error) {
+    toast.error("Failed to fetch articles. Please try again.");
+    console.error("Error fetching articles:", error);
+  }
 
   return (
     <>
-      <h2 className="text-3xl font-bold tracking-tight first:mt-0">
-        Paket wisata
-      </h2>
-
-      <div className="flex justify-end mt-4 mb-1">
-        <Button
-          // onClick={handleOpenVehicleTypeCreateDialog}
-          className="cursor-pointer"
-        >
-          Tambah paket wisata
-        </Button>
+      <h1 className="text-2xl font-bold tracking-tight">Artikel</h1>
+      <div className="my-4">
+        <Link href="/admin/article/create">
+          <Button className="cursor-pointer">Tambah artikel</Button>
+        </Link>
       </div>
-
-      {/* Vehicle type dialog */}
-      {/* <VehicleTypeCreateDialog
-        isVehicleTypeCreateDialogOpen={isVehicleTypeCreateDialogOpen}
-        setIsVehicleTypeCreateDialogOpen={setIsVehicleTypeCreateDialogOpen}
-      />
-
-      <VehicleTypeTable /> */}
+      {isLoading ? (
+        <div className="py-24 flex items-center justify-center w-full">
+          <div className="border-y-2 border-black w-6 h-6 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="h-full flex-1 flex-col">
+          <DataTable
+            data={data?.data || []}
+            columns={columns}
+            total={data?.pagination.total || 0}
+            skip={skip}
+            limit={limit}
+            setSkip={setSkip}
+            setLimit={setLimit}
+          />
+        </div>
+      )}
     </>
   );
 };

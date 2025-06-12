@@ -48,8 +48,15 @@ model Order {
   orderType               OrderType
   orderStatus             OrderStatus
   payment                 Payment?
+  fullName                String
+  phoneNumber             String?
+  email                   String?
+  totalPassengers         Int?
+  note                    String?
   transportation          TransportationOrder?
   packageOrder            PackageOrder?
+  vehicleTypeId           String?            
+  vehicleType             VehicleType?        @relation(fields: [vehicleTypeId], references: [id]) 
   review                  Review?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
@@ -66,9 +73,10 @@ model Payment {
   totalPrice              Decimal             @db.Decimal(10, 2)
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
+  note                    String?             
   refundRequest           RefundRequest?
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model RefundRequest {
@@ -88,13 +96,10 @@ model TransportationOrder {
   id                      String              @id @default(cuid())
   orderId                 String              @unique
   order                   Order               @relation(fields: [orderId], references: [id])
-  departureDate           DateTime
-  pickupLocation          String
-  destination             String
+  // Removed departureDate, pickupLocation, destination fields
   vehicleCount            Int
   roundTrip               Boolean
   totalDistance           Float
-  vehicles                Vehicle[]           // One-to-many relation to Vehicle
   destinations            DestinationTransportation[] // One-to-many relation to DestinationTransportation
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
@@ -104,7 +109,14 @@ model DestinationTransportation {
   id                      String              @id @default(cuid())
   transportationOrderId   String
   transportationOrder     TransportationOrder @relation(fields: [transportationOrderId], references: [id])
-  destinationName         String              // this column can be change to destinationId/locationId if the google maps API is available
+  // Enhanced location data
+  lat                     Float?              // Added lat field
+  lng                     Float?              // Added lng field
+  address                 String              // Added explicit address field 
+  arrivalTime             String?             // Existing field
+  isPickupLocation        Boolean             @default(false) // To identify the pickup point
+  sequence                Int                 @default(0)     // To maintain order
+  departureDate           DateTime?           // Added from TransportationOrder
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -130,34 +142,19 @@ model PackageOrder {
   updatedAt               DateTime            @updatedAt
 }
 
-model Vehicle {
-  id                      String              @id @default(cuid())
-  vehicleTypeId           String
-  vehicleType             VehicleType         @relation(fields: [vehicleTypeId], references: [id])
-  seatCount               Int
-  ratePerKm               Decimal             @db.Decimal(10, 2)
-  additionalDetails       String?
-  transportationOrderId   String?             // Foreign key to TransportationOrder (nullable)
-  transportationOrder     TransportationOrder? @relation(fields: [transportationOrderId], references: [id])
-  tours                   TourPackage[]
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
-}
 
 model VehicleType {
   id                      String              @id @default(cuid())
-  name                    String
   capacity                Int
   pricePerKm              Decimal             @db.Decimal(10, 2)
-  vehicles                Vehicle[]
+  name                    String              @unique
+  orders                  Order[]            
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
 
 model TourPackage {
   id                      String              @id @default(cuid())
-  vehicleId               String              
-  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id])
   name                    String
   destination             String
   durationDays            Int

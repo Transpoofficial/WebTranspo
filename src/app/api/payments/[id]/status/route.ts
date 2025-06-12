@@ -20,12 +20,23 @@ export const PUT = async (
     }
     const body = await req.json();
     let { status } = body;
+    const { note } = body;
+
     if (!status) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
       );
     }
+
+    // Check if note is required for REJECTED status
+    if (status.toUpperCase() === "REJECTED" && !note) {
+      return NextResponse.json(
+        { message: "Note is required for rejected status", data: [] },
+        { status: 400 }
+      );
+    }
+
     status = status.toUpperCase();
     if (
       status !== "PENDING" &&
@@ -37,12 +48,15 @@ export const PUT = async (
         { status: 400 }
       );
     }
+
     const updatedPayment = await prisma.payment.update({
       where: { id: id },
       data: {
         paymentStatus: status,
+        note: note || null, // Set note to null if not provided
       },
     });
+
     return NextResponse.json(
       {
         message: "Payment status updated successfully",

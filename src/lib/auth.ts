@@ -88,6 +88,18 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin", // Customize your sign-in page if necessary
+    signOut: "/auth/signin", // Add this to redirect to the signin page after logout
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        sameSite: "lax", // Adjust as needed,
+        path: "/", // Cookie path
+      },
+    },
   },
 
   callbacks: {
@@ -126,15 +138,25 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          fullName: token.fullName,
-          role: token.role,
-        };
+    async session({ session, user }) {
+      // Jika menggunakan adapter, user akan tersedia
+      if (user) {
+        session.user.id = user.id;
+        session.user.fullName = user.fullName;
+        session.user.email = user.email;
+        session.user.role = user.role;
+      } else {
+        // Jika menggunakan JWT, ambil data terbaru dari database
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, fullName: true, email: true, role: true },
+        });
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.fullName = dbUser.fullName;
+          session.user.email = dbUser.email;
+          session.user.role = dbUser.role;
+        }
       }
       return session;
     },
