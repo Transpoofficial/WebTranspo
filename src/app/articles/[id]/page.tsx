@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, User } from "lucide-react";
@@ -77,13 +76,9 @@ export default function ArticleDetailPage({
             </div>
           </div>
 
-          <Card>
-            <CardContent className="">
-              <div className="prose prose-lg max-w-none">
-                {formatContent(article.content)}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="prose prose-lg max-w-none">
+            {formatContent(article.content)}
+          </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200">
             <div className="flex items-center justify-between">
