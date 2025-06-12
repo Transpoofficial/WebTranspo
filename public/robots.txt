@@ -1,0 +1,28 @@
+# robots.txt for TRANSPO
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/admin/
+Disallow: /_next/
+Disallow: /auth/error
+Disallow: /settings/
+
+# Allow important crawlers
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/admin/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/admin/
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: http://localhost:3000/sitemap.xml
