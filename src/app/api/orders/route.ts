@@ -3,16 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
-import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client";
 import {
-  calculateDistance,
-  calculateInterTripCharges,
-  calculateAngkotPrice,
-  calculateHiaceCommuterPrice,
-  calculateHiacePremioPrice,
-  calculateElfPrice,
-  calculateTotalPrice,
-} from "@/utils/order";
+  OrderStatus,
+  OrderType,
+  PaymentStatus,
+  PrismaClient,
+  Prisma,
+} from "@prisma/client";
+import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 
 // Types
 interface OrderRequestBody {
@@ -236,7 +234,10 @@ const validateTransportPricing = async (
 
 //  Handle transport order creation
 const handleTransportOrder = async (
-  tx: any,
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
   orderId: string,
   body: OrderRequestBody,
   destinations: Destination[],
@@ -319,7 +320,10 @@ const handleTransportOrder = async (
 
 //  Handle tour package order creation
 const handleTourPackageOrder = async (
-  tx: any,
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
   orderId: string,
   body: OrderRequestBody
 ) => {
@@ -369,13 +373,76 @@ const handleTourPackageOrder = async (
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
+    const { searchParams } = new URL(req.url);
 
-    // Get total count
-    const totalCount = await prisma.order.count();
+    // Get user from token
+    const token = await checkAuth(req);
 
+    // Get user with role information
+    const user = await prisma.user.findUnique({
+      where: { id: token.id },
+      select: { role: true },
+    });
+
+    // Search parameters
+    const search = searchParams.get("search") || "";
+    const orderType = searchParams.get("orderType") || "";
+    const orderStatus = searchParams.get("orderStatus") || "";
+    const vehicleType = searchParams.get("vehicleType") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || ""; // Build filter conditions
+    const whereConditions: Prisma.OrderWhereInput = {};
+
+    // Only filter by userId if user is CUSTOMER
+    // ADMIN and SUPER_ADMIN can see all orders
+    if (user?.role === "CUSTOMER") {
+      whereConditions.userId = token.id;
+    }
+
+    // Search filter - searches across user info, order details
+    if (search) {
+      whereConditions.OR = [
+        { fullName: { contains: search } },
+        { email: { contains: search } },
+        { phoneNumber: { contains: search } },
+        { user: { fullName: { contains: search } } },
+        { user: { email: { contains: search } } },
+        { user: { phoneNumber: { contains: search } } },
+      ];
+    } // Order type filter
+    if (orderType) {
+      whereConditions.orderType = orderType as OrderType;
+    }
+
+    // Order status filter
+    if (orderStatus) {
+      whereConditions.orderStatus = orderStatus as OrderStatus;
+    }
+
+    // Vehicle type filter
+    if (vehicleType) {
+      whereConditions.vehicleType = {
+        name: vehicleType,
+      };
+    }
+
+    // Payment status filter
+    if (paymentStatus) {
+      whereConditions.payment = {
+        paymentStatus: paymentStatus as PaymentStatus,
+      };
+    }
+
+    // Get total count with filters
+    const totalCount = await prisma.order.count({
+      where: whereConditions,
+    });
     const orders = await prisma.order.findMany({
+      where: whereConditions,
       skip,
       take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
       include: {
         user: true,
         transportation: {
@@ -385,7 +452,21 @@ export const GET = async (req: NextRequest) => {
         },
         packageOrder: true,
         vehicleType: true,
-        payment: true,
+        payment: {
+          select: {
+            id: true,
+            orderId: true,
+            senderName: true,
+            transferDate: true,
+            proofUrl: true,
+            paymentStatus: true,
+            totalPrice: true,
+            approvedByAdminId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        review: true,
       },
     });
 
@@ -570,8 +651,7 @@ export const POST = async (req: NextRequest) => {
       }
       destByDate.get(date)?.push(dest);
     });
-
-    for (const [date, dests] of destByDate.entries()) {
+    for (const [, dests] of destByDate.entries()) {
       if (dests.length > 0) {
         dests.forEach((d) => (d.isPickupLocation = false));
         dests[0].isPickupLocation = true;
@@ -586,16 +666,10 @@ export const POST = async (req: NextRequest) => {
         { message: "No valid destinations provided", data: [] },
         { status: 400 }
       );
-    }
-
-    // Basic validation
+    } // Basic validation - only destructure variables that are used
     const {
-      vehicleCount,
-      roundTrip,
       vehicleTypeId,
-      totalDistance,
       totalPrice,
-      packageId,
       fullName,
       phoneNumber,
       email,
@@ -622,7 +696,7 @@ export const POST = async (req: NextRequest) => {
           orderType: orderType.toUpperCase() as OrderType,
           userId: token.id,
           orderStatus: OrderStatus.PENDING,
-          fullName: fullName || userExists.fullName || "Customer",
+          fullName: fullName || userExists?.fullName || "Customer",
           phoneNumber: phoneNumber || userExists.phoneNumber || null,
           email: email || userExists.email || null,
           totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,

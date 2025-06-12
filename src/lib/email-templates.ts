@@ -5,13 +5,15 @@ import OrderVerification from "@/components/email/order-confirmation";
 import PaymentRemainder from "@/components/email/payment-remainder";
 import RegisterVerification from "@/components/email/register-verification";
 import Thanks from "@/components/email/thanks";
+import ForgotPasswordEmail from "@/components/email/forgot-password";
 
 export type EmailTemplateType =
   | "payment-verification"
   | "order-confirmation"
   | "payment-remainder"
   | "register-verification"
-  | "thanks";
+  | "thanks"
+  | "forgot-password";
 
 export interface BaseEmailData {
   to: string;
@@ -45,12 +47,18 @@ export interface ThanksData extends BaseEmailData {
   reviewUrl: string;
 }
 
+export interface ForgotPasswordData extends BaseEmailData {
+  type: "forgot-password";
+  resetLink: string;
+}
+
 export type EmailData =
   | PaymentVerificationData
   | OrderConfirmationData
   | PaymentRemainderData
   | RegisterVerificationData
-  | ThanksData;
+  | ThanksData
+  | ForgotPasswordData;
 
 /**
  * Utility function untuk mengirim email dengan template yang sesuai
@@ -110,7 +118,6 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
       textContent = `Yth. ${fullName}, Terima kasih telah melakukan pendaftaran di TRANSPO. Akun Anda telah berhasil didaftarkan.`;
       break;
     }
-
     case "thanks": {
       const data = emailData as ThanksData;
       subject = "Terima Kasih - TRANSPO";
@@ -121,6 +128,19 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
         })
       );
       textContent = `Yth. ${fullName}, Terima kasih telah mempercayakan perjalanan Anda bersama TRANSPO.`;
+      break;
+    }
+
+    case "forgot-password": {
+      const data = emailData as ForgotPasswordData;
+      subject = "Reset Password Akun TRANSPO Anda";
+      htmlContent = await render(
+        ForgotPasswordEmail({
+          fullName,
+          resetLink: data.resetLink,
+        })
+      );
+      textContent = `Yth. ${fullName}, Kami menerima permintaan untuk mereset password akun TRANSPO Anda. Klik link berikut untuk membuat password baru: ${data.resetLink}`;
       break;
     }
 
@@ -146,8 +166,11 @@ export const emailTemplates = {
   async sendPaymentVerification(to: string, fullName: string) {
     return sendTemplateEmail({ type: "payment-verification", to, fullName });
   },
-
-  async sendOrderConfirmation(to: string, fullName: string, orderData: any[]) {
+  async sendOrderConfirmation(
+    to: string,
+    fullName: string,
+    orderData: Array<{ text: string; value: string | number }>
+  ) {
     return sendTemplateEmail({
       type: "order-confirmation",
       to,
@@ -174,8 +197,16 @@ export const emailTemplates = {
   async sendRegisterVerification(to: string, fullName: string) {
     return sendTemplateEmail({ type: "register-verification", to, fullName });
   },
-
   async sendThanks(to: string, fullName: string, reviewUrl: string) {
     return sendTemplateEmail({ type: "thanks", to, fullName, reviewUrl });
+  },
+
+  async sendForgotPassword(to: string, fullName: string, resetLink: string) {
+    return sendTemplateEmail({
+      type: "forgot-password",
+      to,
+      fullName,
+      resetLink,
+    });
   },
 };

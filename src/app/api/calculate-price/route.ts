@@ -4,7 +4,6 @@ import {
   calculateElfPrice,
   calculateHiaceCommuterPrice,
   calculateHiacePremioPrice,
-  calculateInterTripCharges,
   calculateDistance,
 } from "@/utils/order";
 import { NextRequest, NextResponse } from "next/server";

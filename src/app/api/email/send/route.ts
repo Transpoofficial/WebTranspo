@@ -76,7 +76,6 @@ export const POST = async (req: NextRequest) => {
       case "register-verification":
         emailData = { type: "register-verification", to, fullName };
         break;
-
       case "thanks":
         if (!extraData.reviewUrl) {
           return NextResponse.json(
@@ -89,6 +88,24 @@ export const POST = async (req: NextRequest) => {
           to,
           fullName,
           reviewUrl: extraData.reviewUrl,
+        };
+        break;
+
+      case "forgot-password":
+        if (!extraData.resetLink) {
+          return NextResponse.json(
+            {
+              message: "resetLink is required for forgot-password email",
+              data: [],
+            },
+            { status: 400 }
+          );
+        }
+        emailData = {
+          type: "forgot-password",
+          to,
+          fullName,
+          resetLink: extraData.resetLink,
         };
         break;
 
