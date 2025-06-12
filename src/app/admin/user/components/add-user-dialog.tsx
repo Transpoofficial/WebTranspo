@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { roles } from "../data/data";
+import { Label } from "@/components/ui/label";
 
 const AddUserDialog = () => {
   const queryClient = useQueryClient();
@@ -100,7 +100,7 @@ const AddUserDialog = () => {
             </div>
 
             <div className="flex flex-col gap-y-2">
-              <Label htmlFor="phoneNumber">No. Telepon</Label>
+              <Label htmlFor="phoneNumber">No. Telepon (opsional)</Label>
               <Input
                 id="phoneNumber"
                 value={formData.phoneNumber}

@@ -84,8 +84,8 @@ export const POST = async (req: NextRequest) => {
     // validate if user is super admin
     await checkAuth(req, ["SUPER_ADMIN"]);
     const body = await req.json();
-    const { fullname, email, password, phoneNumber } = body;
-    if (!fullname || !email || !password || !phoneNumber) {
+    const { fullname, email, phoneNumber, password } = body;
+    if (!fullname || !email || !password) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -93,7 +93,7 @@ export const POST = async (req: NextRequest) => {
     }
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email: email }, { phoneNumber: phoneNumber }],
+        OR: [{ email: email }],
       },
     });
     if (existingUser) {
@@ -109,8 +109,8 @@ export const POST = async (req: NextRequest) => {
         fullName: fullname,
         email,
         password: hashedPassword,
-        role: Role.ADMIN,
         phoneNumber,
+        role: Role.ADMIN,
       },
       omit: {
         password: true,

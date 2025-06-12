@@ -321,7 +321,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         }
 
         console.log("✅ Order created successfully:", response.data.data);
-
         onContinue({
           id: paymentData.id,
           amount: parseFloat(paymentData.totalPrice),
@@ -329,11 +328,16 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
       } else {
         toast.error("Gagal membuat pesanan. Silakan coba lagi.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Error creating order:", error);
 
-      if (error.response?.status === 400) {
-        const errorMessage = error.response?.data?.message || "Bad request";
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string } };
+        code?: string;
+      };
+      if (axiosError.response?.status === 400) {
+        const errorMessage =
+          axiosError.response?.data?.message || "Bad request";
 
         if (errorMessage.includes("Price validation failed")) {
           setPriceValidationError(errorMessage);
@@ -352,11 +356,11 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         } else {
           toast.error(errorMessage);
         }
-      } else if (error.response?.status === 404) {
+      } else if (axiosError.response?.status === 404) {
         toast.error("Data tidak ditemukan. Silakan login ulang.");
-      } else if (error.response?.status === 500) {
+      } else if (axiosError.response?.status === 500) {
         toast.error("Terjadi kesalahan server. Silakan coba lagi nanti.");
-      } else if (error.code === "NETWORK_ERROR") {
+      } else if (axiosError.code === "NETWORK_ERROR") {
         toast.error(
           "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
         );
@@ -558,9 +562,9 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                                           locIndex === 0
                                             ? "bg-blue-100 text-blue-700"
                                             : locIndex ===
-                                              trip.location.length - 1
-                                            ? "bg-red-100 text-red-700"
-                                            : "bg-gray-100 text-transpo-primary"
+                                                trip.location.length - 1
+                                              ? "bg-red-100 text-red-700"
+                                              : "bg-gray-100 text-transpo-primary"
                                         }
                                       `}
                                     >
@@ -711,9 +715,11 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
               <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mt-3">
                 <p className="text-blue-800 text-sm">
                   <strong>Yang akan terjadi selanjutnya:</strong>
-                </p>
+                </p>{" "}
                 <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
-                  <li>Pesanan akan dibuat dengan status "Pending"</li>
+                  <li>
+                    Pesanan akan dibuat dengan status &ldquo;Pending&rdquo;
+                  </li>
                   <li>Anda akan diarahkan ke halaman pembayaran</li>
                   <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
                 </ul>

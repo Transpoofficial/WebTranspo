@@ -3,7 +3,7 @@
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import axios from "axios";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
@@ -64,7 +64,8 @@ const fetchOrders = async (params: {
   return response.data;
 };
 
-export default function OrderPage() {
+// Component that uses useSearchParams
+function OrderPageContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -282,5 +283,14 @@ export default function OrderPage() {
         }}
       />
     </div>
+  );
+}
+
+// Main exported component with Suspense wrapper
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <OrderPageContent />
+    </Suspense>
   );
 }

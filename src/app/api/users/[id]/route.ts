@@ -104,7 +104,7 @@ export const PUT = async (
       role: role as "CUSTOMER" | "ADMIN" | "SUPER_ADMIN",
     };
 
-    // Only update password if it's provided and not empty
+    // Only hash and update password if it's provided and not empty
     if (password && password.trim() !== "") {
       updateData.password = bcrypt.hashSync(password, 10);
     }
