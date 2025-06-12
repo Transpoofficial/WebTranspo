@@ -18,13 +18,6 @@ export const GET = async (
     }
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id: id },
-      include: {
-        vehicle: {
-          include: {
-            vehicleType: true,
-          },
-        },
-      },
     });
     return NextResponse.json(
       { message: "Vehicle retrieved successfully", data: tourPackage },
@@ -97,7 +90,7 @@ export const PUT = async (
     if (files && files.length > 0) {
       // Upload files to Supabase storage
       const results: ResultUploadFiles = await uploadFiles(
-        "testing",
+        process.env.SUPABASE_BUCKET || "",
         files,
         "tourPackage"
       );
@@ -115,7 +108,7 @@ export const PUT = async (
       if (replacePhoto) {
         // Remove old photos from Supabase storage
         const removeResults = await removeFiles(
-          "testing",
+          process.env.SUPABASE_BUCKET || "",
           // updatedPhotoUrl is still an array of old URLs
           updatedPhotoUrl.map((photo) => photo.url)
         );
@@ -134,7 +127,6 @@ export const PUT = async (
       where: { id: id },
       data: {
         name,
-        vehicleId,
         destination,
         durationDays: Number(durationDays),
         advantages: advantagesArray,
@@ -184,7 +176,7 @@ export const DELETE = async (
     if (tourPackage?.photoUrl) {
       const oldPhotoUrl = tourPackage.photoUrl as PhotoUrl;
       const removeResults = await removeFiles(
-        "testing",
+        process.env.SUPABASE_BUCKET || "",
         oldPhotoUrl.map((photo) => photo.url)
       );
       if (removeResults.some((result) => result.success === false)) {

@@ -47,7 +47,6 @@ export const PUT = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    // validate if user is super admin
     await checkAuth(req, ["SUPER_ADMIN"]);
     const { id } = await params;
     if (!id) {
@@ -56,6 +55,7 @@ export const PUT = async (
         { status: 400 }
       );
     }
+
     const user = await prisma.user.findUnique({
       where: { id: id },
     });
@@ -65,39 +65,64 @@ export const PUT = async (
         { status: 404 }
       );
     }
+
     const body = await req.json();
-    const { fullname, email, password, phoneNumber } = body;
-    if (!fullname || !email || !password || !phoneNumber) {
+    const { fullname, email, password, phoneNumber, role } = body;
+
+    if (!fullname || !email || !phoneNumber) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
       );
     }
+
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email: email }, { phoneNumber: phoneNumber }],
         NOT: { id: id },
       },
     });
+
     if (existingUser) {
       return NextResponse.json(
         { error: "User already exists" },
         { status: 409 }
       );
     }
-    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    // Prepare update data
+    const updateData: {
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+      role: "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
+      password?: string;
+    } = {
+      fullName: fullname,
+      email,
+      phoneNumber,
+      role: role as "CUSTOMER" | "ADMIN" | "SUPER_ADMIN",
+    };
+
+    // Only update password if it's provided and not empty
+    if (password && password.trim() !== "") {
+      updateData.password = bcrypt.hashSync(password, 10);
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: id },
-      data: {
-        fullName: fullname,
-        email,
-        password: hashedPassword,
-        phoneNumber,
-      },
-      omit: {
-        password: true,
+      data: updateData,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
+
     return NextResponse.json(
       { message: "User updated successfully", data: updatedUser },
       { status: 200 }

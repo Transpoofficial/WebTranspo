@@ -88,16 +88,27 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin", // Customize your sign-in page if necessary
+    signOut: "/auth/signin", // Add this to redirect to the signin page after logout
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        sameSite: "lax", // Adjust as needed,
+        path: "/", // Cookie path
+      },
+    },
   },
 
-  callbacks: {
-    async signIn({ user, account }) {
+  callbacks: {    async signIn({ user, account }) {
       if (account?.provider === "google") {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
         });
         if (!existingUser) {
-          await prisma.user.create({
+          const newUser = await prisma.user.create({
             data: {
               email: user.email,
               fullName: user.fullName,
@@ -106,6 +117,30 @@ export const authOptions: NextAuthOptions = {
               phoneNumber: "", // Add any other default values you want
             },
           });
+
+          // Send verification email for new Google users
+          try {
+            const emailResponse = await fetch(
+              `${process.env.NEXTAUTH_URL}/api/email/send`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  to: user.email,
+                  fullName: user.fullName,
+                  emailType: "register-verification",
+                }),
+              }
+            );
+
+            if (!emailResponse.ok) {
+              console.error("Failed to send verification email for Google signup");
+            }
+          } catch (emailError) {
+            console.error("Error sending verification email for Google signup:", emailError);
+          }
         }
       }
       return true;
@@ -126,15 +161,25 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          fullName: token.fullName,
-          role: token.role,
-        };
+    async session({ session, user }) {
+      // Jika menggunakan adapter, user akan tersedia
+      if (user) {
+        session.user.id = user.id;
+        session.user.fullName = user.fullName;
+        session.user.email = user.email;
+        session.user.role = user.role;
+      } else {
+        // Jika menggunakan JWT, ambil data terbaru dari database
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, fullName: true, email: true, role: true },
+        });
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.fullName = dbUser.fullName;
+          session.user.email = dbUser.email;
+          session.user.role = dbUser.role;
+        }
       }
       return session;
     },

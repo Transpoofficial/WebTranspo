@@ -17,10 +17,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface HeaderProps {
-  scrollToAdvantage: () => void;
-  scrollToHowToOrder: () => void;
-  scrollToFAQAndContact: () => void;
-  scrollToReview: () => void;
+  scrollToAdvantage?: () => void;
+  scrollToHowToOrder?: () => void;
+  scrollToFAQAndContact?: () => void;
+  scrollToReview?: () => void;
+  isLandingPage?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -28,51 +29,67 @@ const Header: React.FC<HeaderProps> = ({
   scrollToHowToOrder,
   scrollToFAQAndContact,
   scrollToReview,
+  isLandingPage = true,
 }) => {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  // const router = useRouter();
 
+  // const handleButtonClick = (scrollFunction?: () => void) => {
+  //   if (scrollFunction) {
+  //     scrollFunction();
+  //   } else if (
+  //     !scrollToAdvantage &&
+  //     !scrollToHowToOrder &&
+  //     !scrollToFAQAndContact &&
+  //     !scrollToReview
+  //   ) {
+  //     router.push("/");
+  //   }
+  // };
   const handleSignOut = () => {
     signOut();
   };
 
   return (
     <>
-      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none">
+      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none z-999">
         <div className="container flex justify-between items-center mx-auto">
           {/* Header content for Tablet and Desktop */}
           <div className="inline-flex items-center md:gap-x-2">
             {/* Drawer for mobile */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  className="md:hidden text-white hover:text-white hover:bg-zinc-700/[.4]"
-                  variant="ghost"
-                  size="icon"
-                >
-                  <Menu />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <div className="flex flex-col py-10">
-                  <Button variant="ghost" size="lg" className="justify-start">
-                    Kelebihan
+            {isLandingPage && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    className="md:hidden text-white hover:text-white hover:bg-zinc-700/[.4]"
+                    variant="ghost"
+                    size="icon"
+                  >
+                    <Menu />
                   </Button>
-                  <Button variant="ghost" size="lg" className="justify-start">
-                    Cara kerja
-                  </Button>
-                  <Button variant="ghost" size="lg" className="justify-start">
-                    FAQ
-                  </Button>
-                  <Button variant="ghost" size="lg" className="justify-start">
-                    Review
-                  </Button>
-                  <Button variant="ghost" size="lg" className="justify-start">
-                    Kontak
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetTrigger>
+                <SheetContent side="left">
+                  <div className="flex flex-col py-10">
+                    <Button variant="ghost" size="lg" className="justify-start">
+                      Kelebihan
+                    </Button>
+                    <Button variant="ghost" size="lg" className="justify-start">
+                      Cara kerja
+                    </Button>
+                    <Button variant="ghost" size="lg" className="justify-start">
+                      FAQ
+                    </Button>
+                    <Button variant="ghost" size="lg" className="justify-start">
+                      Review
+                    </Button>
+                    <Button variant="ghost" size="lg" className="justify-start">
+                      Kontak
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
 
             <Image
               className="w-14 h-14"
@@ -87,48 +104,50 @@ const Header: React.FC<HeaderProps> = ({
             </p>
           </div>
 
-          <div className="hidden md:flex items-center">
-            <Button
-              onClick={scrollToAdvantage}
-              variant="ghost"
-              size="lg"
-              className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-            >
-              Kelebihan
-            </Button>
-            <Button
-              onClick={scrollToHowToOrder}
-              variant="ghost"
-              size="lg"
-              className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-            >
-              Cara kerja
-            </Button>
-            <Button
-              onClick={scrollToFAQAndContact}
-              variant="ghost"
-              size="lg"
-              className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-            >
-              FAQ
-            </Button>
-            <Button
-              onClick={scrollToReview}
-              variant="ghost"
-              size="lg"
-              className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-            >
-              Review
-            </Button>
-            <Button
-              onClick={scrollToFAQAndContact}
-              variant="ghost"
-              size="lg"
-              className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-            >
-              Kontak
-            </Button>
-          </div>
+          {isLandingPage && (
+            <div className="hidden md:flex items-center">
+              <Button
+                onClick={scrollToAdvantage}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                Kelebihan
+              </Button>
+              <Button
+                onClick={scrollToHowToOrder}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                Cara kerja
+              </Button>
+              <Button
+                onClick={scrollToFAQAndContact}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                FAQ
+              </Button>
+              <Button
+                onClick={scrollToReview}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                Review
+              </Button>
+              <Button
+                onClick={scrollToFAQAndContact}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                Kontak
+              </Button>
+            </div>
+          )}
 
           {isLoading ? (
             <Skeleton className="h-[36px] w-[168px]" />
@@ -157,14 +176,18 @@ const Header: React.FC<HeaderProps> = ({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {session.user?.role === "ADMIN" ||
-                  (session.user?.role === "SUPER_ADMIN" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">Halaman admin</Link>
-                    </DropdownMenuItem>
-                  ))}
-                <DropdownMenuItem>Profil</DropdownMenuItem>
-                <DropdownMenuItem>Pesanan</DropdownMenuItem>
+                {(session.user?.role === "ADMIN" ||
+                  session.user?.role === "SUPER_ADMIN") && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Halaman admin</Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/profile">Profil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/order">Pesanan</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   Log out

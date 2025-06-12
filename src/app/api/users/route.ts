@@ -9,29 +9,44 @@ export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
     const { searchParams } = new URL(req.url);
-    const role = (["USER", "ADMIN", "SUPER_ADMIN"] as const).includes(
-      searchParams.get("role") as "USER" | "ADMIN" | "SUPER_ADMIN"
-    )
-      ? (searchParams.get("role") as "USER" | "ADMIN" | "SUPER_ADMIN")
-      : "USER";
-    const roleMapping = {
-      USER: Role.CUSTOMER,
-      ADMIN: Role.ADMIN,
-      SUPER_ADMIN: Role.SUPER_ADMIN,
-    };
+    const search = searchParams.get("search") || "";
 
-    const mappedRole = roleMapping[role];
-
-    // Get total count with role filter
+    // Get total count with search filter
     const totalCount = await prisma.user.count({
       where: {
-        role: mappedRole,
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+          {
+            email: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+        ],
       },
     });
 
     const users = await prisma.user.findMany({
       where: {
-        role: mappedRole,
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+          {
+            email: {
+              contains: search,
+              // mode: "insensitive",
+            },
+          },
+        ],
       },
       skip,
       take: limit,
