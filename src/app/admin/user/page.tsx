@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import { useEffect, useState}  from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -41,7 +41,8 @@ const fetchUsers = async (params: {
   return response.data;
 };
 
-export default function UserPage() {
+// Component that uses useSearchParams
+function UserPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -100,7 +101,9 @@ export default function UserPage() {
     return (
       <div className="h-full flex-1 flex-col space-y-4">
         <div className="flex items-center justify-center h-24">
-          <div className="text-sm text-muted-foreground">Loading session...</div>
+          <div className="text-sm text-muted-foreground">
+            Loading session...
+          </div>
         </div>
       </div>
     );
@@ -174,5 +177,14 @@ export default function UserPage() {
         }}
       />
     </div>
+  );
+}
+
+// Main exported component with Suspense wrapper
+export default function UserPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <UserPageContent />
+    </Suspense>
   );
 }
