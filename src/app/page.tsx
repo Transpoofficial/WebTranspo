@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -14,6 +14,7 @@ import {
   MapPinned,
   Phone,
   Quote,
+  Star,
   UsersRound,
 } from "lucide-react";
 import {
@@ -34,13 +35,15 @@ import Header from "../components/header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Hurricane } from "next/font/google";
 import Transportation from "./components/transportation";
-import Hiace from "./components/hiace";
 import Elf from "./components/elf";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import HiaceCommuter from "./components/hiace-commuter";
+import HiacePremio from "./components/hiace-premio";
+import Link from "next/link";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -54,44 +57,82 @@ interface Article {
   createdAt: string;
   author: {
     fullName: string;
-  }
+  };
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  content: string;
+  order: {
+    user: {
+      fullName: string;
+    };
+  };
 }
 
 const Home = () => {
   const router = useRouter();
-  
-  const { data: articlesData, isLoading, error } = useQuery({
-    queryKey: ['articles'],
+
+  const {
+    data: articlesData,
+    isLoading: isLoadingArticles,
+    error: articlesError,
+  } = useQuery({
+    queryKey: ["articles"],
     queryFn: async () => {
-      const { data } = await axios.get('/api/articles');
+      const { data } = await axios.get("/api/articles");
       return data;
-    }
+    },
+  });
+
+  const {
+    data: reviewsData,
+    isLoading: isLoadingReviews,
+    error: reviewsError,
+  } = useQuery({
+    queryKey: ["reviews"],
+    queryFn: async () => {
+      const { data } = await axios.get("/api/reviews");
+      return data;
+    },
   });
 
   const advantageRef = useRef<HTMLDivElement | null>(null);
   const howToOrderRef = useRef<HTMLDivElement | null>(null);
-  const faqAndContactRef = useRef<HTMLDivElement | null>(null);
+  const serviceRef = useRef<HTMLDivElement | null>(null);
+  const articleRef = useRef<HTMLDivElement | null>(null);
   const reviewRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToAdvantage = () => {
     advantageRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
+  };
 
   const scrollToHowToOrder = () => {
     howToOrderRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
+  };
 
-  const scrollToFAQAndContact = () => {
-    faqAndContactRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
+  const scrollToService = () => {
+    serviceRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToArticle = () => {
+    articleRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const scrollToReview = () => {
     reviewRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
+  };
 
   return (
     <>
-      <Header scrollToAdvantage={scrollToAdvantage} scrollToHowToOrder={scrollToHowToOrder} scrollToFAQAndContact={scrollToFAQAndContact} scrollToReview={scrollToReview} />
+      <Header
+        scrollToAdvantage={scrollToAdvantage}
+        scrollToHowToOrder={scrollToHowToOrder}
+        scrollToService={scrollToService}
+        scrollToArticle={scrollToArticle}
+        scrollToReview={scrollToReview}
+      />
 
       <main>
         {/* Carousel */}
@@ -103,7 +144,7 @@ const Home = () => {
             width={100}
             height={100}
           />
-          
+
           {/* Backdrop */}
           <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
@@ -156,44 +197,11 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Choose Transportation*/}
-        <div className="container mt-10 md:mt-24 px-4 md:px-10 mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-center">
-            Pilih layanan sesuai kebutuhanmu
-          </h1>
-
-          {/* Tabs */}
-          <div className="mt-6 md:mt-12">
-            <Tabs defaultValue="angkot" className="w-full">
-              <TabsList className="w-full min-h-max">
-                <TabsTrigger value="angkot" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
-                  <CarFront className="!w-8 !h-8" />
-                  <span className="font-bold uppercase text-base">Angkot</span>
-                </TabsTrigger>
-                <TabsTrigger value="hiace" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
-                  <BusFront className="!w-8 !h-8" />
-                  <span className="font-bold uppercase text-base">HIACE</span>
-                </TabsTrigger>
-                <TabsTrigger value="elf" className="flex-col min-h-max data-[state=active]:text-[#0897B1]">
-                  <Bus className="!w-8 !h-8" />
-                  <span className="font-bold uppercase text-base">Elf</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="angkot">
-                <Transportation />
-              </TabsContent>
-              <TabsContent value="hiace">
-                <Hiace />
-              </TabsContent>
-              <TabsContent value="elf">
-                <Elf />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-
         {/* How to Order */}
-        <div ref={howToOrderRef} className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto">
+        <div
+          ref={howToOrderRef}
+          className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto"
+        >
           <h1 className="text-3xl md:text-4xl font-bold">
             Cara Pesan <span className="text-[#0897B1]">Transpo</span>
           </h1>
@@ -271,7 +279,10 @@ const Home = () => {
         </div>
 
         {/* Advantages */}
-        <div ref={advantageRef} className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div
+          ref={advantageRef}
+          className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+        >
           <h1 className="block md:hidden text-3xl md:text-4xl text-center md:text-left font-bold">
             Kelebihan
           </h1>
@@ -286,7 +297,7 @@ const Home = () => {
                 height={500}
               />
             </div>
-            
+
             <div className="col-span-12 md:col-span-7 mt-6 md:mt-0">
               <h1 className="hidden md:block text-3xl md:text-4xl text-center md:text-left font-bold">
                 Kelebihan
@@ -295,7 +306,10 @@ const Home = () => {
               <ul className="md:mt-6 flex flex-col gap-y-3">
                 <li className="flex items-start gap-x-4">
                   <div className="w-auto">
-                    <MapPinned color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
+                    <MapPinned
+                      color="#0897B1"
+                      className="w-8 h-8 md:w-10 md:h-10"
+                    />
                   </div>
 
                   <div className="flex flex-col justify-start max-w-full">
@@ -311,7 +325,10 @@ const Home = () => {
 
                 <li className="flex items-center gap-x-4">
                   <div className="w-auto">
-                    <Handshake color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
+                    <Handshake
+                      color="#0897B1"
+                      className="w-8 h-8 md:w-10 md:h-10"
+                    />
                   </div>
 
                   <div className="flex flex-col justify-start">
@@ -327,7 +344,10 @@ const Home = () => {
 
                 <li className="flex items-center gap-x-4">
                   <div className="w-auto">
-                    <UsersRound color="#0897B1" className="w-8 h-8 md:w-10 md:h-10" />
+                    <UsersRound
+                      color="#0897B1"
+                      className="w-8 h-8 md:w-10 md:h-10"
+                    />
                   </div>
 
                   <div className="flex flex-col justify-start">
@@ -345,33 +365,99 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Choose Transportation*/}
+        <div
+          ref={serviceRef}
+          className="container mt-10 md:mt-24 px-4 md:px-10 mx-auto"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-center">
+            Pilih layanan sesuai kebutuhanmu
+          </h1>
+
+          {/* Tabs */}
+          <div className="mt-6 md:mt-12">
+            <Tabs defaultValue="angkot" className="w-full">
+              <TabsList className="w-full min-h-max">
+                <TabsTrigger
+                  value="angkot"
+                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <CarFront className="!w-8 !h-8" />
+                  <span className="font-bold uppercase text-base">Angkot</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="hiace_commuter"
+                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <BusFront className="!w-8 !h-8" />
+                  <span className="font-bold uppercase text-base">
+                    HIACE Commuter
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="hiace_premio"
+                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <BusFront className="!w-8 !h-8" />
+                  <span className="font-bold uppercase text-base">
+                    HIACE Premio
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="elf"
+                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <Bus className="!w-8 !h-8" />
+                  <span className="font-bold uppercase text-base">Elf</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="angkot">
+                <Transportation />
+              </TabsContent>
+              <TabsContent value="hiace_commuter">
+                <HiaceCommuter />
+              </TabsContent>
+              <TabsContent value="hiace_premio">
+                <HiacePremio />
+              </TabsContent>
+              <TabsContent value="elf">
+                <Elf />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+
         {/* Articles */}
-        <div className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div
+          ref={articleRef}
+          className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+        >
           <div className="flex justify-between items-center">
             <h1 className="text-3xl md:text-4xl text-center font-bold">
               Artikel
             </h1>
-            <Button 
-              variant="link" 
-              onClick={() => router.push('/articles')}
+            <Button
+              variant="link"
+              onClick={() => router.push("/articles")}
               className="text-[#0897B1] hover:text-[#0897B1]/80"
             >
               Lihat Semua
             </Button>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center mt-6 md:mt-12">
-              Loading...
-            </div>
-          ) : error ? (
+          {isLoadingArticles ? (
+            <div className="flex justify-center mt-6 md:mt-12">Loading...</div>
+          ) : articlesError ? (
             <div className="flex justify-center mt-6 md:mt-12 text-red-500">
               Error loading articles
             </div>
           ) : (
             <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
               {articlesData?.data?.slice(0, 10).map((article: Article) => (
-                <Card key={article.id} className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
+                <Card
+                  key={article.id}
+                  className="min-w-xs max-w-xs md:min-w-md md:max-w-md"
+                >
                   <CardContent>
                     <Image
                       className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
@@ -389,10 +475,10 @@ const Home = () => {
                   </CardContent>
                   <CardFooter>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(article.createdAt).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
+                      {new Date(article.createdAt).toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
                       })}
                     </p>
                   </CardFooter>
@@ -403,7 +489,10 @@ const Home = () => {
         </div>
 
         {/* Review */}
-        <div ref={reviewRef} className="container mx-auto mt-10 md:mt-24 px-4 md:px-10">
+        <div
+          ref={reviewRef}
+          className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+        >
           <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
 
           <Carousel
@@ -413,28 +502,58 @@ const Home = () => {
             className="w-full mt-3 md:mt-9"
           >
             <CarouselContent className="py-3">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+              {isLoadingReviews ? (
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                   <div className="py-4 px-6 shadow-md rounded-3xl border">
-                    <Quote size={20} />
-                    <p className="text-xs md:text-sm mt-2 mb-3">
-                      Layanan yang sangat memuaskan! Prosesnya cepat dan mudah,
-                      dan saya sangat terbantu dengan fitur transparansi harga.
-                      Sangat recommended!
-                    </p>
-
-                    <h6 className="text-sm md:text-base font-bold underline">
-                      Anthony
-                    </h6>
+                    Loading reviews...
                   </div>
                 </CarouselItem>
-              ))}
+              ) : reviewsError ? (
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <div className="py-4 px-6 shadow-md rounded-3xl border">
+                    Error loading reviews
+                  </div>
+                </CarouselItem>
+              ) : (
+                reviewsData?.data.map((review: Review) => (
+                  <CarouselItem
+                    key={review.id}
+                    className="md:basis-1/2 lg:basis-1/3"
+                  >
+                    <div className="py-4 px-6 shadow-md rounded-3xl border">
+                      <Quote size={20} />
+                      <div className="flex gap-0.5 mt-2">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                          <Star
+                            key={index}
+                            size={16}
+                            className={
+                              index < review.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }
+                          />
+                        ))}
+                      </div>
+                      <p
+                        title={review.content}
+                        className="text-xs md:text-sm mt-2 mb-3 line-clamp-3 text-ellipsis"
+                      >
+                        {review.content}
+                      </p>
+                      <h6 className="text-sm md:text-base font-bold underline">
+                        {review.order.user.fullName}
+                      </h6>
+                    </div>
+                  </CarouselItem>
+                ))
+              )}
             </CarouselContent>
           </Carousel>
         </div>
 
         {/* Contact */}
-        <div ref={faqAndContactRef} className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
+        <div className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
           <div className="col-span-12 md:col-span-6">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
@@ -484,10 +603,12 @@ const Home = () => {
               Punya pertanyaan lain? Langsung hubungin Admin ajahh
             </h5>
 
-            <Button className="cursor-pointer">
-              <Phone />
-              Admin
-            </Button>
+            <Link href="https://wa.me/6282231378326" target="_blank">
+              <Button className="cursor-pointer bg-[#33E73C] hover:bg-[#33E73C]/90">
+                <Phone />
+                Admin
+              </Button>
+            </Link>
           </div>
         </div>
       </main>
