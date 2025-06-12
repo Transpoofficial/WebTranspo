@@ -558,37 +558,40 @@ const Home = () => {
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-lg md:text-xl">
-                  Harga?
+                  Berapa kisaran harga untuk layanan transportasi?
                 </AccordionTrigger>
                 <AccordionContent className="text-base md:text-lg">
-                  Mulai dari Rp.100,000.00 kamu udah bisa jalan-jalan.
+                  Harga untuk angkot mulai 100k, untuk Hiace mulai dari 999k
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
                 <AccordionTrigger className="text-lg md:text-xl">
-                  Berapa kapasitas orang per-angkot?
+                  Include apa saja pesanan rental angkot, HIACE, dan ELF di
+                  TRANSPO?
                 </AccordionTrigger>
                 <AccordionContent className="text-base md:text-lg">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                  Harum, iure.
+                  <ul className="list-inside list-disc">
+                    <li>Bahan bakar</li>
+                    <li>Supir yang ramah dalam bertugas</li>
+                    <li>Bisa request mampir untuk makan & beli oleh-oleh</li>
+                    <li>Ketepatan waktu penjemputan</li>
+                    <li>
+                      Armada yang layak, bersih, nyaman, dan bebas asap rokok
+                    </li>
+                  </ul>
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
                 <AccordionTrigger className="text-lg md:text-xl">
-                  Kapan waktu terakhir melakukan pemesanan?
+                  Bagaimana jika ada barang ketinggalan di armada?
                 </AccordionTrigger>
                 <AccordionContent className="text-base md:text-lg">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                  Harum, iure.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-4">
-                <AccordionTrigger className="text-lg md:text-xl">
-                  Apakah paket wisata sudah include semua?
-                </AccordionTrigger>
-                <AccordionContent className="text-base md:text-lg">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                  Harum, iure.
+                  Tenang, setiap barang yang ketinggalan di armada angkot, HIACE
+                  atau ELF pasti kita amankan. Kalian bisa ambil secara langsung
+                  di pool kami (harus menghubungi narahubung admin di WA
+                  terlebih dahulu) atau juga bisa request untuk bisa diantar,
+                  namun dikenakan biaya mulai dari Rp 50.000 (harga disesuaikan
+                  dengan jarak tempuh pengantaran).
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
