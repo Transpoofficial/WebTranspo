@@ -695,7 +695,7 @@ export const POST = async (req: NextRequest) => {
           orderType: orderType.toUpperCase() as OrderType,
           userId: token.id,
           orderStatus: OrderStatus.PENDING,
-          fullName: fullName || userExists.fullName || "Customer",
+          fullName: fullName || userExists?.fullName || "Customer",
           phoneNumber: phoneNumber || userExists.phoneNumber || null,
           email: email || userExists.email || null,
           totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,

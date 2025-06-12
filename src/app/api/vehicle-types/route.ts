@@ -9,7 +9,7 @@ export const GET = async (req: NextRequest) => {
     const search = req.nextUrl.searchParams.get("search") || "";
 
     if (search) {
-      const vehicleType = await prisma.vehicleType.findUnique({
+      const vehicleType = await prisma.vehicleType.findFirst({
         where: { name: search },
       });
       if (vehicleType) {
