@@ -9,7 +9,8 @@ import { Eye, EyeOff } from "lucide-react";
 interface PasswordInputProps {
   id: string;
   label: string;
-  name: string
+  name: string;
+  value: string;
 }
 
 const PasswordInput: React.FC<PasswordInputProps> = ({ id, label, name }) => {

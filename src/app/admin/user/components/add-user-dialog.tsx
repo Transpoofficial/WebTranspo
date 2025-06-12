@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
 import {
   Dialog,
   DialogContent,
@@ -12,152 +14,147 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import { toast } from "sonner";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-const userSchema = z.object({
-  fullname: z.string().min(1, { message: "Nama lengkap wajib diisi" }),
-  email: z.string().email({ message: "Alamat email tidak valid" }),
-  password: z
-    .string()
-    .min(6, { message: "Kata sandi harus terdiri dari setidaknya 6 karakter" }),
-});
-
-type UserInput = z.infer<typeof userSchema>;
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { roles } from "../data/data";
+import { Label } from "@/components/ui/label";
 
 const AddUserDialog = () => {
-  const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
-
-  const form = useForm<UserInput>({
-    resolver: zodResolver(userSchema),
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    fullname: "",
+    email: "",
+    password: "",
+    phoneNumber: "",
+    role: "",
   });
 
-  const userMutation = useMutation({
-    mutationFn: async (data: UserInput) => {
-      const response = await axios.post("/api/users", data);
-      return response.data;
-    },
+  const createMutation = useMutation({
+    mutationFn: (data: typeof formData) => axios.post("/api/users", data),
     onSuccess: () => {
-      toast.success("Pengguna berhasil ditambahkan.");
-
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      form.reset();
+      setOpen(false);
+      setFormData({
+        fullname: "",
+        email: "",
+        password: "",
+        phoneNumber: "",
+        role: "",
+      });
+      toast.success("User berhasil ditambahkan");
     },
-    onError: (error: import("axios").AxiosError<{ message?: string }>) => {
-      toast.error(
-        error.response?.data?.message ||
-          "Uh oh! Terjadi kesalahan, silakan coba lagi."
-      );
-    },
-    onSettled: () => {
-      setLoading(false);
+    onError: (error: AxiosError) => {
+      toast.error((error.response?.data as { message: string })?.message || "Gagal menambahkan user");
     },
   });
 
-  const onSubmit = (data: UserInput) => {
-    setLoading(true);
-    userMutation.mutate(data);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate(formData);
   };
 
   return (
-    <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="cursor-pointer">Tambah pengguna</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Tambah pengguna</DialogTitle>
-            <DialogDescription>
-              Tambah pengguna di sini. Klik simpan setelah selesai.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col gap-y-4 py-4"
-            >
-              {/* Full Name */}
-              <FormField
-                control={form.control}
-                name="fullname"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nama lengkap</FormLabel>
-                    <FormControl>
-                      <Input placeholder="" {...field} />
-                    </FormControl>
-                    {form.formState.errors.fullname && <FormMessage />}
-                  </FormItem>
-                )}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Tambah pengguna</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Tambah pengguna</DialogTitle>
+          <DialogDescription>
+            Tambah pengguna di sini. Klik simpan setelah selesai.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-y-4 py-4">
+            <div className="flex flex-col gap-y-2">
+              <Label htmlFor="fullname">Nama lengkap</Label>
+              <Input
+                id="fullname"
+                value={formData.fullname}
+                onChange={(e) =>
+                  setFormData({ ...formData, fullname: e.target.value })
+                }
+                required
               />
+            </div>
 
-              {/* Email */}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="" {...field} />
-                    </FormControl>
-                    {form.formState.errors.email && <FormMessage />}
-                  </FormItem>
-                )}
+            <div className="flex flex-col gap-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
               />
+            </div>
 
-              {/* Password */}
-              <FormField
-                control={form.control}
+            <div className="flex flex-col gap-y-2">
+              <Label htmlFor="phoneNumber">No. Telepon (opsional)</Label>
+              <Input
+                id="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, phoneNumber: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
                 name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                      />
-                    </FormControl>
-                    {form.formState.errors.password && <FormMessage />}
-                  </FormItem>
-                )}
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
               />
+            </div>
 
-              <DialogFooter>
-                <Button
-                  disabled={loading}
-                  className="cursor-pointer"
-                  type="submit"
-                >
-                  {loading ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    "Simpan"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </>
+            <div className="flex flex-col gap-y-2">
+              <Label>Role pengguna</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, role: value })
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih role pengguna" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

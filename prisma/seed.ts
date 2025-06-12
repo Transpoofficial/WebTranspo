@@ -43,6 +43,53 @@ async function main() {
       },
     });
   }
+  // Seed vehicle types with capacity
+  const vehicleTypes = [
+    {
+      name: "Angkot",
+      capacity: 12,
+      pricePerKm: 5000,
+    },
+    {
+      name: "Hiace Commuter",
+      capacity: 15,
+      pricePerKm: 8000,
+    },
+    {
+      name: "Hiace Premio",
+      capacity: 14,
+      pricePerKm: 7500,
+    },
+    {
+      name: "Elf",
+      capacity: 19,
+      pricePerKm: 10000,
+    },
+  ];
+
+  for (const vehicleType of vehicleTypes) {
+    const existing = await prisma.vehicleType.findFirst({
+      where: { name: vehicleType.name },
+    });
+
+    if (existing) {
+      await prisma.vehicleType.update({
+        where: { id: existing.id },
+        data: {
+          capacity: vehicleType.capacity,
+          pricePerKm: vehicleType.pricePerKm,
+        },
+      });
+    } else {
+      await prisma.vehicleType.create({
+        data: {
+          name: vehicleType.name,
+          capacity: vehicleType.capacity,
+          pricePerKm: vehicleType.pricePerKm,
+        },
+      });
+    }
+  }
 
   console.log("Seeding completed!");
 }
