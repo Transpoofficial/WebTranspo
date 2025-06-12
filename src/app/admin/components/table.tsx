@@ -1,186 +1,232 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Ellipsis } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const DashboardTable = () => {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null); // track which row's dropdown is open
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+import { columns } from "./columns";
+import { DataTable } from "./data-table";
+import { Order } from "./data/schema";
+import { useDebounce } from "@/hooks/use-debounce";
 
-  const handleLongPressStart = (id: string) => {
-    longPressTimer.current = setTimeout(() => {
-      setOpenDropdown(id); // open the dropdown for the specific row
-    }, 800);
+interface OrderResponse {
+  message: string;
+  data: Order[];
+  pagination: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
   };
+}
 
-  const handleLongPressEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
+interface SearchFilters {
+  search: string;
+  orderType: string;
+  orderStatus: string;
+  vehicleType: string;
+  paymentStatus: string;
+}
 
-  const handleDropdownToggle = (id: string) => {
-    setOpenDropdown((prev) => (prev === id ? null : id)); // toggle dropdown for this row
-  };
+// Fetch orders function with search and filters
+const fetchOrders = async (
+  skip: number,
+  limit: number,
+  filters: SearchFilters
+): Promise<OrderResponse> => {
+  const params = new URLSearchParams({
+    skip: skip.toString(),
+    limit: limit.toString(),
+  });
 
-  // Table data
-  const data = [
-    {
-      id: "INV001",
-      name: "Juhari",
-      date: "20 Februari 2025",
-      location: "Malang",
-      destination: "Surabaya",
-      passengers: 10,
-      vehicle: "Elf",
-      status: "Pending",
+  // Add search and filter parameters
+  if (filters.search) params.append("search", filters.search);
+  if (filters.orderType) params.append("orderType", filters.orderType);
+  if (filters.orderStatus) params.append("orderStatus", filters.orderStatus);
+  if (filters.vehicleType) params.append("vehicleType", filters.vehicleType);
+  if (filters.paymentStatus)
+    params.append("paymentStatus", filters.paymentStatus);
+
+  const response = await axios.get(`/api/orders?orderStatus=PENDING&${params.toString()}`, {
+    headers: {
+      "Content-Type": "application/json",
     },
-    {
-      id: "INV002",
-      name: "Fathan",
-      date: "25 Februari 2025",
-      location: "Surabaya",
-      destination: "Jakarta",
-      passengers: 17,
-      vehicle: "Elf",
-      status: "Success",
-    },
-  ];
-
-  return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="hidden"></TableHead>
-            <TableHead>ID Pesanan</TableHead>
-            <TableHead>Nama</TableHead>
-            <TableHead className="hidden md:table-cell">
-              Tanggal Keberangkatan
-            </TableHead>
-            <TableHead className="hidden md:table-cell">
-              Lokasi Penjemputan
-            </TableHead>
-            <TableHead className="hidden md:table-cell">
-              Destinasi Utama
-            </TableHead>
-            <TableHead className="hidden md:table-cell">
-              Jumlah Penumpang
-            </TableHead>
-            <TableHead className="hidden md:table-cell">
-              Jenis Kendaraan
-            </TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((row, key) => {
-            return (
-              <ContextMenu key={key}>
-                <ContextMenuTrigger asChild>
-                  <TableRow
-                    onMouseDown={() => handleLongPressStart(row.id)}
-                    onMouseUp={handleLongPressEnd}
-                    onMouseLeave={handleLongPressEnd} // Batalkan jika mouse keluar dari row
-                    onTouchStart={() => handleLongPressStart(row.id)}
-                    onTouchEnd={handleLongPressEnd}
-                    className="relative transition duration-200 active:scale-99 cursor-pointer"
-                  >
-                    <TableCell className="font-medium">
-                      INV001
-                      {/* Action Menu */}
-                      <div className="absolute top-0 left-0">
-                        {/* Dropdown menu for Mobile */}
-                        <DropdownMenu
-                          open={openDropdown === row.id} // Open dropdown for the active row
-                          onOpenChange={() => handleDropdownToggle(row.id)} // Toggle dropdown visibility
-                        >
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0"
-                            >
-                              <Ellipsis />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            side="bottom"
-                            align="start"
-                            className="z-50"
-                          >
-                            <DropdownMenuItem
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                    <TableCell>Juhari</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      20 Februari 2025
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      Malang
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      Surabaya
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">10</TableCell>
-                    <TableCell className="hidden md:table-cell">Elf</TableCell>
-                    <TableCell>
-                      <Badge>Pending</Badge>
-                    </TableCell>
-                  </TableRow>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem>Profile</ContextMenuItem>
-                  <ContextMenuItem>Billing</ContextMenuItem>
-                  <ContextMenuItem>Team</ContextMenuItem>
-                  <ContextMenuItem>Subscription</ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </>
-  );
+  });
+  return response.data;
 };
 
-export default DashboardTable;
+export default function DashboardTable() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get initial filters from URL
+  const initialFilters = {
+    search: searchParams.get("search") || "",
+    orderType: searchParams.get("orderType") || "",
+    orderStatus: searchParams.get("orderStatus") || "",
+    vehicleType: searchParams.get("vehicleType") || "",
+    paymentStatus: searchParams.get("paymentStatus") || "",
+  };
+
+  // State management
+  const [skip, setSkip] = useState(parseInt(searchParams.get("skip") || "0"));
+  const [limit, setLimit] = useState(parseInt(searchParams.get("limit") || "10"));
+  const [searchInput, setSearchInput] = useState(initialFilters.search);
+  const [filters, setFilters] = useState(initialFilters);
+
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Update URL with filters - modified to remove empty params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (filters.orderType) params.set("orderType", filters.orderType);
+    if (filters.orderStatus) params.set("orderStatus", filters.orderStatus);
+    if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
+    if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+    if (skip > 0) params.set("skip", skip.toString());
+    if (limit !== 10) params.set("limit", limit.toString());
+
+    // Use replaceState instead of push to avoid adding to browser history
+    router.replace(`?${params.toString()}`);
+  }, [debouncedSearch, filters, skip, limit, router]);
+
+  // Query to fetch orders
+  const {
+    data: orderResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["orders", skip, limit, debouncedSearch, filters],
+    queryFn: () => fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
+    enabled: !!session?.user,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  // Define resetPagination before using it
+  const resetPagination = useCallback(() => {
+    setSkip(0);
+  }, []);
+
+  // Update search function - immediate UI update
+  const updateSearch = useCallback(
+    (search: string) => {
+      setSearchInput(search);
+      resetPagination();
+    },
+    [resetPagination]
+  );
+
+  // Update filters function - modified to handle empty values
+  const updateFilters = useCallback(
+    (newFilters: Partial<typeof filters>) => {
+      setFilters((prev) => {
+        const updated = { ...prev };
+        // For each new filter value, either set it or delete it if empty
+        Object.entries(newFilters).forEach(([key, value]) => {
+          if (value === "") {
+            delete updated[key as keyof typeof filters];
+          } else {
+            updated[key as keyof typeof filters] = value;
+          }
+        });
+        return updated;
+      });
+      resetPagination();
+    },
+    [resetPagination]
+  );
+
+  // Update pagination
+  const updatePagination = useCallback((newSkip: number, newLimit?: number) => {
+    setSkip(newSkip);
+    if (newLimit !== undefined) {
+      setLimit(newLimit);
+    }
+  }, []);
+
+  // Enhanced pagination data
+  const paginationData = useMemo(() => {
+    if (!orderResponse?.pagination) return null;
+
+    return {
+      ...orderResponse.pagination,
+      pageIndex: Math.floor(skip / limit),
+      pageSize: limit,
+      pageCount: Math.ceil(orderResponse.pagination.total / limit),
+    };
+  }, [orderResponse, skip, limit]);
+
+  if (status === "loading") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">
+            Loading session...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">
+            Please log in to view orders.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center w-full">
+        <div className="border-y-2 border-black w-6 h-6 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-red-600">
+            Error loading orders:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="ml-2 text-blue-600 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+
+      <DataTable
+        data={orderResponse?.data || []}
+        columns={columns}
+        pagination={paginationData}
+        searchInput={searchInput}
+        filters={filters}
+        onSearchChange={updateSearch}
+        onFiltersChange={updateFilters}
+        onPaginationChange={updatePagination}
+        isLoading={isLoading}
+      />
+  );
+}
