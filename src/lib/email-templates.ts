@@ -166,8 +166,7 @@ export const emailTemplates = {
   async sendPaymentVerification(to: string, fullName: string) {
     return sendTemplateEmail({ type: "payment-verification", to, fullName });
   },
-
-  async sendOrderConfirmation(to: string, fullName: string, orderData: any[]) {
+  async sendOrderConfirmation(to: string, fullName: string, orderData: Array<{ text: string; value: string | number }>) {
     return sendTemplateEmail({
       type: "order-confirmation",
       to,

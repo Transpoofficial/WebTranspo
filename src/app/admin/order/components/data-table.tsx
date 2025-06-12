@@ -91,10 +91,15 @@ interface DataTableProps<TData, TValue> {
     orderStatus: string;
     vehicleType: string;
     paymentStatus: string;
-  };
-  searchInput?: string;
+  };  searchInput?: string;
   onSearchChange?: (search: string) => void;
-  onFiltersChange?: (filters: any) => void;
+  onFiltersChange?: (filters: Partial<{
+    search?: string;
+    orderType: string;
+    orderStatus: string;
+    vehicleType: string;
+    paymentStatus: string;
+  }>) => void;
   onPaginationChange?: (skip: number, limit?: number) => void;
   isLoading?: boolean;
 }

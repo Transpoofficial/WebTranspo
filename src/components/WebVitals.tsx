@@ -3,23 +3,27 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
+// Extend Window interface for analytics
+declare global {
+  interface Window {
+    gtag?: (command: string, targetId: string, config?: Record<string, unknown>) => void;
+  }
+}
+
 interface WebVitalsProps {
   debug?: boolean;
 }
 
 export default function WebVitals({ debug = false }: WebVitalsProps) {
-  const pathname = usePathname();
-  useEffect(() => {
+  const pathname = usePathname();  useEffect(() => {
     // Import web-vitals dynamically
     import("web-vitals").then(({ onCLS, onINP, onFCP, onLCP, onTTFB }) => {
-      function sendToAnalytics(metric: any) {
+      function sendToAnalytics(metric: { name: string; id: string; value: number }) {
         if (debug) {
           console.log("Web Vitals:", metric);
-        }
-
-        // Send to Google Analytics
-        if (typeof window !== "undefined" && (window as any).gtag) {
-          (window as any).gtag("event", metric.name, {
+        }        // Send to Google Analytics
+        if (typeof window !== "undefined" && window.gtag) {
+          window.gtag("event", metric.name, {
             event_category: "Web Vitals",
             event_label: metric.id,
             value: Math.round(
@@ -75,11 +79,9 @@ export function usePerformanceMonitoring() {
               duration: entry.duration,
               startTime: entry.startTime,
               name: entry.name,
-            });
-
-            // Send to analytics
-            if (typeof window !== "undefined" && (window as any).gtag) {
-              (window as any).gtag("event", "long_task", {
+            });            // Send to analytics
+            if (typeof window !== "undefined" && window.gtag) {
+              window.gtag("event", "long_task", {
                 event_category: "Performance",
                 event_label: "Long Task",
                 value: Math.round(entry.duration),
@@ -93,8 +95,7 @@ export function usePerformanceMonitoring() {
 
       return () => {
         longTaskObserver.disconnect();
-      };
-    } catch (error) {
+      };    } catch {
       console.warn("PerformanceObserver not supported for longtask");
     }
   }, []);
@@ -108,10 +109,8 @@ export function usePageLoadTracking() {
     const startTime = performance.now();
 
     const handleLoad = () => {
-      const loadTime = performance.now() - startTime;
-
-      if (typeof window !== "undefined" && (window as any).gtag) {
-        (window as any).gtag("event", "page_load_time", {
+      const loadTime = performance.now() - startTime;      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "page_load_time", {
           event_category: "Performance",
           event_label: pathname,
           value: Math.round(loadTime),

@@ -4,7 +4,7 @@ import Script from "next/script";
 
 interface StructuredDataProps {
   type: "WebSite" | "Organization" | "LocalBusiness" | "Service";
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export default function StructuredData({ type, data }: StructuredDataProps) {

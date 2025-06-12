@@ -126,10 +126,9 @@ export const authOptions: NextAuthOptions = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  to: user.email,
-                  fullName: user.fullName,
+                },                body: JSON.stringify({
+                  to: newUser.email,
+                  fullName: newUser.fullName,
                   emailType: "register-verification",
                 }),
               }

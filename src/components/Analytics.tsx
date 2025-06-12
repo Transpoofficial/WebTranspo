@@ -2,6 +2,14 @@
 
 import Script from "next/script";
 
+// Extend Window interface for analytics
+declare global {
+  interface Window {
+    gtag?: (command: string, targetId: string, config?: Record<string, unknown>) => void;
+    fbq?: (command: string, eventName: string, parameters?: Record<string, unknown>) => void;
+  }
+}
+
 interface AnalyticsProps {
   googleAnalyticsId?: string;
   googleTagManagerId?: string;
@@ -129,30 +137,27 @@ export default function Analytics({
 
 // Hook untuk tracking events
 export const useAnalytics = () => {
-  const trackEvent = (eventName: string, parameters?: Record<string, any>) => {
-    // Google Analytics 4 event tracking
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", eventName, parameters);
+  const trackEvent = (eventName: string, parameters?: Record<string, unknown>) => {    // Google Analytics 4 event tracking
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", eventName, parameters);
     }
 
     // Facebook Pixel event tracking
-    if (typeof window !== "undefined" && (window as any).fbq) {
-      (window as any).fbq("track", eventName, parameters);
+    if (typeof window !== "undefined" && window.fbq) {
+      window.fbq("track", eventName, parameters);
     }
   };
-
   const trackPageView = (url: string) => {
     // Google Analytics page view
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("config", process.env.NEXT_PUBLIC_GA_ID, {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("config", process.env.NEXT_PUBLIC_GA_ID || "", {
         page_path: url,
       });
     }
   };
-
   const trackConversion = (conversionId: string, value?: number) => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      (window as any).gtag("event", "conversion", {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "conversion", {
         send_to: conversionId,
         value: value,
         currency: "IDR",

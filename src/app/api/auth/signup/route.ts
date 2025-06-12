@@ -58,10 +58,11 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error("Error sending verification email:", emailError);
       // Don't fail the registration if email fails
-    }
-
-    return NextResponse.json(
-      { message: "User registered successfully" },
+    }    return NextResponse.json(
+      { 
+        message: "User registered successfully",
+        userId: newUser.id 
+      },
       { status: 201 }
     );
   } catch (error) {

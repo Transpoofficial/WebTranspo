@@ -3,7 +3,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import axios from "axios";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { columns } from "./components/columns";
@@ -53,11 +53,11 @@ const fetchOrders = async (
     headers: {
       "Content-Type": "application/json",
     },
-  });
-  return response.data;
+  });  return response.data;
 };
 
-export default function OrderPage() {
+// Component that uses useSearchParams
+function OrderPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -227,9 +227,17 @@ export default function OrderPage() {
         filters={filters}
         onSearchChange={updateSearch}
         onFiltersChange={updateFilters}
-        onPaginationChange={updatePagination}
-        isLoading={isLoading}
+        onPaginationChange={updatePagination}        isLoading={isLoading}
       />
     </div>
+  );
+}
+
+// Main exported component with Suspense wrapper
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <OrderPageContent />
+    </Suspense>
   );
 }
