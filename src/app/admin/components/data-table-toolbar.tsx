@@ -111,19 +111,6 @@ export function DataTableToolbar<TData>({
           disabled={isLoading}
         />
         <BackendDataTableFacetedFilter
-          title="Status pesanan"
-          options={[
-            { label: "Menunggu", value: "PENDING" },
-            { label: "Dikonfirmasi", value: "CONFIRMED" },
-            { label: "Dibatalkan", value: "CANCELED" },
-            { label: "Selesai", value: "COMPLETED" },
-            { label: "Dikembalikan", value: "REFUNDED" },
-          ]}
-          value={filters?.orderStatus ?? ""}
-          onValueChange={(value) => handleFilterChange("orderStatus", value)}
-          disabled={isLoading}
-        />
-        <BackendDataTableFacetedFilter
           title="Kendaraan"
           options={vehicleTypes}
           value={filters?.vehicleType ?? ""}
