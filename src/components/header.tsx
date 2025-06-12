@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none">
+      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none z-999">
         <div className="container flex justify-between items-center mx-auto">
           {/* Header content for Tablet and Desktop */}
           <div className="inline-flex items-center md:gap-x-2">

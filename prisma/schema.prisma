@@ -35,7 +35,7 @@ model User {
 model Article {
   id                      String              @id @default(cuid())
   title                   String
-  content                 String
+  content                 String              @db.Text
   authorId                String
   author                  User                @relation("AuthorArticles",fields: [authorId], references: [id])
   mainImgUrl              String
@@ -130,6 +130,7 @@ model Review {
   order                   Order               @relation(fields: [orderId], references: [id])
   rating                  Int
   content                 String
+  isShow                  Boolean             @default(false)
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
