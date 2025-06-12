@@ -8,7 +8,7 @@ import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { orderTypes } from "../data/data";
+import { orderTypes } from "./data/data";
 import { BackendDataTableFacetedFilter } from "./backend-data-table-faceted-filter";
 
 interface Filters {

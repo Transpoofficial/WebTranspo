@@ -6,8 +6,8 @@ import { id } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-import { orderTypes } from "../data/data";
-import { Order } from "../data/schema";
+import { orderTypes } from "./data/data";
+import { Order } from "./data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 

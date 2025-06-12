@@ -42,7 +42,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Order } from "../data/schema";
+import { Order } from "./data/schema";
 import {
   Sheet,
   SheetContent,
@@ -94,7 +94,13 @@ interface DataTableProps<TData, TValue> {
   };
   searchInput?: string;
   onSearchChange?: (search: string) => void;
-  onFiltersChange?: (filters: any) => void;
+  onFiltersChange?: (filters: Partial<{
+    search?: string;
+    orderType: string;
+    orderStatus: string;
+    vehicleType: string;
+    paymentStatus: string;
+  }>) => void;
   onPaginationChange?: (skip: number, limit?: number) => void;
   isLoading?: boolean;
 }
