@@ -15,7 +15,6 @@ import {
 import { ChartConfig } from "@/components/ui/chart";
 import ChartFilter from "./components/chart_filter";
 import DateFilter from "./components/date_filter";
-import OrderTable from "./components/table";
 import VehicleFilter from "./components/vehicle_filter";
 import StatusFilter from "./components/status_filter";
 import { DateRange } from "react-day-picker";
@@ -193,7 +192,6 @@ const OrderAnalysis = () => {
         </CardContent>
       </Card>
 
-      <OrderTable orders={filteredOrders} />
     </>
   );
 };
