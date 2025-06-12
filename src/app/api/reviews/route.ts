@@ -13,6 +13,9 @@ export const GET = async (req: NextRequest) => {
     const reviews = await prisma.review.findMany({
       skip,
       take: limit,
+      where: {
+        isShow: true,
+      },
       include: {
         order: {
           include: {
