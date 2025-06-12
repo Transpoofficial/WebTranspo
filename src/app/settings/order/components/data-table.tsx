@@ -63,15 +63,62 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { Star } from "lucide-react"; // Add this import
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onSearch: (value: string) => void;
+  onOrderTypeFilter: (values: string[]) => void;
+  onOrderStatusFilter: (values: string[]) => void;
+  onVehicleTypeFilter: (values: string[]) => void;
+  onPaymentStatusFilter: (values: string[]) => void;
+  pagination: {
+    pageIndex: number;
+    pageSize: number;
+    pageCount: number;
+    onPageChange: (pageIndex: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
+  searchValue?: string; // Add this prop
+  orderTypeFilter: string[];
+  orderStatusFilter: string[];
+  vehicleTypeFilter: string[];
+  paymentStatusFilter: string[];
+  vehicleTypes: { value: string; label: string }[];
+}
+
+interface ReviewFormData {
+  rating: string;
+  content: string;
+}
+
+interface ReviewPayload {
+  orderId: string;
+  rating: number;
+  content: string;
 }
 
 export function DataTable<TData extends Order, TValue>({
   columns,
   data,
+  onSearch,
+  onOrderTypeFilter,
+  onOrderStatusFilter,
+  onVehicleTypeFilter,
+  onPaymentStatusFilter,
+  pagination,
+  searchValue = "", // Add default value
+  orderTypeFilter = [],
+  orderStatusFilter = [],
+  vehicleTypeFilter = [],
+  paymentStatusFilter = [],
+  vehicleTypes,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -88,8 +135,11 @@ export function DataTable<TData extends Order, TValue>({
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const [isPaymentProofDialogOpen, setIsPaymentProofDialogOpen] =
     React.useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = React.useState(false);
   const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const form = useForm<ReviewFormData>();
+  const queryClient = useQueryClient();
 
   const table = useReactTable({
     data,
@@ -99,18 +149,69 @@ export function DataTable<TData extends Order, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination: {
+        pageIndex: pagination.pageIndex,
+        pageSize: pagination.pageSize,
+      },
     },
-    enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: (updater) => {
+      if (typeof updater === "function") {
+        const newState = updater({
+          pageIndex: pagination.pageIndex,
+          pageSize: pagination.pageSize,
+        });
+        pagination.onPageChange(newState.pageIndex);
+        if (newState.pageSize !== pagination.pageSize) {
+          pagination.onPageSizeChange(newState.pageSize);
+        }
+      }
+    },
+    pageCount: pagination.pageCount,
+    manualPagination: true, // Enable manual pagination
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: (payload: ReviewPayload) => axios.post("/api/reviews", payload),
+    onSuccess: () => {
+      toast.success("Penilaian berhasil dikirim");
+      setIsReviewDialogOpen(false);
+      form.reset();
+      // Invalidate dan refetch data orders
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error) => {
+      console.log(error);
+      toast.error("Gagal mengirim penilaian");
+    },
+  });
+
+  // Tambahkan di bagian mutations
+  const updateReviewMutation = useMutation({
+    mutationFn: (payload: ReviewPayload) =>
+      axios.put(`/api/reviews/${selectedRow?.review?.id}`, {
+        rating: payload.rating,
+        content: payload.content,
+      }),
+    onSuccess: () => {
+      toast.success("Penilaian berhasil diperbarui");
+      setIsReviewDialogOpen(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (error) => {
+      console.log(error);
+      toast.error("Gagal memperbarui penilaian");
+    },
   });
 
   const handleLongPressStart = (row: TData) => {
@@ -161,6 +262,36 @@ export function DataTable<TData extends Order, TValue>({
   const handleUploadSuccess = () => {
     // Refresh data or update UI as needed
     toast.success("Pembayaran berhasil diupload");
+  };
+
+  const handleSubmitReview = async (data: ReviewFormData) => {
+    if (!selectedRow) return;
+
+    if (selectedRow.review) {
+      // Update existing review
+      updateReviewMutation.mutate({
+        orderId: selectedRow.id,
+        rating: parseInt(data.rating),
+        content: data.content,
+      });
+    } else {
+      // Create new review
+      reviewMutation.mutate({
+        orderId: selectedRow.id,
+        rating: parseInt(data.rating),
+        content: data.content,
+      });
+    }
+  };
+
+  const handleOpenReview = (row: TData) => {
+    setSelectedRow(row);
+    setIsActionDrawerOpen(false);
+    if (row.review) {
+      form.setValue("rating", String(row.review.rating));
+      form.setValue("content", row.review.content);
+    }
+    setIsReviewDialogOpen(true);
   };
 
   const renderOrderDetails = (order: Order) => {
@@ -317,7 +448,7 @@ export function DataTable<TData extends Order, TValue>({
       return groups;
     };
 
-    const statusMap: {
+    const orderStatusMap: {
       [key: string]: {
         label: string;
         variant: "default" | "secondary" | "destructive" | "outline";
@@ -330,10 +461,29 @@ export function DataTable<TData extends Order, TValue>({
       REFUNDED: { label: "Dikembalikan", variant: "outline" },
     };
 
-    const status = statusMap[order.orderStatus] || {
+    const paymentStatusMap: {
+      [key: string]: {
+        label: string;
+        variant: "default" | "secondary" | "destructive" | "outline";
+      };
+    } = {
+      PENDING: { label: "Menunggu", variant: "outline" },
+      APPROVED: { label: "Disetujui", variant: "default" },
+      REJECTED: { label: "Ditolak", variant: "destructive" },
+    };
+
+    const orderStatus = orderStatusMap[order.orderStatus] || {
       label: order.orderStatus,
       variant: "outline" as const,
     };
+
+    const paymentStatus = paymentStatusMap[
+      order.payment?.paymentStatus || ""
+    ] || {
+      label: order.payment?.paymentStatus || "Belum ada",
+      variant: "outline" as const,
+    };
+
     return (
       <div className="p-4 pt-0 overflow-y-auto">
         <div className="flex items-start gap-x-10 w-full whitespace-nowrap overflow-x-auto">
@@ -343,10 +493,16 @@ export function DataTable<TData extends Order, TValue>({
             <p className="text-sm">{formatDate(order.createdAt)}</p>
           </div>
 
-          {/* Payment Status */}
+          {/* Order Status */}
           <div className="flex flex-col gap-y-4">
             <p className="text-xs text-[#6A6A6A]">Status pesanan</p>
-            <Badge variant={status.variant}>{status.label}</Badge>
+            <Badge variant={orderStatus.variant}>{orderStatus.label}</Badge>
+          </div>
+
+          {/* Payment Status */}
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">Status pembayaran</p>
+            <Badge variant={paymentStatus.variant}>{paymentStatus.label}</Badge>
           </div>
 
           {/* Order Type */}
@@ -364,9 +520,9 @@ export function DataTable<TData extends Order, TValue>({
         <div className="flex flex-col gap-y-4">
           <p className="text-xs text-[#6A6A6A]">Pemesan</p>
           <div className="flex flex-col gap-y-2">
-            <p className="text-sm">{order.user.fullName}</p>
-            <p className="text-sm">{order.user.email}</p>
-            <p className="text-sm">{order.user.phoneNumber}</p>
+            <p className="text-sm">{order.fullName}</p>
+            <p className="text-sm">{order.email}</p>
+            <p className="text-sm">{order.phoneNumber}</p>
           </div>
         </div>
 
@@ -451,13 +607,117 @@ export function DataTable<TData extends Order, TValue>({
             </div>
           </div>
         )}
+
+        {/* Review Section */}
+        {order.orderStatus === "COMPLETED" && (
+          <div className="flex flex-col gap-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-[#6A6A6A]">Penilaian</p>
+              {order.review ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenReview(order as TData)}
+                >
+                  Edit Penilaian
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenReview(order as TData)}
+                >
+                  Beri Penilaian
+                </Button>
+              )}
+            </div>
+
+            {order.review ? (
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center gap-x-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={20}
+                      className={
+                        i < order.review!.rating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-gray-200 text-gray-200"
+                      }
+                    />
+                  ))}
+                  <span className="text-sm ml-2">{order.review.rating}/5</span>
+                </div>
+                <p className="text-sm mt-2">{order.review.content}</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {format(
+                    new Date(order.review.createdAt),
+                    "dd MMM yyyy HH:mm",
+                    {
+                      locale: id,
+                    }
+                  )}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Belum ada penilaian</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const StarRating = ({
+    rating,
+    onRatingChange,
+  }: {
+    rating: number;
+    onRatingChange: (rating: number) => void;
+  }) => {
+    const [hoverRating, setHoverRating] = React.useState(0);
+
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            className="p-1 focus:outline-none"
+            onMouseEnter={() => setHoverRating(star)}
+            onMouseLeave={() => setHoverRating(0)}
+            onClick={() => onRatingChange(star)}
+          >
+            <Star
+              size={24}
+              className={`transition-all ${
+                (hoverRating || rating) >= star
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "fill-gray-200 text-gray-200"
+              }`}
+            />
+          </button>
+        ))}
       </div>
     );
   };
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar
+        table={table}
+        onSearch={onSearch}
+        searchValue={searchValue}
+        orderTypeFilter={orderTypeFilter}
+        orderStatusFilter={orderStatusFilter}
+        vehicleTypeFilter={vehicleTypeFilter}
+        paymentStatusFilter={paymentStatusFilter}
+        onOrderTypeFilter={onOrderTypeFilter}
+        onOrderStatusFilter={onOrderStatusFilter}
+        onVehicleTypeFilter={onVehicleTypeFilter}
+        onPaymentStatusFilter={onPaymentStatusFilter}
+        vehicleTypes={vehicleTypes}
+      />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -519,6 +779,20 @@ export function DataTable<TData extends Order, TValue>({
                         Upload bukti pembayaran
                       </ContextMenuItem>
                     )}
+                    {row.original.orderStatus === "COMPLETED" &&
+                      !row.original.review && (
+                        <ContextMenuItem
+                          onClick={() => handleOpenReview(row.original)}
+                        >
+                          Beri penilaian
+                        </ContextMenuItem>
+                      )}
+                    {row.original.orderStatus === "COMPLETED" &&
+                      row.original.review && (
+                        <ContextMenuItem disabled>
+                          Sudah diberi penilaian
+                        </ContextMenuItem>
+                      )}
                   </ContextMenuContent>
                 </ContextMenu>
               ))
@@ -535,7 +809,10 @@ export function DataTable<TData extends Order, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination
+        table={table}
+        totalCount={pagination.pageCount * pagination.pageSize}
+      />
 
       {/* Action Drawer for Mobile */}
       <Drawer open={isActionDrawerOpen} onOpenChange={setIsActionDrawerOpen}>
@@ -567,6 +844,16 @@ export function DataTable<TData extends Order, TValue>({
                 Upload bukti pembayaran
               </Button>
             )}
+            {selectedRow?.orderStatus === "COMPLETED" &&
+              !selectedRow?.review && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => selectedRow && handleOpenReview(selectedRow)}
+                >
+                  Beri penilaian
+                </Button>
+              )}
             <DrawerClose asChild>
               <Button variant="ghost" className="w-full justify-start">
                 Batal
@@ -633,20 +920,119 @@ export function DataTable<TData extends Order, TValue>({
         open={isPaymentProofDialogOpen}
         onOpenChange={setIsPaymentProofDialogOpen}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-xl max-h-[calc(100dvh-5rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Bukti Pembayaran</DialogTitle>
           </DialogHeader>
-          {selectedRow?.payment?.proofUrl && (
-            <div className="relative w-full aspect-[3/4]">
-              <Image
-                src={selectedRow.payment.proofUrl}
-                alt="Bukti pembayaran"
-                fill
-                className="object-contain"
-              />
+          {selectedRow?.payment?.proofUrl ? (
+            <>
+              <div className="text-sm space-y-1">
+                {selectedRow.payment.senderName && (
+                  <div>
+                    <span className="font-medium">Nama Pengirim: </span>
+                    {selectedRow.payment.senderName}
+                  </div>
+                )}
+                {selectedRow.payment.transferDate && (
+                  <div>
+                    <span className="font-medium">Tanggal Transfer: </span>
+                    {format(
+                      new Date(selectedRow.payment.transferDate),
+                      "dd MMM yyyy",
+                      { locale: id }
+                    )}
+                  </div>
+                )}
+                {selectedRow.payment.note && (
+                  <div
+                    className={`mt-2 border rounded-md p-3 ${
+                      selectedRow.payment.paymentStatus === "REJECTED"
+                        ? "bg-red-100 border-red-200"
+                        : ""
+                    }`}
+                  >
+                    <span
+                      className={`font-medium ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
+                      Catatan:{" "}
+                    </span>
+                    <p
+                      className={`mt-1 text-sm ${
+                        selectedRow.payment.paymentStatus === "REJECTED"
+                          ? "text-red-600"
+                          : ""
+                      }`}
+                    >
+                      {selectedRow.payment.note}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="relative w-full aspect-[3/4]">
+                <Image
+                  src={selectedRow.payment.proofUrl}
+                  alt="Bukti pembayaran"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-center text-muted-foreground py-8">
+              Belum memberikan bukti pembayaran
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedRow?.review ? "Edit Penilaian" : "Beri Penilaian"}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={form.handleSubmit(handleSubmitReview)}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <StarRating
+                rating={Number(form.watch("rating")) || 0}
+                onRatingChange={(value) =>
+                  form.setValue("rating", String(value))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="content">Komentar</Label>
+              <Textarea
+                {...form.register("content")}
+                placeholder="Tulis komentar Anda disini..."
+              />
+            </div>
+            <Button
+              disabled={
+                reviewMutation.isPending || updateReviewMutation.isPending
+              }
+              type="submit"
+              className="w-full"
+            >
+              {reviewMutation.isPending || updateReviewMutation.isPending ? (
+                <span className="border-y-2 border-white w-4 h-4 rounded-full animate-spin" />
+              ) : selectedRow?.review ? (
+                "Perbarui Penilaian"
+              ) : (
+                "Kirim Penilaian"
+              )}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 

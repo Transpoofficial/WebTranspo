@@ -66,17 +66,4 @@ export const priorities = [
   },
 ]
 
-export const vehicleTypes = [
-  {
-    value: "ANGKOT",
-    label: "Angkot",
-  },
-  {
-    value: "HIACE",
-    label: "Hiace",
-  },
-  {
-    value: "ELF",
-    label: "Elf",
-  },
-]
+// Removed vehicleTypes array since we'll fetch it from API
