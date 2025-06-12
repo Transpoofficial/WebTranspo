@@ -22,6 +22,8 @@ export const columns: ColumnDef<User>[] = [
 				</div>
 			)
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 	{
 		accessorKey: "email",
@@ -35,6 +37,8 @@ export const columns: ColumnDef<User>[] = [
 				</div>
 			)
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 	{
 		accessorKey: "phoneNumber",
@@ -48,6 +52,8 @@ export const columns: ColumnDef<User>[] = [
 				</div>
 			)
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 	{
 		accessorKey: "role",
@@ -64,6 +70,8 @@ export const columns: ColumnDef<User>[] = [
 				</div>
 			)
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id))
 		},
@@ -82,5 +90,7 @@ export const columns: ColumnDef<User>[] = [
 				</div>
 			)
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 ]
