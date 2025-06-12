@@ -1,60 +1,85 @@
-import { Table } from "@tanstack/react-table"
+import { Table } from "@tanstack/react-table";
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 interface DataTablePaginationProps<TData> {
-  table: Table<TData>
+  table: Table<TData>;
+  pagination?: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+    pageIndex: number;
+    pageSize: number;
+    pageCount: number;
+  };
 }
 
 export function DataTablePagination<TData>({
   table,
+  pagination,
 }: DataTablePaginationProps<TData>) {
+  if (!pagination) {
+    return null;
+  }
+
+  const { total, pageIndex, pageSize, pageCount } = pagination;
+
   return (
-    <div className="flex items-center justify-end">
+    <div className="flex items-center justify-between px-2">
+      <div className="flex-1 text-sm text-muted-foreground">
+        {total > 0 ? (
+          <>
+            Showing {pageIndex * pageSize + 1} to{" "}
+            {Math.min((pageIndex + 1) * pageSize, total)} of {total} entries
+          </>
+        ) : (
+          "No entries found"
+        )}
+      </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">Rows per page</p>
           <Select
-            value={`${table.getState().pagination.pageSize}`}
+            value={`${pageSize}`}
             onValueChange={(value) => {
-              table.setPageSize(Number(value))
+              table.setPageSize(Number(value));
             }}
           >
             <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 40, 50].map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
+              {[10, 20, 30, 40, 50].map((size) => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+          Page {pageIndex + 1} of {pageCount}
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             className="hidden h-8 w-8 p-0 lg:flex"
             onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
+            disabled={pageIndex === 0}
           >
             <span className="sr-only">Go to first page</span>
             <ChevronsLeft />
@@ -80,8 +105,8 @@ export function DataTablePagination<TData>({
           <Button
             variant="outline"
             className="hidden h-8 w-8 p-0 lg:flex"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
+            onClick={() => table.setPageIndex(pageCount - 1)}
+            disabled={pageIndex === pageCount - 1}
           >
             <span className="sr-only">Go to last page</span>
             <ChevronsRight />
@@ -89,5 +114,5 @@ export function DataTablePagination<TData>({
         </div>
       </div>
     </div>
-  )
+  );
 }
