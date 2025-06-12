@@ -73,7 +73,53 @@ export const POST = async (
         proofUrl: fileUrl,
         paymentStatus: PaymentStatus.PENDING, // Update status to indicate proof was uploaded
       },
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    // Send email notification to user using existing API endpoint
+    try {
+      if (
+        updatedPayment.order.user.email &&
+        updatedPayment.order.user.fullName
+      ) {
+        // Call the existing email API endpoint
+        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const emailResponse = await fetch(`${baseUrl}/api/email/send`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: updatedPayment.order.user.email,
+            fullName: updatedPayment.order.user.fullName,
+            emailType: "payment-verification",
+          }),
+        });
+
+        if (emailResponse.ok) {
+          console.log(
+            `Payment verification email sent to: ${updatedPayment.order.user.email}`
+          );
+        } else {
+          const errorData = await emailResponse.json();
+          console.error("Failed to send email:", errorData.message);
+        }
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the main request
+      console.error("Failed to send email notification:", emailError);
+    }
 
     return NextResponse.json(
       {
