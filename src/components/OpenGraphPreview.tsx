@@ -65,7 +65,9 @@ export default function OpenGraphPreview() {
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent>          <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
+        <CardContent>
+          {" "}
+          <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
             <Image
               src={metadata.image}
               alt="Preview"
@@ -106,7 +108,8 @@ export default function OpenGraphPreview() {
               <ExternalLink className="h-4 w-4" />
             </Button>
           </CardTitle>
-        </CardHeader>        <CardContent>
+        </CardHeader>{" "}
+        <CardContent>
           <div className="border border-gray-300 rounded-2xl overflow-hidden max-w-md">
             <Image
               src={metadata.image}
@@ -148,7 +151,8 @@ export default function OpenGraphPreview() {
               <ExternalLink className="h-4 w-4" />
             </Button>
           </CardTitle>
-        </CardHeader>        <CardContent>
+        </CardHeader>{" "}
+        <CardContent>
           <div className="border border-gray-300 rounded-lg overflow-hidden max-w-md">
             <Image
               src={metadata.image}
@@ -176,7 +180,8 @@ export default function OpenGraphPreview() {
       <Card>
         <CardHeader>
           <CardTitle>WhatsApp Preview</CardTitle>
-        </CardHeader>        <CardContent>
+        </CardHeader>{" "}
+        <CardContent>
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 max-w-xs">
             <Image
               src={metadata.image}

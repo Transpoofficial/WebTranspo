@@ -60,7 +60,8 @@ const fetchOrders = async (params: {
     headers: {
       "Content-Type": "application/json",
     },
-  });  return response.data;
+  });
+  return response.data;
 };
 
 // Component that uses useSearchParams
@@ -278,7 +279,8 @@ function OrderPageContent() {
             (orderResponse?.pagination?.total || 0) / pageSize
           ),
           onPageChange: handlePageChange,
-          onPageSizeChange: handlePageSizeChange,        }}
+          onPageSizeChange: handlePageSizeChange,
+        }}
       />
     </div>
   );

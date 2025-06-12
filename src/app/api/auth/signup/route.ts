@@ -23,7 +23,8 @@ export async function POST(request: Request) {
         { message: "User already exists" },
         { status: 409 }
       );
-    }    const hashedPassword = bcrypt.hashSync(password, 10);
+    }
+    const hashedPassword = bcrypt.hashSync(password, 10);
     const newUser = await prisma.user.create({
       data: {
         fullName,
@@ -52,16 +53,19 @@ export async function POST(request: Request) {
       );
 
       if (!emailResponse.ok) {
-        console.error("Failed to send verification email, but user was created");
+        console.error(
+          "Failed to send verification email, but user was created"
+        );
         // Don't fail the registration if email fails
       }
     } catch (emailError) {
       console.error("Error sending verification email:", emailError);
       // Don't fail the registration if email fails
-    }    return NextResponse.json(
-      { 
+    }
+    return NextResponse.json(
+      {
         message: "User registered successfully",
-        userId: newUser.id 
+        userId: newUser.id,
       },
       { status: 201 }
     );

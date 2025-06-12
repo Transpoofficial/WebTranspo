@@ -37,7 +37,8 @@ const fetchUsers = async (params: {
   if (params.limit !== undefined)
     searchParams.append("limit", params.limit.toString());
 
-  const response = await axios.get(`/api/users?${searchParams.toString()}`);  return response.data;
+  const response = await axios.get(`/api/users?${searchParams.toString()}`);
+  return response.data;
 };
 
 // Component that uses useSearchParams
@@ -100,7 +101,9 @@ function UserPageContent() {
     return (
       <div className="h-full flex-1 flex-col space-y-4">
         <div className="flex items-center justify-center h-24">
-          <div className="text-sm text-muted-foreground">Loading session...</div>
+          <div className="text-sm text-muted-foreground">
+            Loading session...
+          </div>
         </div>
       </div>
     );
@@ -171,7 +174,8 @@ function UserPageContent() {
           ),
           onPageChange: handlePageChange,
           onPageSizeChange: handlePageSizeChange,
-        }}      />
+        }}
+      />
     </div>
   );
 }

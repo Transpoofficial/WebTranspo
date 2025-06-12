@@ -5,8 +5,16 @@ import Script from "next/script";
 // Extend Window interface for analytics
 declare global {
   interface Window {
-    gtag?: (command: string, targetId: string, config?: Record<string, unknown>) => void;
-    fbq?: (command: string, eventName: string, parameters?: Record<string, unknown>) => void;
+    gtag?: (
+      command: string,
+      targetId: string,
+      config?: Record<string, unknown>
+    ) => void;
+    fbq?: (
+      command: string,
+      eventName: string,
+      parameters?: Record<string, unknown>
+    ) => void;
   }
 }
 
@@ -137,7 +145,11 @@ export default function Analytics({
 
 // Hook untuk tracking events
 export const useAnalytics = () => {
-  const trackEvent = (eventName: string, parameters?: Record<string, unknown>) => {    // Google Analytics 4 event tracking
+  const trackEvent = (
+    eventName: string,
+    parameters?: Record<string, unknown>
+  ) => {
+    // Google Analytics 4 event tracking
     if (typeof window !== "undefined" && window.gtag) {
       window.gtag("event", eventName, parameters);
     }

@@ -102,7 +102,8 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  callbacks: {    async signIn({ user, account }) {
+  callbacks: {
+    async signIn({ user, account }) {
       if (account?.provider === "google") {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -126,7 +127,8 @@ export const authOptions: NextAuthOptions = {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                },                body: JSON.stringify({
+                },
+                body: JSON.stringify({
                   to: newUser.email,
                   fullName: newUser.fullName,
                   emailType: "register-verification",
@@ -135,10 +137,15 @@ export const authOptions: NextAuthOptions = {
             );
 
             if (!emailResponse.ok) {
-              console.error("Failed to send verification email for Google signup");
+              console.error(
+                "Failed to send verification email for Google signup"
+              );
             }
           } catch (emailError) {
-            console.error("Error sending verification email for Google signup:", emailError);
+            console.error(
+              "Error sending verification email for Google signup:",
+              emailError
+            );
           }
         }
       }

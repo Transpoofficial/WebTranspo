@@ -6,7 +6,11 @@ import { usePathname } from "next/navigation";
 // Extend Window interface for analytics
 declare global {
   interface Window {
-    gtag?: (command: string, targetId: string, config?: Record<string, unknown>) => void;
+    gtag?: (
+      command: string,
+      targetId: string,
+      config?: Record<string, unknown>
+    ) => void;
   }
 }
 
@@ -15,13 +19,18 @@ interface WebVitalsProps {
 }
 
 export default function WebVitals({ debug = false }: WebVitalsProps) {
-  const pathname = usePathname();  useEffect(() => {
+  const pathname = usePathname();
+  useEffect(() => {
     // Import web-vitals dynamically
     import("web-vitals").then(({ onCLS, onINP, onFCP, onLCP, onTTFB }) => {
-      function sendToAnalytics(metric: { name: string; id: string; value: number }) {
+      function sendToAnalytics(metric: {
+        name: string;
+        id: string;
+        value: number;
+      }) {
         if (debug) {
           console.log("Web Vitals:", metric);
-        }        // Send to Google Analytics
+        } // Send to Google Analytics
         if (typeof window !== "undefined" && window.gtag) {
           window.gtag("event", metric.name, {
             event_category: "Web Vitals",
@@ -79,7 +88,7 @@ export function usePerformanceMonitoring() {
               duration: entry.duration,
               startTime: entry.startTime,
               name: entry.name,
-            });            // Send to analytics
+            }); // Send to analytics
             if (typeof window !== "undefined" && window.gtag) {
               window.gtag("event", "long_task", {
                 event_category: "Performance",
@@ -95,7 +104,8 @@ export function usePerformanceMonitoring() {
 
       return () => {
         longTaskObserver.disconnect();
-      };    } catch {
+      };
+    } catch {
       console.warn("PerformanceObserver not supported for longtask");
     }
   }, []);
@@ -109,7 +119,8 @@ export function usePageLoadTracking() {
     const startTime = performance.now();
 
     const handleLoad = () => {
-      const loadTime = performance.now() - startTime;      if (typeof window !== "undefined" && window.gtag) {
+      const loadTime = performance.now() - startTime;
+      if (typeof window !== "undefined" && window.gtag) {
         window.gtag("event", "page_load_time", {
           event_category: "Performance",
           event_label: pathname,

@@ -53,7 +53,8 @@ const fetchOrders = async (
     headers: {
       "Content-Type": "application/json",
     },
-  });  return response.data;
+  });
+  return response.data;
 };
 
 // Component that uses useSearchParams
@@ -73,7 +74,9 @@ function OrderPageContent() {
 
   // State management
   const [skip, setSkip] = useState(parseInt(searchParams.get("skip") || "0"));
-  const [limit, setLimit] = useState(parseInt(searchParams.get("limit") || "10"));
+  const [limit, setLimit] = useState(
+    parseInt(searchParams.get("limit") || "10")
+  );
   const [searchInput, setSearchInput] = useState(initialFilters.search);
   const [filters, setFilters] = useState(initialFilters);
 
@@ -82,12 +85,13 @@ function OrderPageContent() {
   // Update URL with filters - modified to remove empty params
   useEffect(() => {
     const params = new URLSearchParams();
-    
+
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (filters.orderType) params.set("orderType", filters.orderType);
     if (filters.orderStatus) params.set("orderStatus", filters.orderStatus);
     if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
-    if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+    if (filters.paymentStatus)
+      params.set("paymentStatus", filters.paymentStatus);
     if (skip > 0) params.set("skip", skip.toString());
     if (limit !== 10) params.set("limit", limit.toString());
 
@@ -103,7 +107,8 @@ function OrderPageContent() {
     refetch,
   } = useQuery({
     queryKey: ["orders", skip, limit, debouncedSearch, filters],
-    queryFn: () => fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
+    queryFn: () =>
+      fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
     enabled: !!session?.user,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -227,7 +232,8 @@ function OrderPageContent() {
         filters={filters}
         onSearchChange={updateSearch}
         onFiltersChange={updateFilters}
-        onPaginationChange={updatePagination}        isLoading={isLoading}
+        onPaginationChange={updatePagination}
+        isLoading={isLoading}
       />
     </div>
   );

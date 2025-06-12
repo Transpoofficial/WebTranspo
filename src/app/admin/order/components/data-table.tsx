@@ -91,15 +91,18 @@ interface DataTableProps<TData, TValue> {
     orderStatus: string;
     vehicleType: string;
     paymentStatus: string;
-  };  searchInput?: string;
+  };
+  searchInput?: string;
   onSearchChange?: (search: string) => void;
-  onFiltersChange?: (filters: Partial<{
-    search?: string;
-    orderType: string;
-    orderStatus: string;
-    vehicleType: string;
-    paymentStatus: string;
-  }>) => void;
+  onFiltersChange?: (
+    filters: Partial<{
+      search?: string;
+      orderType: string;
+      orderStatus: string;
+      vehicleType: string;
+      paymentStatus: string;
+    }>
+  ) => void;
   onPaginationChange?: (skip: number, limit?: number) => void;
   isLoading?: boolean;
 }
@@ -442,17 +445,20 @@ export function DataTable<TData extends Order, TValue>({
     const groupDestinationsByDate = (
       destinations: NonNullable<Order["transportation"]>["destinations"]
     ) => {
-      const groups = destinations.reduce((acc, dest) => {
-        // Handle case where departureDate might be null/undefined
-        const date = dest.departureDate
-          ? dest.departureDate.split("T")[0]
-          : "unknown";
-        if (!acc[date]) {
-          acc[date] = [];
-        }
-        acc[date].push(dest);
-        return acc;
-      }, {} as Record<string, typeof destinations>);
+      const groups = destinations.reduce(
+        (acc, dest) => {
+          // Handle case where departureDate might be null/undefined
+          const date = dest.departureDate
+            ? dest.departureDate.split("T")[0]
+            : "unknown";
+          if (!acc[date]) {
+            acc[date] = [];
+          }
+          acc[date].push(dest);
+          return acc;
+        },
+        {} as Record<string, typeof destinations>
+      );
 
       // Sort destinations within each group by sequence
       Object.keys(groups).forEach((date) => {
@@ -861,7 +867,6 @@ export function DataTable<TData extends Order, TValue>({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-      
       {/* Payment Proof Dialog */}
       <Dialog
         open={isPaymentProofDialogOpen}

@@ -3,7 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
-import { OrderStatus, OrderType, PaymentStatus, PrismaClient, Prisma } from "@prisma/client";
+import {
+  OrderStatus,
+  OrderType,
+  PaymentStatus,
+  PrismaClient,
+  Prisma,
+} from "@prisma/client";
 import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 
 // Types
@@ -228,7 +234,10 @@ const validateTransportPricing = async (
 
 //  Handle transport order creation
 const handleTransportOrder = async (
-  tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
   orderId: string,
   body: OrderRequestBody,
   destinations: Destination[],
@@ -311,7 +320,10 @@ const handleTransportOrder = async (
 
 //  Handle tour package order creation
 const handleTourPackageOrder = async (
-  tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+  tx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >,
   orderId: string,
   body: OrderRequestBody
 ) => {
@@ -377,7 +389,7 @@ export const GET = async (req: NextRequest) => {
     const orderType = searchParams.get("orderType") || "";
     const orderStatus = searchParams.get("orderStatus") || "";
     const vehicleType = searchParams.get("vehicleType") || "";
-    const paymentStatus = searchParams.get("paymentStatus") || "";    // Build filter conditions
+    const paymentStatus = searchParams.get("paymentStatus") || ""; // Build filter conditions
     const whereConditions: Prisma.OrderWhereInput = {};
 
     // Only filter by userId if user is CUSTOMER
@@ -396,7 +408,7 @@ export const GET = async (req: NextRequest) => {
         { user: { email: { contains: search } } },
         { user: { phoneNumber: { contains: search } } },
       ];
-    }    // Order type filter
+    } // Order type filter
     if (orderType) {
       whereConditions.orderType = orderType as OrderType;
     }
@@ -638,7 +650,8 @@ export const POST = async (req: NextRequest) => {
         destByDate.set(date, []);
       }
       destByDate.get(date)?.push(dest);
-    });    for (const [, dests] of destByDate.entries()) {
+    });
+    for (const [, dests] of destByDate.entries()) {
       if (dests.length > 0) {
         dests.forEach((d) => (d.isPickupLocation = false));
         dests[0].isPickupLocation = true;
@@ -653,7 +666,7 @@ export const POST = async (req: NextRequest) => {
         { message: "No valid destinations provided", data: [] },
         { status: 400 }
       );
-    }    // Basic validation - only destructure variables that are used
+    } // Basic validation - only destructure variables that are used
     const {
       vehicleTypeId,
       totalPrice,
