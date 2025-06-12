@@ -116,7 +116,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
     }
 
     // Redirect to orders page
-    router.push("/dashboard/orders");
+    router.push("/settings/order");
   };
 
   // Validate file before accepting
@@ -208,7 +208,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
 
         // Navigate to the orders page after successful upload
         setTimeout(() => {
-          router.push("/dashboard/orders");
+          router.push("/settings/order");
         }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
@@ -242,7 +242,10 @@ const Step4 = ({ paymentData }: Step4Props) => {
   }
 
   return (
-    <Card className="mx-auto max-w-2xl shadow-lg border-0">
+    <Card
+      className="mx-auto max-w-2xl shadow-lg border-0 text-gray-700"
+      style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
+    >
       <CardHeader className="text-center border-b">
         <CardTitle className="text-2xl font-semibold">
           Upload Bukti Transfer
@@ -376,7 +379,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
               className="border-gray-300 hover:bg-gray-100 text-gray-700"
               disabled={isSubmitting}
             >
-              Kembali
+              Kembali ke Pesanan Saya
             </Button>
             <Button
               type="submit"

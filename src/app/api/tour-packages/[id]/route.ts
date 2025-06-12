@@ -18,13 +18,6 @@ export const GET = async (
     }
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id: id },
-      include: {
-        vehicle: {
-          include: {
-            vehicleType: true,
-          },
-        },
-      },
     });
     return NextResponse.json(
       { message: "Vehicle retrieved successfully", data: tourPackage },
@@ -134,7 +127,6 @@ export const PUT = async (
       where: { id: id },
       data: {
         name,
-        vehicleId,
         destination,
         durationDays: Number(durationDays),
         advantages: advantagesArray,
