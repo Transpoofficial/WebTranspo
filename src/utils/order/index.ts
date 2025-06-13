@@ -1,0 +1,195 @@
+// Define Trip interface locally instead of importing from route
+export interface Trip {
+  date: Date;
+  location: Array<{
+    lat: number | null;
+    lng: number | null;
+    address: string;
+    time?: string | null;
+  }>;
+  distance?: number;
+  duration?: number;
+  startTime?: string;
+}
+
+// Calculate distance between two coordinates (Haversine formula)
+export function calculateDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+}
+
+// Calculate inter-trip additional charges with proper typing
+export function calculateInterTripCharges(trips: Trip[]): number {
+  if (!trips || trips.length <= 1) return 0;
+
+  let totalAdditionalCharge = 0;
+
+  for (let i = 0; i < trips.length - 1; i++) {
+    const currentTrip = trips[i];
+    const nextTrip = trips[i + 1];
+
+    // Get last location of current trip and first location of next trip
+    if (
+      currentTrip.location &&
+      nextTrip.location &&
+      currentTrip.location.length > 0 &&
+      nextTrip.location.length > 0
+    ) {
+      const lastLocationCurrent =
+        currentTrip.location[currentTrip.location.length - 1];
+      const firstLocationNext = nextTrip.location[0];
+
+      // Type guard to ensure we have valid coordinates
+      if (
+        lastLocationCurrent.lat !== null &&
+        lastLocationCurrent.lng !== null &&
+        firstLocationNext.lat !== null &&
+        firstLocationNext.lng !== null
+      ) {
+        const distance = calculateDistance(
+          lastLocationCurrent.lat,
+          lastLocationCurrent.lng,
+          firstLocationNext.lat,
+          firstLocationNext.lng
+        );
+
+        console.log(
+          `Inter-trip distance ${i + 1} to ${i + 2}: ${distance.toFixed(2)} km`
+        );
+
+        if (distance > 50) {
+          // Calculate additional charge based on distance brackets
+          const excessDistance = distance - 50;
+          const brackets = Math.ceil(excessDistance / 10);
+          const charge = brackets * 50000;
+
+          console.log(
+            `Additional charge for ${distance.toFixed(
+              2
+            )} km: Rp ${charge.toLocaleString()}`
+          );
+          totalAdditionalCharge += charge;
+        }
+      }
+    }
+  }
+
+  console.log(
+    `Total additional inter-trip charges: Rp ${totalAdditionalCharge.toLocaleString()}`
+  );
+  return totalAdditionalCharge;
+}
+
+// ✅ Updated price calculation functions with consistent formulas
+export function calculateAngkotPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
+  const baseRate = 5000;
+  const minCharge = 100000;
+
+  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
+  return Math.round(price);
+}
+
+export function calculateHiaceCommuterPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
+  const baseRate = 7000;
+  const minCharge = 150000;
+
+  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
+  return Math.round(price);
+}
+
+export function calculateHiacePremioPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
+  // ✅ Fixed rate to match frontend expectations
+  const baseRate = 8000;
+  const minCharge = 200000;
+
+  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
+  return Math.round(price);
+}
+
+export function calculateElfPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
+  const baseRate = 8000;
+  const minCharge = 180000;
+
+  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
+  return Math.round(price);
+}
+
+// ✅ Main price calculation function for consistency
+export function calculateTotalPrice(
+  vehicleTypeName: string,
+  distanceKm: number,
+  vehicleCount: number,
+  trips: Trip[]
+): {
+  basePrice: number;
+  interTripCharges: number;
+  totalPrice: number;
+} {
+  const vehicleType = vehicleTypeName.toLowerCase();
+  let basePrice = 0;
+
+  // Calculate base price based on vehicle type
+  if (vehicleType.includes("angkot")) {
+    basePrice = calculateAngkotPrice(distanceKm, vehicleCount);
+  } else if (
+    vehicleType.includes("hiace") &&
+    vehicleType.includes("commuter")
+  ) {
+    basePrice = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
+  } else if (vehicleType.includes("hiace") && vehicleType.includes("premio")) {
+    basePrice = calculateHiacePremioPrice(distanceKm, vehicleCount);
+  } else if (vehicleType.includes("elf")) {
+    basePrice = calculateElfPrice(distanceKm, vehicleCount);
+  } else {
+    // Fallback calculation
+    const defaultRate = 6000;
+    basePrice = Math.round(defaultRate * distanceKm * vehicleCount);
+  }
+
+  // Calculate inter-trip charges
+  const interTripCharges = calculateInterTripCharges(trips);
+
+  // Calculate total price
+  const totalPrice = basePrice + interTripCharges;
+
+  console.log("Price calculation result:", {
+    vehicleType: vehicleTypeName,
+    distanceKm: distanceKm.toFixed(2),
+    vehicleCount,
+    basePrice,
+    interTripCharges,
+    totalPrice,
+  });
+
+  return {
+    basePrice: Math.round(basePrice),
+    interTripCharges: Math.round(interTripCharges),
+    totalPrice: Math.round(totalPrice),
+  };
+}
