@@ -10,6 +10,7 @@ import {
 } from "@/components/StructuredData";
 import Analytics from "@/components/Analytics";
 import WebVitals from "@/components/WebVitals";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -141,6 +142,7 @@ export default function RootLayout({
       >
         <ReactQueryProvider>
           <NextAuthProvider>
+            <Toaster position="bottom-right" />
             {children}
             <Analytics
               googleAnalyticsId={process.env.NEXT_PUBLIC_GA_ID}
