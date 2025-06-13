@@ -48,51 +48,51 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
   // ===================
   // HEADER SECTION - Professional Design
   // ===================
-
   // Company header background
   doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 45, "F");
+  doc.rect(0, 0, pageWidth, 50, "F");
 
-  // Company info section
+  // Company info section (left side)
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
   doc.text("TRANSPO", margin, 25);
 
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text("Platform Transportasi Terpercaya", margin, 32);
-  doc.text("Malang Raya, Jawa Timur", margin, 38);
+  doc.text("PT. Transpo Indonesia Mandiri", margin, 35);
 
-  // Invoice title with professional styling
+  doc.setFontSize(10);
+  doc.text("Platform Transportasi Terpercaya", margin, 42);
+
+  // Invoice title with professional styling (right side, aligned)
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   const titleWidth = doc.getTextWidth("INVOICE");
-  doc.text("INVOICE", pageWidth - margin - titleWidth, 30);
-
+  doc.text("INVOICE", pageWidth - margin - titleWidth, 35);
   // ===================
   // INVOICE DETAILS SECTION
   // ===================
-  let currentY = 65;
+  let currentY = 70;
 
-  // Invoice information box
+  // Invoice information box (moved to left side)
   doc.setFillColor(...lightGray);
-  doc.rect(pageWidth - 90, currentY - 5, 70, 35, "F");
+  doc.rect(margin, currentY - 5, 70, 35, "F");
   doc.setDrawColor(...borderColor);
   doc.setLineWidth(0.5);
-  doc.rect(pageWidth - 90, currentY - 5, 70, 35);
+  doc.rect(margin, currentY - 5, 70, 35);
 
   doc.setTextColor(...darkGray);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("No. Invoice:", pageWidth - 85, currentY + 2);
+  doc.text("No. Invoice:", margin + 5, currentY + 2);
   doc.setFont("helvetica", "normal");
-  doc.text(data.invoiceNumber, pageWidth - 85, currentY + 8);
+  doc.text(data.invoiceNumber, margin + 5, currentY + 8);
 
   doc.setFont("helvetica", "bold");
-  doc.text("Tanggal:", pageWidth - 85, currentY + 16);
+  doc.text("Tanggal:", margin + 5, currentY + 16);
   doc.setFont("helvetica", "normal");
-  doc.text(data.invoiceDate, pageWidth - 85, currentY + 22);
+  doc.text(data.invoiceDate, margin + 5, currentY + 22);
 
   // ===================
   // CUSTOMER INFORMATION
@@ -101,7 +101,8 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
 
   // Bill To section
   doc.setFillColor(...primaryColor);
-  doc.rect(margin, currentY - 8, 80, 12, "F");
+  // doc.rect(margin, currentY - 8, 80, 12, "F");
+  doc.rect(margin, currentY - 8, pageWidth - 2 * margin, 12, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -173,36 +174,32 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
   // Table headers with modern design
   doc.setFillColor(...primaryDark);
   doc.rect(margin, tableStartY, pageWidth - 2 * margin, 15, "F");
-
   // Table header borders
   doc.setDrawColor(...primaryDark);
   doc.setLineWidth(0.5);
-
   const colWidths = {
     no: 15,
-    description: 80,
-    qty: 20,
-    price: 30,
-    total: 25,
+    description: 75,
+    qty: 18,
+    price: 35,
+    total: 35,
   };
 
   let colX = margin;
-
   // Header text
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
 
   doc.text("No.", colX + 2, tableStartY + 10);
   colX += colWidths.no;
-  doc.text("Deskripsi", colX + 2, tableStartY + 10);
+  doc.text("Deskripsi Layanan", colX + 2, tableStartY + 10);
   colX += colWidths.description;
   doc.text("Qty", colX + 2, tableStartY + 10);
   colX += colWidths.qty;
-  doc.text("Harga Satuan", colX + 2, tableStartY + 10);
+  doc.text("Harga", colX + 2, tableStartY + 10);
   colX += colWidths.price;
   doc.text("Total", colX + 2, tableStartY + 10);
-
   // Table content with alternating row colors
   currentY = tableStartY + 15;
   doc.setTextColor(...darkGray);
@@ -210,7 +207,12 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
   doc.setFontSize(9);
 
   data.items.forEach((item, index) => {
-    const rowHeight = 15;
+    // Calculate dynamic row height based on description lines
+    const descLines = doc.splitTextToSize(
+      item.description,
+      colWidths.description - 4
+    );
+    const rowHeight = Math.max(15, descLines.length * 5 + 10);
 
     // Alternating row background
     if (index % 2 === 0) {
@@ -220,78 +222,91 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
 
     colX = margin;
 
-    // Row content
-    doc.text((index + 1).toString(), colX + 2, currentY + 10);
+    // Row content with proper vertical alignment
+    const contentY = currentY + Math.max(10, (rowHeight - 10) / 2 + 5);
+
+    // No.
+    doc.text((index + 1).toString(), colX + 2, contentY);
     colX += colWidths.no;
 
-    // Description with text wrapping
-    const descLines = doc.splitTextToSize(
-      item.description,
-      colWidths.description - 4
-    );
-    let descY = currentY + 10;
-    descLines.forEach((line: string) => {
-      doc.text(line, colX + 2, descY);
-      descY += 5;
+    // Description with proper text wrapping and spacing
+    const descY = currentY + 8;
+    descLines.forEach((line: string, lineIndex: number) => {
+      doc.text(line, colX + 2, descY + lineIndex * 5);
     });
     colX += colWidths.description;
 
-    doc.text(item.quantity.toString(), colX + 2, currentY + 10);
+    // Quantity
+    doc.text(item.quantity.toString(), colX + 2, contentY);
     colX += colWidths.qty;
 
-    doc.text(formatRupiah(item.unitPrice), colX + 2, currentY + 10);
+    // Unit Price
+    doc.text(formatRupiah(item.unitPrice), colX + 2, contentY);
     colX += colWidths.price;
 
-    doc.text(formatRupiah(item.total), colX + 2, currentY + 10);
+    // Total
+    doc.text(formatRupiah(item.total), colX + 2, contentY);
 
-    currentY += Math.max(rowHeight, descLines.length * 5 + 5);
+    currentY += rowHeight;
   });
+  // Add total row as part of the table
+  const totalRowHeight = 20;
 
-  // Table borders
+  // Total row background (slightly darker)
+  doc.setFillColor(...lightGray);
+  doc.rect(margin, currentY, pageWidth - 2 * margin, totalRowHeight, "F");
+
+  // Total row content - spanning across columns without internal borders
+  colX = margin;
+
+  // Empty cells for No. and Description
+  colX += colWidths.no + colWidths.description;
+
+  // "TOTAL" label
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("TOTAL PEMBAYARAN:", colX + 2, currentY + 13);
+
+  // Total amount - positioned at the right side with more space
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(12);
+  const totalText = formatRupiah(data.totalAmount);
+  const totalTextWidth = doc.getTextWidth(totalText);
+  doc.text(totalText, pageWidth - margin - totalTextWidth - 5, currentY + 13);
+
+  currentY += totalRowHeight;
+  // Table borders (including total row)
   doc.setDrawColor(...borderColor);
   doc.setLineWidth(0.5);
   doc.rect(margin, tableStartY, pageWidth - 2 * margin, currentY - tableStartY);
 
-  // Vertical lines
+  // Vertical lines (only for item rows, not total row)
+  const itemRowsEndY = currentY - totalRowHeight;
   colX = margin + colWidths.no;
-  doc.line(colX, tableStartY, colX, currentY);
+  doc.line(colX, tableStartY, colX, itemRowsEndY);
   colX += colWidths.description;
-  doc.line(colX, tableStartY, colX, currentY);
+  doc.line(colX, tableStartY, colX, itemRowsEndY);
   colX += colWidths.qty;
-  doc.line(colX, tableStartY, colX, currentY);
+  doc.line(colX, tableStartY, colX, itemRowsEndY);
   colX += colWidths.price;
-  doc.line(colX, tableStartY, colX, currentY);
+  doc.line(colX, tableStartY, colX, itemRowsEndY);
 
-  // ===================
-  // TOTAL SECTION - Professional Summary
-  // ===================
-  currentY += 20;
-
-  // Total calculation box
-  const totalBoxWidth = 80;
-  const totalBoxHeight = 25;
-  const totalBoxX = pageWidth - margin - totalBoxWidth;
-
-  doc.setFillColor(...lightGray);
-  doc.rect(totalBoxX, currentY - 5, totalBoxWidth, totalBoxHeight, "F");
-  doc.setDrawColor(...borderColor);
-  doc.rect(totalBoxX, currentY - 5, totalBoxWidth, totalBoxHeight);
-
-  // Total amount
-  doc.setTextColor(...darkGray);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text("TOTAL PEMBAYARAN:", totalBoxX + 5, currentY + 5);
-
-  doc.setFontSize(14);
-  doc.setTextColor(...primaryColor);
-  doc.text(formatRupiah(data.totalAmount), totalBoxX + 5, currentY + 15);
-
-  // ===================
+  // Reset text color for next sections
+  doc.setTextColor(...darkGray); // ===================
   // DESTINATIONS/ITINERARY (if applicable)
   // ===================
   if (data.destinations && data.destinations.length > 0) {
-    currentY += 40;
+    currentY += 20;
+
+    // Check if we need a new page for destinations
+    const destinationsSectionHeight = 60 + data.destinations.length * 10;
+    const footerHeight = 60; // Height needed for footer
+    const remainingSpaceForDestinations = pageHeight - currentY - footerHeight;
+
+    if (remainingSpaceForDestinations < destinationsSectionHeight) {
+      doc.addPage();
+      currentY = 30;
+    }
 
     doc.setFillColor(...primaryColor);
     doc.rect(margin, currentY - 8, pageWidth - 2 * margin, 12, "F");
@@ -299,52 +314,87 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("RUTE PERJALANAN", margin + 5, currentY - 1);
-
     currentY += 15;
     doc.setTextColor(...darkGray);
     doc.setFontSize(9);
-
     data.destinations.forEach((dest, index) => {
       doc.setFont("helvetica", "bold");
       doc.text(`${index + 1}. `, margin, currentY);
       doc.setFont("helvetica", "normal");
-      doc.text(dest.address, margin + 8, currentY);
-
+      doc.text(dest.address, margin + 8, currentY); // Show full date (dd MMM yyyy) without time
       if (dest.departureTime) {
-        doc.setFont("helvetica", "italic");
-        doc.text(`(${dest.departureTime})`, margin + 8, currentY + 5);
-        currentY += 10;
+        try {
+          // Parse the departureTime and format it to Indonesian date
+          const departureDate = new Date(dest.departureTime);
+          const formattedDate = departureDate.toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          });
+          doc.setFont("helvetica", "italic");
+          doc.text(`(${formattedDate})`, margin + 8, currentY + 5);
+        } catch {
+          // If parsing fails, extract date part and show it
+          const dateOnly = dest.departureTime.split(" ")[0];
+          doc.setFont("helvetica", "italic");
+          doc.text(`(${dateOnly})`, margin + 8, currentY + 5);
+        }
       } else {
-        currentY += 7;
+        doc.setFont("helvetica", "italic");
+        doc.text(`(Tanggal tidak ditentukan)`, margin + 8, currentY + 5);
       }
+      currentY += 10;
     });
+  } // ===================
+  // IMPORTANT NOTES SECTION (Always included)
+  // ===================
+  currentY += 20;
+
+  // Check if we need a new page for notes
+  const notesSectionHeight = 80; // Estimated height for important notes
+  const footerHeight = 60; // Height needed for footer
+  const remainingSpaceForNotes = pageHeight - currentY - footerHeight;
+
+  if (remainingSpaceForNotes < notesSectionHeight) {
+    doc.addPage();
+    currentY = 30;
   }
 
-  // ===================
-  // NOTES SECTION (if applicable)
-  // ===================
+  doc.setFillColor(...primaryColor);
+  doc.rect(margin, currentY - 8, pageWidth - 2 * margin, 12, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("CATATAN PENTING:", margin + 5, currentY - 1);
+
+  currentY += 15;
+  doc.setTextColor(...darkGray);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+
+  const importantNotes = [
+    "• Pastikan untuk hadir tepat waktu sesuai jadwal keberangkatan yang telah ditentukan.",
+    "• Kelupaan atau keterlambatan dari pihak customer BUKAN menjadi tanggung jawab TRANSPO.",
+    "• Harap simpan invoice ini sebagai bukti pembayaran yang sah.",
+    "• Untuk perubahan jadwal atau pembatalan, silakan hubungi customer service minimal H-1.",
+    "• Barang bawaan adalah tanggung jawab masing-masing penumpang.",
+    "• Dilarang membawa barang berbahaya, ilegal, atau yang dapat mengganggu perjalanan.",
+    "• Pastikan nomor telepon aktif untuk koordinasi dengan driver/guide.",
+  ];
+
+  // Add custom notes if provided
   if (data.notes) {
-    currentY += 20;
-
-    doc.setFillColor(...lightGray);
-    doc.rect(margin, currentY - 8, pageWidth - 2 * margin, 12, "F");
-    doc.setTextColor(...darkGray);
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("CATATAN:", margin + 5, currentY - 1);
-
-    currentY += 15;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    const notesLines = doc.splitTextToSize(
-      data.notes,
-      pageWidth - 2 * margin - 10
-    );
-    notesLines.forEach((line: string) => {
-      doc.text(line, margin + 5, currentY);
-      currentY += 5;
-    });
+    importantNotes.push(`• ${data.notes}`);
   }
+
+  importantNotes.forEach((note) => {
+    const noteLines = doc.splitTextToSize(note, pageWidth - 2 * margin - 10);
+    noteLines.forEach((line: string) => {
+      doc.text(line, margin + 5, currentY);
+      currentY += 4;
+    });
+    currentY += 2; // Extra space between notes
+  });
 
   // ===================
   // FOOTER SECTION
@@ -364,21 +414,19 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
     margin,
     footerY + 5
   );
-
   // Company contact info
   doc.setFont("helvetica", "normal");
-  doc.text("TRANSPO - Platform Transportasi Terpercaya", margin, footerY + 15);
+  doc.text("TRANSPO - PT. Transpo Indonesia Mandiri", margin, footerY + 15);
   doc.text(
-    "Email: transpoofficial@gmail.com | Telp: +62 822 3137 8326",
+    "Platform Transportasi Terpercaya - Malang Raya, Jawa Timur",
     margin,
     footerY + 22
   );
   doc.text(
-    "Alamat: Jl. Raya Karangsono No.18A, Sono Tengah, Kebonagung, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+    "Email: transpoofficial@gmail.com | Telp: +62 822 3137 8326",
     margin,
     footerY + 29
   );
-
   // Generation info
   const generatedText = `Dicetak pada: ${new Date().toLocaleDateString(
     "id-ID",
@@ -390,7 +438,7 @@ export function generateInvoicePDF(data: InvoiceData): Buffer {
     }
   )}`;
   const generatedWidth = doc.getTextWidth(generatedText);
-  doc.text(generatedText, pageWidth - margin - generatedWidth, footerY + 35);
+  doc.text(generatedText, pageWidth - margin - generatedWidth, footerY + 32);
 
   return Buffer.from(doc.output("arraybuffer"));
 }

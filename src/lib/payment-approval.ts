@@ -123,7 +123,7 @@ export async function sendPaymentApprovalWithInvoice(
       customerName: payment.order.user.fullName,
       customerEmail: payment.order.user.email,
       customerPhone: payment.order.user.phoneNumber || "Tidak tersedia",
-      customerAddress: payment.order.user.address || "Tidak tersedia",
+      customerAddress: payment.order.user.address || "Alamat tidak tersedia",
       orderType: payment.order.orderType,
       orderDate: format(departureDate, "dd MMMM yyyy", {
         locale: id,
@@ -147,22 +147,30 @@ export async function sendPaymentApprovalWithInvoice(
 
       invoiceData.vehicleType =
         payment.order.vehicleType?.name || "Tidak tersedia";
-
       invoiceData.items = [
         {
-          description: `Layanan Transportasi - ${payment.order.vehicleType?.name || "Kendaraan"}`,
+          description: `Layanan Transportasi`,
           quantity: 1,
           unitPrice: Number(payment.totalPrice),
           total: Number(payment.totalPrice),
         },
-      ];
+      ]; // Build a cleaner description
+      const descriptionParts = [];
 
-      if (destinations.length > 0) {
-        invoiceData.items[0].description += ` (${destinations.length} destinasi)`;
+      if (payment.order.vehicleType?.name) {
+        descriptionParts.push(`Kendaraan: ${payment.order.vehicleType.name}`);
       }
 
       if (payment.order.totalPassengers) {
-        invoiceData.items[0].description += ` - ${payment.order.totalPassengers} penumpang`;
+        descriptionParts.push(`${payment.order.totalPassengers} Penumpang`);
+      }
+
+      if (destinations.length > 0) {
+        descriptionParts.push(`${destinations.length} Destinasi`);
+      }
+
+      if (descriptionParts.length > 0) {
+        invoiceData.items[0].description = `Layanan Transportasi (${descriptionParts.join(", ")})`;
       }
     } else if (
       payment.order.orderType === "TOUR" &&
@@ -175,15 +183,31 @@ export async function sendPaymentApprovalWithInvoice(
         destination: tourPackage.destination,
         duration: `${tourPackage.durationDays} hari`,
       };
-
       invoiceData.items = [
         {
-          description: `Paket Wisata - ${tourPackage.name}`,
+          description: `Paket Wisata`,
           quantity: payment.order.totalPassengers || 1,
           unitPrice: Number(tourPackage.price),
           total: Number(payment.totalPrice),
         },
-      ];
+      ]; // Build cleaner description for tour
+      const tourDescriptionParts = [];
+
+      if (tourPackage.name) {
+        tourDescriptionParts.push(`Paket: ${tourPackage.name}`);
+      }
+
+      if (tourPackage.destination) {
+        tourDescriptionParts.push(`Destinasi: ${tourPackage.destination}`);
+      }
+
+      if (tourPackage.durationDays) {
+        tourDescriptionParts.push(`Durasi: ${tourPackage.durationDays} Hari`);
+      }
+
+      if (tourDescriptionParts.length > 0) {
+        invoiceData.items[0].description = `Paket Wisata (${tourDescriptionParts.join(", ")})`;
+      }
     }
 
     // Generate PDF invoice
@@ -206,6 +230,51 @@ export async function sendPaymentApprovalWithInvoice(
   } catch (error) {
     console.error(
       `Failed to send payment approval email for payment ${paymentId}:`,
+      error
+    );
+    throw error;
+  }
+}
+
+export async function sendPaymentRejectionEmail(
+  paymentId: string,
+  rejectionReason: string
+): Promise<void> {
+  try {
+    // Fetch payment with all related data
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!payment) {
+      throw new Error(`Payment with ID ${paymentId} not found`);
+    }
+
+    // Send rejection email
+    await emailTemplates.sendPaymentRejection(
+      payment.order.user.email,
+      payment.order.user.fullName,
+      rejectionReason,
+      payment.order.orderType === "TRANSPORT" ? "Transportasi" : "Paket Wisata",
+      Number(payment.totalPrice)
+    );
+
+    console.log(`Payment rejection email sent for payment ID: ${paymentId}`);
+  } catch (error) {
+    console.error(
+      `Failed to send payment rejection email for payment ${paymentId}:`,
       error
     );
     throw error;

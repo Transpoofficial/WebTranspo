@@ -7,6 +7,7 @@ import RegisterVerification from "@/components/email/register-verification";
 import Thanks from "@/components/email/thanks";
 import ForgotPasswordEmail from "@/components/email/forgot-password";
 import PaymentApproval from "@/components/email/payment-approval";
+import PaymentRejection from "@/components/email/payment-rejection";
 
 export type EmailTemplateType =
   | "payment-verification"
@@ -15,7 +16,8 @@ export type EmailTemplateType =
   | "register-verification"
   | "thanks"
   | "forgot-password"
-  | "payment-approval";
+  | "payment-approval"
+  | "payment-rejection";
 
 export interface BaseEmailData {
   to: string;
@@ -63,6 +65,13 @@ export interface PaymentApprovalData extends BaseEmailData {
   invoiceBuffer: Buffer;
 }
 
+export interface PaymentRejectionData extends BaseEmailData {
+  type: "payment-rejection";
+  reason: string;
+  orderType: string;
+  totalAmount: number;
+}
+
 export type EmailData =
   | PaymentVerificationData
   | OrderConfirmationData
@@ -70,7 +79,8 @@ export type EmailData =
   | RegisterVerificationData
   | ThanksData
   | ForgotPasswordData
-  | PaymentApprovalData;
+  | PaymentApprovalData
+  | PaymentRejectionData;
 
 /**
  * Utility function untuk mengirim email dengan template yang sesuai
@@ -158,7 +168,6 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
       textContent = `Yth. ${fullName}, Kami menerima permintaan untuk mereset password akun TRANSPO Anda. Klik link berikut untuk membuat password baru: ${data.resetLink}`;
       break;
     }
-
     case "payment-approval": {
       const data = emailData as PaymentApprovalData;
       subject = "Pembayaran Disetujui - Invoice Terlampir - TRANSPO";
@@ -179,6 +188,21 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
         content: data.invoiceBuffer,
         contentType: "application/pdf",
       });
+      break;
+    }
+
+    case "payment-rejection": {
+      const data = emailData as PaymentRejectionData;
+      subject = "Pembayaran Ditolak - TRANSPO";
+      htmlContent = await render(
+        PaymentRejection({
+          fullName,
+          reason: data.reason,
+          orderType: data.orderType,
+          totalAmount: data.totalAmount,
+        })
+      );
+      textContent = `Yth. ${fullName}, Mohon maaf, pembayaran Anda untuk pesanan ${data.orderType} tidak dapat disetujui. Alasan: ${data.reason}. Tim kami akan menghubungi Anda segera.`;
       break;
     }
 
@@ -246,7 +270,6 @@ export const emailTemplates = {
       resetLink,
     });
   },
-
   async sendPaymentApproval(
     to: string,
     fullName: string,
@@ -265,6 +288,23 @@ export const emailTemplates = {
       invoiceNumber,
       paymentDate,
       invoiceBuffer,
+    });
+  },
+
+  async sendPaymentRejection(
+    to: string,
+    fullName: string,
+    reason: string,
+    orderType: string,
+    totalAmount: number
+  ) {
+    return sendTemplateEmail({
+      type: "payment-rejection",
+      to,
+      fullName,
+      reason,
+      orderType,
+      totalAmount,
     });
   },
 };

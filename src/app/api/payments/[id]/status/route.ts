@@ -1,6 +1,9 @@
 import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendPaymentApprovalWithInvoice } from "@/lib/payment-approval";
+import {
+  sendPaymentApprovalWithInvoice,
+  sendPaymentRejectionEmail,
+} from "@/lib/payment-approval";
 import { NextRequest, NextResponse } from "next/server";
 
 export const PUT = async (
@@ -55,9 +58,7 @@ export const PUT = async (
         paymentStatus: status,
         note: note || null, // Set note to null if not provided
       },
-    });
-
-    // Send email with invoice if payment is approved
+    }); // Send email with invoice if payment is approved
     if (status === "APPROVED") {
       try {
         await sendPaymentApprovalWithInvoice(id);
@@ -69,6 +70,20 @@ export const PUT = async (
         );
         // Don't fail the status update if email fails
         // The payment status should still be updated successfully
+      }
+    }
+
+    // Send rejection email if payment is rejected
+    if (status === "REJECTED" && note) {
+      try {
+        await sendPaymentRejectionEmail(id, note);
+        console.log(`Payment rejection email sent for payment ID: ${id}`);
+      } catch (emailError) {
+        console.error(
+          `Failed to send rejection email for payment ${id}:`,
+          emailError
+        );
+        // Don't fail the status update if email fails
       }
     }
 

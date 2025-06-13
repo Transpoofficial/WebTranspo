@@ -76,7 +76,7 @@ export const PaymentApproval = ({
             <Section className="text-center px-6">
               <Button
                 className="bg-[#0897B1] text-white px-6 py-3 rounded-lg text-sm font-medium no-underline"
-                href="https://transpo.com/dashboard"
+                href={`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/settings/order`}
               >
                 Lihat Status Pesanan
               </Button>
