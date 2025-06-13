@@ -3,16 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
-import { OrderStatus, OrderType, PaymentStatus } from "@prisma/client";
-import {
-  calculateDistance,
-  calculateInterTripCharges,
-  calculateAngkotPrice,
-  calculateHiaceCommuterPrice,
-  calculateHiacePremioPrice,
-  calculateElfPrice,
-  calculateTotalPrice,
-} from "@/utils/order";
+import { OrderStatus, OrderType, PaymentStatus, Prisma } from "@prisma/client";
+import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 
 // Types
 interface OrderRequestBody {

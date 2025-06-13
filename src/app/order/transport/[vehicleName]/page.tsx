@@ -118,9 +118,9 @@ const OrderTransportPage = () => {
               ...prevData,
               userData: {
                 ...prevData.userData,
-                name: data.user.fullName || "",
-                email: data.user.email || "",
-                phone: userData.phoneNumber || prevData.userData.phone || "",
+                name: prevData?.userData.name || data.user.fullName || "",
+                email: prevData?.userData.email || data.user.email || "",
+                phone: prevData?.userData.phone || data.user.phoneNumber || "",
                 // Keep existing totalPassangers, totalVehicles if already filled
                 totalPassangers: prevData.userData.totalPassangers || 0,
                 totalVehicles: prevData.userData.totalVehicles || 0,
@@ -146,24 +146,6 @@ const OrderTransportPage = () => {
       };
 
       fetchUserData();
-    }
-  }, [data, status]);
-
-  // Update user data when session data changes
-  useEffect(() => {
-    if (data?.user && status === "authenticated") {
-      setOrderData((prevData) => ({
-        ...prevData,
-        userData: {
-          ...prevData.userData,
-          name: data.user.fullName || "",
-          email: data.user.email || "",
-          // Keep existing phone, totalPassangers, totalVehicles if already filled
-          phone: prevData.userData.phone || "",
-          totalPassangers: prevData.userData.totalPassangers || 0,
-          totalVehicles: prevData.userData.totalVehicles || 0,
-        },
-      }));
     }
   }, [data, status]);
 
