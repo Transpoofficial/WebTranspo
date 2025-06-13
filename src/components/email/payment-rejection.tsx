@@ -3,6 +3,7 @@ import {
   Container,
   Head,
   Html,
+  Img,
   Preview,
   Section,
   Tailwind,
@@ -29,8 +30,18 @@ export const PaymentRejection = ({
     <Tailwind>
       <Body className="bg-[#0897B1] m-0 p-0 py-6">
         <Container className="bg-[#0897B1] w-full max-w-xl mx-auto p-6 rounded-xl font-sans">
+          {" "}
           <Section className="bg-white rounded-lg p-6 mb-6">
-            <Text className="text-2xl font-bold m-0 text-center pt-6 px-6 text-[#0897B1]">
+            <div className="text-center mb-4">
+              <Img
+                src={`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/images/logo/logo_3.png`}
+                alt="TRANSPO Logo"
+                width="80"
+                height="80"
+                className="mx-auto"
+              />
+            </div>
+            <Text className="text-2xl font-bold m-0 text-center pt-2 px-6 text-[#0897B1]">
               TRANSPO
             </Text>
             <Text className="text-sm text-center px-6 text-gray-600">
