@@ -4,23 +4,24 @@ import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
-import { orderTypes, vehicleTypes } from "../data/data";
+import { orderTypes } from "../data/data";
 import { Order } from "../data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 
 export const columns: ColumnDef<Order>[] = [
 	{
-		accessorKey: "user",
+		id: "fullName",
+		accessorFn: (row) => `${row.fullName} ${row.email} ${row.phoneNumber}`,
 		header: ({ column }) => (
 			<DataTableColumnHeader column={column} title="Pemesan" />
 		),
 		cell: ({ row }) => {
-			const user = row.original.user;
+			const user = row.original;
 
 			return (
 				<div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-					<div className="text-sm font-medium text-gray-900">
+					<div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1 text-ellipsis">
 						{user.fullName}
 					</div>
 					<div className="text-xs text-gray-500">
@@ -29,18 +30,12 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
-		enableSorting: true,
+		enableSorting: false,
 		enableHiding: false,
 		filterFn: (row, id, value) => {
-			return (
-				row.original.user.fullName
-					.toLowerCase()
-					.includes(value.toLowerCase()) ||
-				(row.original.user.phoneNumber
-					?.toLowerCase()
-					.includes(value.toLowerCase()) || "") ||
-				row.original.user.email.toLowerCase().includes(value.toLowerCase())
-			);
+			const searchValue = value.toLowerCase();
+			const fullName = String(row.getValue(id)).toLowerCase();
+			return fullName.includes(searchValue);
 		},
 	},
 	{
@@ -84,6 +79,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -124,6 +121,21 @@ export const columns: ColumnDef<Order>[] = [
 		},
 		enableSorting: false,
 		enableHiding: false,
+		sortingFn: (rowA, rowB) => {
+			const distanceA = rowA.original.transportation?.totalDistance || 0;
+			const distanceB = rowB.original.transportation?.totalDistance || 0;
+			return distanceA - distanceB;
+		},
+		filterFn: (row, id, value) => {
+			const order = row.original;
+			if (!order.transportation?.totalDistance) return false;
+			
+			const distanceKm = order.transportation.totalDistance / 1000;
+			const searchValue = parseFloat(value);
+			
+			if (isNaN(searchValue)) return true;
+			return distanceKm === searchValue;
+		},
 	},
 	{
 		accessorKey: "createdAt",
@@ -138,6 +150,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 	},
 	{
 		accessorKey: "orderStatus",
@@ -173,8 +187,48 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
+		},
+	},
+	{
+		accessorKey: "paymentStatus",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title="Status Pembayaran" />
+		),
+		cell: ({ row }) => {
+			const paymentStatus = row.original.payment?.paymentStatus;
+
+			// Map payment status to display status
+			const statusMap: {
+				[key: string]: {
+					label: string;
+					variant: "default" | "secondary" | "destructive" | "outline";
+				};
+			} = {
+				PENDING: { label: "Menunggu", variant: "outline" },
+				APPROVED: { label: "Disetujui", variant: "default" },
+				REJECTED: { label: "Ditolak", variant: "destructive" },
+			};
+
+			const status =
+				statusMap[paymentStatus || ""] || {
+					label: paymentStatus || "Belum ada",
+					variant: "outline" as const,
+				};
+
+			return (
+				<div className="flex w-[100px] items-center">
+					<Badge variant={status.variant}>{status.label}</Badge>
+				</div>
+			);
+		},
+		enableSorting: false,
+		enableHiding: false,
+		filterFn: (row, id, value) => {
+			return value.includes(row.original.payment?.paymentStatus || "");
 		},
 	},
 	{
@@ -198,6 +252,8 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
 			return value.includes(row.getValue(id));
 		},
@@ -209,14 +265,7 @@ export const columns: ColumnDef<Order>[] = [
 		),
 		cell: ({ row }) => {
 			const order = row.original;
-			let vehicle = "-";
-
-			if (order.orderType === "TRANSPORT" && order.transportation) {
-				const vehicleType = vehicleTypes.find(
-					(type) => type.value === order.transportation?.vehicleType
-				);
-				vehicle = vehicleType?.label || "-";
-			}
+			const vehicle = order.vehicleType?.name || "-";
 
 			return (
 				<div className="flex items-center">
@@ -224,9 +273,11 @@ export const columns: ColumnDef<Order>[] = [
 				</div>
 			);
 		},
+		enableSorting: false,
+		enableHiding: false,
 		filterFn: (row, id, value) => {
-			if (!row.original.transportation) return false;
-			return value.includes(row.original.transportation.vehicleType);
+			const vehicleName = row.original.vehicleType?.name || "";
+			return value.includes(vehicleName);
 		},
 	},
 ];

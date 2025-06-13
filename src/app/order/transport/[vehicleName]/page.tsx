@@ -149,6 +149,24 @@ const OrderTransportPage = () => {
     }
   }, [data, status]);
 
+  // Update user data when session data changes
+  useEffect(() => {
+    if (data?.user && status === "authenticated") {
+      setOrderData((prevData) => ({
+        ...prevData,
+        userData: {
+          ...prevData.userData,
+          name: data.user.fullName || "",
+          email: data.user.email || "",
+          // Keep existing phone, totalPassangers, totalVehicles if already filled
+          phone: prevData.userData.phone || "",
+          totalPassangers: prevData.userData.totalPassangers || 0,
+          totalVehicles: prevData.userData.totalVehicles || 0,
+        },
+      }));
+    }
+  }, [data, status]);
+
   // Check for payment ID in localStorage and fetch payment data if exists
   useEffect(() => {
     const checkPaymentStatus = async () => {

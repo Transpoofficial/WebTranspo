@@ -143,7 +143,7 @@ export function UploadPaymentDialog({ open, onClose, paymentId, amount, onSucces
         <DialogHeader>
           <DialogTitle>Upload Bukti Transfer</DialogTitle>
         </DialogHeader>
-
+        
         <div className="space-y-4 overflow-y-auto">
           <div className="mb-2 px-2 flex flex-col items-center">
             <div className="text-sm text-gray-500">Total Biaya:</div>

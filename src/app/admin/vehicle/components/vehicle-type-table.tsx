@@ -26,6 +26,7 @@ import VehicleTypeUpdateDialog from "./vehicle-type-update-dialog";
 interface VehicleType {
   id: string;
   name: string;
+  capacity: number;
   pricePerKm: number;
 }
 
@@ -95,10 +96,12 @@ const VehicleTypeTable = () => {
   return (
     <>
       <Table>
+        {" "}
         <TableHeader>
           <TableRow>
             <TableHead className="w-1/12">#</TableHead>
             <TableHead>Tipe</TableHead>
+            <TableHead>Kapasitas</TableHead>
             <TableHead>Harga per kilometer(km)</TableHead>
           </TableRow>
         </TableHeader>
@@ -107,7 +110,11 @@ const VehicleTypeTable = () => {
             <>
               {Array.from({ length: 4 }).map((_, index) => (
                 <TableRow key={index}>
+                  {" "}
                   <TableCell className="font-medium">
+                    <Skeleton className="h-[37px] w-full" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-[37px] w-full" />
                   </TableCell>
                   <TableCell>
@@ -133,10 +140,12 @@ const VehicleTypeTable = () => {
                         onTouchEnd={handleLongPressEnd}
                         className="relative transition duration-200 active:scale-99 cursor-pointer"
                       >
+                        {" "}
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
                         <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.capacity}</TableCell>
                         <TableCell>
                           {row.pricePerKm
                             ? Number(row.pricePerKm).toLocaleString("id-ID", {
@@ -201,7 +210,7 @@ const VehicleTypeTable = () => {
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={3} className="py-3 text-center">
+              <TableCell colSpan={4} className="py-3 text-center">
                 Tidak ada hasil.
               </TableCell>
             </TableRow>

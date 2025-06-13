@@ -19,7 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface HeaderProps {
   scrollToAdvantage?: () => void;
   scrollToHowToOrder?: () => void;
-  scrollToFAQAndContact?: () => void;
+  scrollToService?: () => void;
+  scrollToArticle?: () => void;
   scrollToReview?: () => void;
   isLandingPage?: boolean;
 }
@@ -27,7 +28,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   scrollToAdvantage,
   scrollToHowToOrder,
-  scrollToFAQAndContact,
+  scrollToService,
+  scrollToArticle,
   scrollToReview,
   isLandingPage = true,
 }) => {
@@ -53,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none">
+      <header className="sticky top-0 left-0 w-full px-4 md:px-10 py-2.5 bg-[#0897B1]/[.85] shadow-md md:shadow-none z-10">
         <div className="container flex justify-between items-center mx-auto">
           {/* Header content for Tablet and Desktop */}
           <div className="inline-flex items-center md:gap-x-2">
@@ -71,20 +73,20 @@ const Header: React.FC<HeaderProps> = ({
                 </SheetTrigger>
                 <SheetContent side="left">
                   <div className="flex flex-col py-10">
-                    <Button variant="ghost" size="lg" className="justify-start">
-                      Kelebihan
-                    </Button>
-                    <Button variant="ghost" size="lg" className="justify-start">
+                    <Button onClick={scrollToHowToOrder} variant="ghost" size="lg" className="justify-start">
                       Cara kerja
                     </Button>
-                    <Button variant="ghost" size="lg" className="justify-start">
-                      FAQ
+                    <Button onClick={scrollToAdvantage} variant="ghost" size="lg" className="justify-start">
+                      Kelebihan
                     </Button>
-                    <Button variant="ghost" size="lg" className="justify-start">
+                    <Button onClick={scrollToService} variant="ghost" size="lg" className="justify-start">
+                      Layanan
+                    </Button>
+                    <Button onClick={scrollToArticle} variant="ghost" size="lg" className="justify-start">
+                      Artikel
+                    </Button>
+                    <Button onClick={scrollToReview} variant="ghost" size="lg" className="justify-start">
                       Review
-                    </Button>
-                    <Button variant="ghost" size="lg" className="justify-start">
-                      Kontak
                     </Button>
                   </div>
                 </SheetContent>
@@ -107,6 +109,14 @@ const Header: React.FC<HeaderProps> = ({
           {isLandingPage && (
             <div className="hidden md:flex items-center">
               <Button
+                onClick={scrollToHowToOrder}
+                variant="ghost"
+                size="lg"
+                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
+              >
+                Cara pesan
+              </Button>
+              <Button
                 onClick={scrollToAdvantage}
                 variant="ghost"
                 size="lg"
@@ -115,20 +125,20 @@ const Header: React.FC<HeaderProps> = ({
                 Kelebihan
               </Button>
               <Button
-                onClick={scrollToHowToOrder}
+                onClick={scrollToService}
                 variant="ghost"
                 size="lg"
                 className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
               >
-                Cara kerja
+                Layanan
               </Button>
               <Button
-                onClick={scrollToFAQAndContact}
+                onClick={scrollToArticle}
                 variant="ghost"
                 size="lg"
                 className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
               >
-                FAQ
+                Artikel
               </Button>
               <Button
                 onClick={scrollToReview}
@@ -137,14 +147,6 @@ const Header: React.FC<HeaderProps> = ({
                 className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
               >
                 Review
-              </Button>
-              <Button
-                onClick={scrollToFAQAndContact}
-                variant="ghost"
-                size="lg"
-                className="text-base text-white hover:text-white hover:bg-zinc-700/[.4]"
-              >
-                Kontak
               </Button>
             </div>
           )}

@@ -9,7 +9,7 @@ export const GET = async (req: NextRequest) => {
     const search = req.nextUrl.searchParams.get("search") || "";
 
     if (search) {
-      const vehicleType = await prisma.vehicleType.findUnique({
+      const vehicleType = await prisma.vehicleType.findFirst({
         where: { name: search },
       });
       if (vehicleType) {
@@ -68,9 +68,9 @@ export const POST = async (req: NextRequest) => {
   try {
     await checkAuth(req);
     const body = await req.json();
-    const { name, pricePerKm } = body;
+    const { name, capacity, pricePerKm } = body;
 
-    if (!name) {
+    if (!name || !capacity) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
@@ -90,7 +90,8 @@ export const POST = async (req: NextRequest) => {
     const vehicleType = await prisma.vehicleType.create({
       data: {
         name,
-        pricePerKm: parseFloat(pricePerKm)
+        capacity: parseInt(capacity),
+        pricePerKm: parseFloat(pricePerKm),
       },
     });
     return NextResponse.json(
