@@ -21,7 +21,7 @@ import { z } from "zod";
 import axios, { AxiosError } from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// Zod schema for form validation
+// Update the schema to make mainImage truly optional
 const articleSchema = z.object({
   title: z
     .string()
@@ -31,34 +31,33 @@ const articleSchema = z.object({
     .string()
     .min(1, "Konten artikel wajib diisi")
     .max(10000, "Konten maksimal 10.000 karakter"),
-  mainImage: z
-    .instanceof(File)
-    .optional()
-    .refine(
-      (file) => {
-        if (!file) return true;
-        const validTypes = [
-          "image/jpeg",
-          "image/jpg",
-          "image/png",
-          "image/gif",
-          "image/webp",
-        ];
-        return validTypes.includes(file.type);
-      },
-      {
-        message: "Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.",
-      }
-    )
-    .refine(
-      (file) => {
-        if (!file) return true;
-        return file.size <= 5 * 1024 * 1024;
-      },
-      {
-        message: "Ukuran file terlalu besar. Maksimal 5MB.",
-      }
-    ),
+  mainImage: z.union([
+    z
+      .instanceof(File)
+      .refine(
+        (file) => {
+          const validTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ];
+          return validTypes.includes(file.type);
+        },
+        {
+          message: "Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.",
+        }
+      )
+      .refine(
+        (file) => file.size <= 5 * 1024 * 1024,
+        {
+          message: "Ukuran file terlalu besar. Maksimal 5MB.",
+        }
+      ),
+    z.null(),
+    z.undefined(),
+  ]),
 });
 
 interface FormData {
@@ -282,40 +281,25 @@ export default function EditArticlePage() {
     }
   
     try {
-      // Validasi form data
+      // Validasi form data dengan mainImage yang benar-benar opsional
       articleSchema.parse({
         title: formData.title,
         content: formData.content,
-        mainImage: selectedFile,
+        mainImage: selectedFile || undefined, // Pass undefined jika tidak ada file baru
       });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        setErrors(error);
-        error.errors.forEach((err) => {
-          toast.error(err.message);
-        });
-        setIsLoading(false);
-        return;
-      }
-    }
-  
-    try {
+
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title);
       formDataToSend.append("content", formData.content);
       
-      // Cek apakah ada file gambar baru yang dipilih
-      const hasNewImage = selectedFile !== null;
-      
-      // Jika ada gambar baru, append ke FormData
-      if (hasNewImage) {
+      // Hanya append image jika ada file baru yang dipilih
+      if (selectedFile) {
         formDataToSend.append("mainImgUrl", selectedFile);
-        console.log("Sending new image:", selectedFile.name, selectedFile.size);
       }
-  
+
       // Debug: Log semua data yang akan dikirim
       console.log("Form data being sent:");
-      console.log("- Has new image:", hasNewImage);
+      console.log("- Has new image:", selectedFile !== null);
       for (const [key, value] of formDataToSend.entries()) {
         console.log(`- ${key}:`, value instanceof File ? `File: ${value.name}` : value);
       }
@@ -323,7 +307,7 @@ export default function EditArticlePage() {
       toast.loading("Menyimpan perubahan...", { id: "upload-progress" });
   
       // Buat URL dengan query parameter replace-photo sesuai kebutuhan backend
-      const apiUrl = `/api/articles/${articleId}${hasNewImage ? '?replace-photo=true' : ''}`;
+      const apiUrl = `/api/articles/${articleId}${selectedFile ? '?replace-photo=true' : ''}`;
       
       console.log("API URL:", apiUrl);
   
@@ -343,7 +327,7 @@ export default function EditArticlePage() {
   
       toast.success("Artikel berhasil diperbarui!", {
         id: "upload-progress",
-        description: hasNewImage 
+        description: selectedFile 
           ? "Artikel dan gambar telah diperbarui." 
           : "Artikel telah diperbarui.",
       });

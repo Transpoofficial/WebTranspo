@@ -41,7 +41,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { DataTablePagination } from "./data-table-pagination";
-import { DataTableToolbar } from "./data-table-toolbar";
+// import { DataTableToolbar } from "./data-table-toolbar";
 import { ArticleSchema } from "../data/schema";
 
 interface DataTableProps<TData, TValue> {
@@ -143,7 +143,7 @@ export function DataTable<TData extends ArticleSchema, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      {/* <DataTableToolbar table={table} /> */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
