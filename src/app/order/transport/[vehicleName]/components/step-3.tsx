@@ -522,7 +522,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                 </div>
               )}
             </div>
-
             {/* Journey Details */}
             <div className="space-y-6">
               <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
@@ -558,9 +557,9 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                                           locIndex === 0
                                             ? "bg-blue-100 text-blue-700"
                                             : locIndex ===
-                                              trip.location.length - 1
-                                            ? "bg-red-100 text-red-700"
-                                            : "bg-gray-100 text-transpo-primary"
+                                                trip.location.length - 1
+                                              ? "bg-red-100 text-red-700"
+                                              : "bg-gray-100 text-transpo-primary"
                                         }
                                       `}
                                     >
@@ -664,13 +663,12 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Navigation buttons */}
-            <div className="flex justify-between gap-3 mt-8">
+            </div>{" "}
+            {/* Navigation buttons */}{" "}
+            <div className="flex justify-end gap-3 mt-8">
               <Button
                 onClick={onBack}
-                variant="secondary"
+                variant="outline"
                 className="border-gray-300 hover:bg-gray-100 text-gray-700"
                 disabled={isSubmitting}
               >
@@ -694,32 +692,30 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         onOpenChange={setIsConfirmDialogOpen}
       >
         <AlertDialogContent>
+          {" "}
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemesanan</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Anda akan membuat pesanan transportasi dengan total biaya{" "}
-                <span className="font-semibold text-transpo-primary">
-                  {formatRupiah(displayPrice)}
-                </span>
-                .
-              </p>
-              <p className="text-amber-600 font-medium">
-                ⚠️ Pastikan semua detail perjalanan sudah benar karena pesanan
-                yang telah dibuat tidak dapat diubah.
-              </p>
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mt-3">
-                <p className="text-blue-800 text-sm">
-                  <strong>Yang akan terjadi selanjutnya:</strong>
-                </p>
-                <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
-                  <li>Pesanan akan dibuat dengan status "Pending"</li>
-                  <li>Anda akan diarahkan ke halaman pembayaran</li>
-                  <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
-                </ul>
-              </div>
+            <AlertDialogDescription>
+              Anda akan membuat pesanan transportasi dengan total biaya{" "}
+              {formatRupiah(displayPrice)}.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3">
+            <div className="text-amber-600 font-medium text-sm">
+              ⚠️ Pastikan semua detail perjalanan sudah benar karena pesanan
+              yang telah dibuat tidak dapat diubah.
+            </div>
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <div className="text-blue-800 text-sm">
+                <strong>Yang akan terjadi selanjutnya:</strong>
+              </div>
+              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
+                <li>Pesanan akan dibuat dengan status "Pending"</li>
+                <li>Anda akan diarahkan ke halaman pembayaran</li>
+                <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
+              </ul>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={isSubmitting}

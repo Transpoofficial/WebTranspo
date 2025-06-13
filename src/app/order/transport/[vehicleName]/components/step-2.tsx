@@ -461,7 +461,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
             JADWAL PERJALANAN
           </CardTitle>
         </CardHeader>
-
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left panel - Trip list */}
           <div className="md:col-span-1 space-y-4">
@@ -607,17 +606,20 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 <div className="text-sm">
                   <div className="font-medium text-amber-800">
                     Catatan Penting: Batas Tambahan Perjalanan
-                  </div>
-                  <p className="text-amber-700 mt-1">
-                    {vehicleName.toLowerCase() === "angkot" ? (
-                      <>
-                        Angkot hanya tersedia di area Malang Kota dan Kabupaten.
-                        <br />
-                        Jika ingin menambah/mengurangi hari perjalanan:
-                      </>
-                    ) : (
-                      "Jika ingin menambah/mengurangi hari perjalanan:"
-                    )}
+                  </div>{" "}
+                  <div className="text-amber-700 mt-1">
+                    <div>
+                      {vehicleName.toLowerCase() === "angkot" ? (
+                        <>
+                          Angkot hanya tersedia di area Malang Kota dan
+                          Kabupaten.
+                          <br />
+                          Jika ingin menambah/mengurangi hari perjalanan:
+                        </>
+                      ) : (
+                        "Jika ingin menambah/mengurangi hari perjalanan:"
+                      )}
+                    </div>
                     <ul className="list-disc ml-4 mt-1">
                       <li>Klik tombol Kembali</li>
                       <li>Tambah/kurangi tanggal di step sebelumnya</li>
@@ -629,7 +631,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                         <li>Area terbatas: Malang Kota dan Kabupaten</li>
                       )}
                     </ul>
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -655,11 +657,11 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
             )}
           </div>
         </CardContent>
-        {/* Navigation buttons */}
+        {/* Navigation buttons */}{" "}
         <div className="flex justify-end gap-3 mt-6 mr-4">
           <Button
             onClick={onBack}
-            variant="secondary"
+            variant="outline"
             className="border-gray-300 hover:bg-gray-100 text-gray-700"
           >
             Kembali
