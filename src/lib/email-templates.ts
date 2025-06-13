@@ -6,6 +6,8 @@ import PaymentRemainder from "@/components/email/payment-remainder";
 import RegisterVerification from "@/components/email/register-verification";
 import Thanks from "@/components/email/thanks";
 import ForgotPasswordEmail from "@/components/email/forgot-password";
+import PaymentApproval from "@/components/email/payment-approval";
+import PaymentRejection from "@/components/email/payment-rejection";
 
 export type EmailTemplateType =
   | "payment-verification"
@@ -13,7 +15,9 @@ export type EmailTemplateType =
   | "payment-remainder"
   | "register-verification"
   | "thanks"
-  | "forgot-password";
+  | "forgot-password"
+  | "payment-approval"
+  | "payment-rejection";
 
 export interface BaseEmailData {
   to: string;
@@ -52,13 +56,31 @@ export interface ForgotPasswordData extends BaseEmailData {
   resetLink: string;
 }
 
+export interface PaymentApprovalData extends BaseEmailData {
+  type: "payment-approval";
+  orderType: string;
+  totalAmount: number;
+  invoiceNumber: string;
+  paymentDate: string;
+  invoiceBuffer: Buffer;
+}
+
+export interface PaymentRejectionData extends BaseEmailData {
+  type: "payment-rejection";
+  reason: string;
+  orderType: string;
+  totalAmount: number;
+}
+
 export type EmailData =
   | PaymentVerificationData
   | OrderConfirmationData
   | PaymentRemainderData
   | RegisterVerificationData
   | ThanksData
-  | ForgotPasswordData;
+  | ForgotPasswordData
+  | PaymentApprovalData
+  | PaymentRejectionData;
 
 /**
  * Utility function untuk mengirim email dengan template yang sesuai
@@ -71,10 +93,14 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
   if (!emailRegex.test(to)) {
     throw new Error(`Invalid email format: ${to}`);
   }
-
   let subject = "";
   let htmlContent = "";
   let textContent = "";
+  const attachments: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  }> = [];
 
   // Generate content based on email type
   switch (type) {
@@ -130,7 +156,6 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
       textContent = `Yth. ${fullName}, Terima kasih telah mempercayakan perjalanan Anda bersama TRANSPO.`;
       break;
     }
-
     case "forgot-password": {
       const data = emailData as ForgotPasswordData;
       subject = "Reset Password Akun TRANSPO Anda";
@@ -143,17 +168,54 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
       textContent = `Yth. ${fullName}, Kami menerima permintaan untuk mereset password akun TRANSPO Anda. Klik link berikut untuk membuat password baru: ${data.resetLink}`;
       break;
     }
+    case "payment-approval": {
+      const data = emailData as PaymentApprovalData;
+      subject = "Pembayaran Disetujui - Invoice Terlampir - TRANSPO";
+      htmlContent = await render(
+        PaymentApproval({
+          fullName,
+          orderType: data.orderType,
+          totalAmount: data.totalAmount,
+          invoiceNumber: data.invoiceNumber,
+          paymentDate: data.paymentDate,
+        })
+      );
+      textContent = `Yth. ${fullName}, Selamat! Pembayaran Anda telah disetujui. Invoice No: ${data.invoiceNumber} terlampir dalam email ini.`;
+
+      // Add PDF invoice as attachment
+      attachments.push({
+        filename: `Invoice-${data.invoiceNumber}.pdf`,
+        content: data.invoiceBuffer,
+        contentType: "application/pdf",
+      });
+      break;
+    }
+
+    case "payment-rejection": {
+      const data = emailData as PaymentRejectionData;
+      subject = "Pembayaran Ditolak - TRANSPO";
+      htmlContent = await render(
+        PaymentRejection({
+          fullName,
+          reason: data.reason,
+          orderType: data.orderType,
+          totalAmount: data.totalAmount,
+        })
+      );
+      textContent = `Yth. ${fullName}, Mohon maaf, pembayaran Anda untuk pesanan ${data.orderType} tidak dapat disetujui. Alasan: ${data.reason}. Tim kami akan menghubungi Anda segera.`;
+      break;
+    }
 
     default:
       throw new Error(`Unsupported email template type: ${type}`);
   }
-
   // Send the email
   await sendMail({
     to,
     subject,
     text: textContent,
     html: htmlContent,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   console.log(`Email sent successfully: ${type} to ${to}`);
@@ -200,13 +262,49 @@ export const emailTemplates = {
   async sendThanks(to: string, fullName: string, reviewUrl: string) {
     return sendTemplateEmail({ type: "thanks", to, fullName, reviewUrl });
   },
-
   async sendForgotPassword(to: string, fullName: string, resetLink: string) {
     return sendTemplateEmail({
       type: "forgot-password",
       to,
       fullName,
       resetLink,
+    });
+  },
+  async sendPaymentApproval(
+    to: string,
+    fullName: string,
+    orderType: string,
+    totalAmount: number,
+    invoiceNumber: string,
+    paymentDate: string,
+    invoiceBuffer: Buffer
+  ) {
+    return sendTemplateEmail({
+      type: "payment-approval",
+      to,
+      fullName,
+      orderType,
+      totalAmount,
+      invoiceNumber,
+      paymentDate,
+      invoiceBuffer,
+    });
+  },
+
+  async sendPaymentRejection(
+    to: string,
+    fullName: string,
+    reason: string,
+    orderType: string,
+    totalAmount: number
+  ) {
+    return sendTemplateEmail({
+      type: "payment-rejection",
+      to,
+      fullName,
+      reason,
+      orderType,
+      totalAmount,
     });
   },
 };

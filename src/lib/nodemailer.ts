@@ -19,12 +19,18 @@ export const sendMail = async ({
   subject,
   text,
   html,
+  attachments,
 }: {
   from?: string;
   to: string;
   subject: string;
   text: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  }>;
 }) => {
   try {
     return transporter.sendMail({
@@ -33,6 +39,7 @@ export const sendMail = async ({
       subject,
       text,
       html,
+      attachments,
     });
   } catch (error) {
     console.error("Error sending email: ", error);
