@@ -67,6 +67,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           fullName: user.fullName || "Unknown",
           role: user.role,
+          phoneNumber: user.phoneNumber || "", // Provide a fallback for null phoneNumbers
         };
       },
     }),
@@ -79,6 +80,7 @@ export const authOptions: NextAuthOptions = {
           email: profile.email,
           role: "CUSTOMER", // Provide a fallback for null roles
           fullName: profile.name || "Unknown", // Provide a fallback for null fullNames
+          phoneNumber: "", // Google sign-in doesn't provide phone numbers, so we set it to an empty string
         };
       },
     }),
@@ -163,6 +165,7 @@ export const authOptions: NextAuthOptions = {
           token.email = dbUser.email;
           token.fullName = dbUser.fullName;
           token.role = dbUser.role;
+          token.phoneNumber = dbUser.phoneNumber || ""; // Provide a fallback for null phoneNumbers
         }
       }
       return token;
@@ -174,17 +177,25 @@ export const authOptions: NextAuthOptions = {
         session.user.fullName = user.fullName;
         session.user.email = user.email;
         session.user.role = user.role;
+        session.user.phoneNumber = user.phoneNumber || ""; // Provide a fallback for null phoneNumbers
       } else {
         // Jika menggunakan JWT, ambil data terbaru dari database
         const dbUser = await prisma.user.findUnique({
           where: { email: session.user.email },
-          select: { id: true, fullName: true, email: true, role: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+            phoneNumber: true,
+          },
         });
         if (dbUser) {
           session.user.id = dbUser.id;
           session.user.fullName = dbUser.fullName;
           session.user.email = dbUser.email;
           session.user.role = dbUser.role;
+          session.user.phoneNumber = dbUser.phoneNumber || ""; // Provide a fallback for null phoneNumbers
         }
       }
       return session;
