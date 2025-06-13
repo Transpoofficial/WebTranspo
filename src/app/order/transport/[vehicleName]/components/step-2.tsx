@@ -20,14 +20,13 @@ import DOMPurify from "dompurify";
 // ✅ Import utils functions for consistent calculation
 import {
   calculateDistance,
-  calculateInterTripCharges,
   calculateTotalPrice,
   Trip as UtilsTrip,
 } from "@/utils/order";
 
 interface Step2Props {
   orderData: OrderData;
-  setOrderData: React.Dispatch<React.SetStateAction<any>>;
+  setOrderData: React.Dispatch<React.SetStateAction<OrderData>>;
   onContinue: () => void;
   onBack: () => void;
 }

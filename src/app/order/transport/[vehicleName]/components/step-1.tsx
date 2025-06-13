@@ -215,9 +215,8 @@ const Step1 = ({
         }
       }
     });
-
     return () => subscription.unsubscribe();
-  }, [form, setOrderData, vehicleInfo]);
+  }, [form, setOrderData, vehicleInfo, calculateRequiredVehicles]);
 
   const handleFormSubmit = (values: z.infer<typeof formSchema>) => {
     try {

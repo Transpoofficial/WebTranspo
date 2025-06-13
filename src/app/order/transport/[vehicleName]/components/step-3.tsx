@@ -321,46 +321,54 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
           localStorage.setItem(PAYMENT_ID_KEY, paymentData.id);
         }
 
-        console.log("✅ Order created successfully:", response.data.data);
-
-        onContinue({
+        console.log("✅ Order created successfully:", response.data.data);        onContinue({
           id: paymentData.id,
           amount: parseFloat(paymentData.totalPrice),
         });
       } else {
         toast.error("Gagal membuat pesanan. Silakan coba lagi.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Error creating order:", error);
 
-      if (error.response?.status === 400) {
-        const errorMessage = error.response?.data?.message || "Bad request";
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 400) {
+          const errorMessage = axiosError.response?.data?.message || "Bad request";
 
-        if (errorMessage.includes("Price validation failed")) {
-          setPriceValidationError(errorMessage);
+          if (errorMessage.includes("Price validation failed")) {
+            setPriceValidationError(errorMessage);
+            toast.error(
+              "Harga tidak valid. Silakan refresh halaman untuk memperbarui kalkulasi."
+            );
+          } else if (errorMessage.includes("Distance validation failed")) {
+            setPriceValidationError(errorMessage);
+            toast.error(
+              "Jarak tidak valid. Silakan kembali ke step sebelumnya untuk memperbarui rute."
+            );
+          } else if (errorMessage.includes("Missing required fields")) {
+            toast.error(
+              "Data tidak lengkap. Silakan periksa kembali informasi pesanan."
+            );
+          } else {
+            toast.error(errorMessage);
+          }
+        } else if (axiosError.response?.status === 404) {
+          toast.error("Data tidak ditemukan. Silakan login ulang.");
+        } else if (axiosError.response?.status === 500) {
+          toast.error("Terjadi kesalahan server. Silakan coba lagi nanti.");
+        } else {
+          toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
+        }
+      } else if (error && typeof error === 'object' && 'code' in error) {
+        const networkError = error as { code?: string };
+        if (networkError.code === "NETWORK_ERROR") {
           toast.error(
-            "Harga tidak valid. Silakan refresh halaman untuk memperbarui kalkulasi."
-          );
-        } else if (errorMessage.includes("Distance validation failed")) {
-          setPriceValidationError(errorMessage);
-          toast.error(
-            "Jarak tidak valid. Silakan kembali ke step sebelumnya untuk memperbarui rute."
-          );
-        } else if (errorMessage.includes("Missing required fields")) {
-          toast.error(
-            "Data tidak lengkap. Silakan periksa kembali informasi pesanan."
+            "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
           );
         } else {
-          toast.error(errorMessage);
+          toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
         }
-      } else if (error.response?.status === 404) {
-        toast.error("Data tidak ditemukan. Silakan login ulang.");
-      } else if (error.response?.status === 500) {
-        toast.error("Terjadi kesalahan server. Silakan coba lagi nanti.");
-      } else if (error.code === "NETWORK_ERROR") {
-        toast.error(
-          "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
-        );
       } else {
         toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
       }
@@ -709,9 +717,8 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
             <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
               <div className="text-blue-800 text-sm">
                 <strong>Yang akan terjadi selanjutnya:</strong>
-              </div>
-              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
-                <li>Pesanan akan dibuat dengan status "Pending"</li>
+              </div>              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
+                <li>Pesanan akan dibuat dengan status &quot;Pending&quot;</li>
                 <li>Anda akan diarahkan ke halaman pembayaran</li>
                 <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
               </ul>

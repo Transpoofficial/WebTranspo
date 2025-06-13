@@ -113,7 +113,6 @@ const OrderTransportPage = () => {
         try {
           const response = await axios.get(`/api/users/${data.user.id}`);
           if (response.status === 200) {
-            const userData = response.data.data;
             setOrderData((prevData) => ({
               ...prevData,
               userData: {
@@ -340,7 +339,7 @@ const OrderTransportPage = () => {
               { number: 2, label: "Jadwal Perjalanan" },
               { number: 3, label: "Detail Pesanan" },
               { number: 4, label: "Upload Bukti" },
-            ].map((stepItem, index) => (
+            ].map((stepItem) => (
               <React.Fragment key={stepItem.number}>
                 <div className="flex flex-col items-center">
                   <div

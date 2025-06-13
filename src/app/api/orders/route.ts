@@ -5,10 +5,7 @@ import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
 import { OrderStatus, OrderType, PaymentStatus, Prisma } from "@prisma/client";
 import { calculateDistance, calculateTotalPrice } from "@/utils/order";
-import {
-  calculateRouteDistanceWithDirectionsAPI,
-  calculateInterTripDistance,
-} from "@/utils/google-maps";
+import { calculateRouteDistanceWithDirectionsAPI } from "@/utils/google-maps";
 
 // Types
 interface OrderRequestBody {
@@ -270,7 +267,7 @@ const validateTransportPricing = async (
 
 //  Handle transport order creation
 const handleTransportOrder = async (
-  tx: any,
+  tx: Prisma.TransactionClient,
   orderId: string,
   body: OrderRequestBody,
   destinations: Destination[],
@@ -353,7 +350,7 @@ const handleTransportOrder = async (
 
 //  Handle tour package order creation
 const handleTourPackageOrder = async (
-  tx: any,
+  tx: Prisma.TransactionClient,
   orderId: string,
   body: OrderRequestBody
 ) => {
