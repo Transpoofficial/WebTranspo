@@ -1,3 +1,5 @@
+import { calculateInterTripDistance } from "../google-maps";
+
 // Define Trip interface locally instead of importing from route
 export interface Trip {
   date: Date;
@@ -60,7 +62,7 @@ export function calculateInterTripCharges(trips: Trip[]): number {
         firstLocationNext.lat !== null &&
         firstLocationNext.lng !== null
       ) {
-        const distance = calculateDistance(
+        const distance = calculateInterTripDistance(
           lastLocationCurrent.lat,
           lastLocationCurrent.lng,
           firstLocationNext.lat,
@@ -103,6 +105,15 @@ export function calculateAngkotPrice(
   const basePrice = 150000 + 4100 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
   const totalPrice = priceWithTax * vehicleCount;
+
+  console.log("🔢 Angkot Price Calculation:", {
+    distanceKm: distanceKm.toFixed(3),
+    vehicleCount,
+    basePrice: basePrice.toFixed(2),
+    priceWithTax: priceWithTax.toFixed(2),
+    totalPrice: totalPrice.toFixed(2),
+    rounded: Math.round(totalPrice),
+  });
 
   return Math.round(totalPrice);
 }

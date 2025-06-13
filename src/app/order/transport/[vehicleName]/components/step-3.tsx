@@ -253,9 +253,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
       // Add note if it exists
       if (orderData.note && orderData.note.trim()) {
         formData.append("note", orderData.note.trim());
-      }
-
-      // Add all destinations with their full details
+      } // Add all destinations with their full details
       orderData.trip.forEach((trip, tripIndex) => {
         trip.location.forEach((loc, locIndex) => {
           if (loc.address) {
@@ -275,11 +273,14 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
               tripIndex === 0 && locIndex === 0 ? "true" : "false"
             );
 
+            // Add departure date for ALL destinations in the same trip
+            formData.append(
+              `destinations[${index}].departureDate`,
+              format(trip.date, "yyyy-MM-dd")
+            );
+
+            // Add departure time only for the first destination of each trip
             if (locIndex === 0) {
-              formData.append(
-                `destinations[${index}].departureDate`,
-                format(trip.date, "yyyy-MM-dd")
-              );
               formData.append(
                 `destinations[${index}].departureTime`,
                 trip.startTime || "09:00"

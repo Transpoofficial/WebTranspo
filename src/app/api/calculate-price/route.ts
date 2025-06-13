@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { calculateTotalPrice, calculateDistance } from "@/utils/order";
+import {
+  calculateRouteDistanceWithGoogleMaps,
+  calculateInterTripDistance,
+} from "@/utils/google-maps";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types for trip data
@@ -63,24 +67,32 @@ const formatDateString = (date: string | Date): string => {
   }
 };
 
-// Calculate route distance using the same logic as backend
-const calculateRouteDistance = (
+// Calculate route distance using Google Maps API for accuracy
+const calculateRouteDistance = async (
   locations: Array<{ lat: number; lng: number }>
-): number => {
+): Promise<number> => {
   if (locations.length < 2) return 0;
 
-  let totalDistance = 0;
-  for (let i = 0; i < locations.length - 1; i++) {
-    const distance = calculateDistance(
-      locations[i].lat,
-      locations[i].lng,
-      locations[i + 1].lat,
-      locations[i + 1].lng
-    );
-    totalDistance += distance;
-  }
+  try {
+    // Use Google Maps API for accurate distance calculation
+    const result = await calculateRouteDistanceWithGoogleMaps(locations);
+    return result.distance / 1000; // Convert meters to kilometers
+  } catch (error) {
+    console.error("Error calculating route distance with Google Maps:", error);
 
-  return totalDistance; // Return in kilometers
+    // Fallback to Haversine formula
+    let totalDistance = 0;
+    for (let i = 0; i < locations.length - 1; i++) {
+      const distance = calculateDistance(
+        locations[i].lat,
+        locations[i].lng,
+        locations[i + 1].lat,
+        locations[i + 1].lng
+      );
+      totalDistance += distance;
+    }
+    return totalDistance; // Return in kilometers
+  }
 };
 
 export async function POST(req: NextRequest) {
@@ -120,48 +132,59 @@ export async function POST(req: NextRequest) {
     // Calculate distance for each trip and total distance
     let totalDistanceKm = 0;
     const tripDistances: Array<{ date: string; distance: number }> = [];
+    const processedTrips = await Promise.all(
+      trips.map(async (trip) => {
+        // Filter valid locations
+        const validLocations = trip.location.filter(
+          (loc) => loc.lat !== null && loc.lng !== null && loc.address
+        );
 
-    const processedTrips = trips.map((trip) => {
-      // Filter valid locations
-      const validLocations = trip.location.filter(
-        (loc) => loc.lat !== null && loc.lng !== null && loc.address
-      );
+        const tripDateString = formatDateString(trip.date);
 
-      const tripDateString = formatDateString(trip.date);
+        if (validLocations.length < 2) {
+          tripDistances.push({
+            date: tripDateString,
+            distance: 0,
+          });
 
-      if (validLocations.length < 2) {
+          return {
+            date: new Date(tripDateString),
+            location: validLocations,
+            distance: 0,
+          };
+        }
+
+        // Use frontend-calculated distance if available (already in meters)
+        let tripDistance = 0;
+        if (trip.distance && trip.distance > 0) {
+          tripDistance = trip.distance / 1000; // Convert meters to kilometers
+          console.log(`Using frontend distance: ${tripDistance.toFixed(2)} km`);
+        } else {
+          // Fallback: Calculate distance using Google Maps API
+          const locations = validLocations.map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+          }));
+          tripDistance = await calculateRouteDistance(locations);
+          console.log(
+            `Calculated backend distance: ${tripDistance.toFixed(2)} km`
+          );
+        }
+
+        totalDistanceKm += tripDistance;
+
         tripDistances.push({
           date: tripDateString,
-          distance: 0,
+          distance: tripDistance,
         });
 
         return {
           date: new Date(tripDateString),
           location: validLocations,
-          distance: 0,
+          distance: tripDistance,
         };
-      }
-
-      // Calculate distance for this trip
-      const locations = validLocations.map((loc) => ({
-        lat: loc.lat!,
-        lng: loc.lng!,
-      }));
-
-      const tripDistance = calculateRouteDistance(locations);
-      totalDistanceKm += tripDistance;
-
-      tripDistances.push({
-        date: tripDateString,
-        distance: tripDistance,
-      });
-
-      return {
-        date: new Date(tripDateString),
-        location: validLocations,
-        distance: tripDistance,
-      };
-    });
+      })
+    );
 
     console.log(`Total calculated distance: ${totalDistanceKm.toFixed(2)} km`);
 
@@ -202,7 +225,8 @@ export async function POST(req: NextRequest) {
             firstLocationNext.lat !== null &&
             firstLocationNext.lng !== null
           ) {
-            const distance = calculateDistance(
+            // Use Haversine formula for inter-trip distance (as specified)
+            const distance = calculateInterTripDistance(
               lastLocationCurrent.lat,
               lastLocationCurrent.lng,
               firstLocationNext.lat,

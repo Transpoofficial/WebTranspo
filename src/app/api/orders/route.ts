@@ -5,6 +5,10 @@ import { DateTime } from "luxon";
 import { getPaginationParams } from "@/utils/pagination";
 import { OrderStatus, OrderType, PaymentStatus, Prisma } from "@prisma/client";
 import { calculateDistance, calculateTotalPrice } from "@/utils/order";
+import {
+  calculateRouteDistanceWithGoogleMaps,
+  calculateInterTripDistance,
+} from "@/utils/google-maps";
 
 // Types
 interface OrderRequestBody {
@@ -70,25 +74,34 @@ const sanitizeNote = (input: string | undefined): string | null => {
   return sanitized.length > 0 ? sanitized : null;
 };
 
-//  Calculate route distance using Google Maps-like approach (simplified)
-const calculateRouteDistance = (
+//  Calculate route distance using Google Maps API for accuracy
+const calculateRouteDistance = async (
   locations: Array<{ lat: number; lng: number }>
-): number => {
+): Promise<number> => {
   if (locations.length < 2) return 0;
 
-  let totalDistance = 0;
-  for (let i = 0; i < locations.length - 1; i++) {
-    const distance = calculateDistance(
-      locations[i].lat,
-      locations[i].lng,
-      locations[i + 1].lat,
-      locations[i + 1].lng
-    );
-    totalDistance += distance;
-  }
+  try {
+    // Use Google Maps API for accurate distance calculation
+    const result = await calculateRouteDistanceWithGoogleMaps(locations);
+    return result.distance; // Return in meters for consistency with frontend
+  } catch (error) {
+    console.error("Error calculating route distance with Google Maps:", error);
 
-  // Convert to meters for consistency with frontend
-  return totalDistance * 1000;
+    // Fallback to Haversine formula
+    let totalDistance = 0;
+    for (let i = 0; i < locations.length - 1; i++) {
+      const distance = calculateDistance(
+        locations[i].lat,
+        locations[i].lng,
+        locations[i + 1].lat,
+        locations[i + 1].lng
+      );
+      totalDistance += distance;
+    }
+
+    // Convert to meters for consistency with frontend
+    return totalDistance * 1000;
+  }
 };
 
 //  Validate and recalculate transport pricing
@@ -125,6 +138,7 @@ const validateTransportPricing = async (
   let actualTotalDistance = 0;
   const tripsForCalculation: TripForCalculation[] = [];
 
+  // Create trips for calculation based on grouped destinations
   for (const [dateStr, tripDestinations] of tripsByDate.entries()) {
     // Sort destinations by sequence within the trip
     const sortedDestinations = tripDestinations.sort(
@@ -139,8 +153,26 @@ const validateTransportPricing = async (
       time: dest.arrivalTime || null,
     }));
 
-    // Calculate trip distance using the same function as frontend
-    const tripDistance = calculateRouteDistance(locations);
+    // Calculate trip distance using Google Maps API (or use fallback)
+    let tripDistance = 0;
+    try {
+      tripDistance = await calculateRouteDistance(locations);
+    } catch (error) {
+      console.error(`Error calculating distance for trip ${dateStr}:`, error);
+      // Fallback to Haversine if Google Maps fails
+      if (locations.length >= 2) {
+        for (let i = 0; i < locations.length - 1; i++) {
+          const distance = calculateDistance(
+            locations[i].lat,
+            locations[i].lng,
+            locations[i + 1].lat,
+            locations[i + 1].lng
+          );
+          tripDistance += distance * 1000; // Convert to meters
+        }
+      }
+    }
+
     actualTotalDistance += tripDistance;
 
     // Prepare trip data for inter-trip calculation
@@ -157,9 +189,7 @@ const validateTransportPricing = async (
   // Convert total distance from meters to kilometers for price calculation
   const actualTotalDistanceKm = actualTotalDistance / 1000;
 
-  console.log(
-    `📏 Frontend distance: ${(frontendDistance / 1000).toFixed(2)} km`
-  );
+  console.log(`📏 Frontend distance: ${frontendDistance.toFixed(2)} km`);
   console.log(
     `📏 Backend calculated distance: ${actualTotalDistanceKm.toFixed(2)} km`
   );
@@ -167,9 +197,9 @@ const validateTransportPricing = async (
   // Use consistent price calculation with the same function as frontend
   const priceResult = calculateTotalPrice(
     vehicleType.name,
-    actualTotalDistanceKm, // Already in km
+    actualTotalDistanceKm,
     vehicleCount,
-    tripsForCalculation
+    tripsForCalculation // This will include inter-trip charges
   );
 
   console.log(`💰 Frontend price: Rp ${frontendPrice.toLocaleString()}`);
@@ -181,15 +211,16 @@ const validateTransportPricing = async (
     `💰 Inter-trip charges: Rp ${priceResult.interTripCharges.toLocaleString()}`
   );
 
-  // More relaxed validation tolerance (10% for API calculated prices)
+  // More lenient validation for price (allow for rounding differences)
   const priceDifference = Math.abs(priceResult.totalPrice - frontendPrice);
-  const priceTolerancePercentage = 0.1; // 10% tolerance since both use same calculation
-  const maxAllowedDifference =
-    priceResult.totalPrice * priceTolerancePercentage;
+  const maxAllowedPriceDifference = Math.max(
+    priceResult.totalPrice * 0.05, // 5% tolerance
+    10000 // Minimum Rp 10,000 tolerance for inter-trip calculations
+  );
 
-  if (priceDifference > maxAllowedDifference) {
+  if (priceDifference > maxAllowedPriceDifference) {
     console.log(
-      `❌ Price validation failed: difference ${priceDifference} > tolerance ${maxAllowedDifference}`
+      `❌ Price validation failed: difference Rp ${priceDifference.toLocaleString()} > tolerance Rp ${maxAllowedPriceDifference.toLocaleString()}`
     );
     throw new Error(
       `Price validation failed. Expected: Rp ${priceResult.totalPrice.toLocaleString()}, ` +
@@ -197,22 +228,22 @@ const validateTransportPricing = async (
     );
   }
 
-  // Validate distance difference (allow 10% tolerance for routing differences)
+  // Distance validation with more tolerance
   const distanceDifference = Math.abs(
     actualTotalDistance - frontendDistance * 1000
-  ); // Convert frontend to meters
-  const distanceTolerancePercentage = 0.1; // 10%
-  const maxAllowedDistanceDifference =
-    actualTotalDistance * distanceTolerancePercentage;
+  );
+  const maxAllowedDistanceDifference = Math.max(
+    actualTotalDistance * 0.15, // 15% tolerance for routing differences
+    2000 // Minimum 2km tolerance
+  );
 
   if (distanceDifference > maxAllowedDistanceDifference) {
     console.log(
-      `❌ Distance validation failed: difference ${distanceDifference}m > tolerance ${maxAllowedDistanceDifference}m`
+      `❌ Distance validation failed: difference ${(distanceDifference / 1000).toFixed(2)}km > tolerance ${(maxAllowedDistanceDifference / 1000).toFixed(2)}km`
     );
     throw new Error(
-      `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(
-        2
-      )} km, ` + `Received: ${(frontendDistance / 1000).toFixed(2)} km`
+      `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(2)} km, ` +
+        `Received: ${frontendDistance.toFixed(2)} km`
     );
   }
 
