@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { calculateTotalPrice, calculateDistance } from "@/utils/order";
 import {
-  calculateRouteDistanceWithGoogleMaps,
+  calculateRouteDistanceWithDirectionsAPI,
   calculateInterTripDistance,
 } from "@/utils/google-maps";
 import { NextRequest, NextResponse } from "next/server";
@@ -67,18 +67,21 @@ const formatDateString = (date: string | Date): string => {
   }
 };
 
-// Calculate route distance using Google Maps API for accuracy
+// Calculate route distance using Google Maps Directions API (same as frontend)
 const calculateRouteDistance = async (
   locations: Array<{ lat: number; lng: number }>
 ): Promise<number> => {
   if (locations.length < 2) return 0;
 
   try {
-    // Use Google Maps API for accurate distance calculation
-    const result = await calculateRouteDistanceWithGoogleMaps(locations);
+    // Use same Directions API as frontend for consistency
+    const result = await calculateRouteDistanceWithDirectionsAPI(locations);
     return result.distance / 1000; // Convert meters to kilometers
   } catch (error) {
-    console.error("Error calculating route distance with Google Maps:", error);
+    console.error(
+      "Error calculating route distance with Directions API:",
+      error
+    );
 
     // Fallback to Haversine formula
     let totalDistance = 0;

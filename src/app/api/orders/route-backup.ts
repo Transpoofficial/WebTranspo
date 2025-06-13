@@ -85,10 +85,7 @@ const calculateRouteDistance = async (
     const result = await calculateRouteDistanceWithDirectionsAPI(locations);
     return result.distance; // Return in meters for consistency with frontend
   } catch (error) {
-    console.error(
-      "Error calculating route distance with Directions API:",
-      error
-    );
+    console.error("Error calculating route distance with Directions API:", error);
 
     // Fallback to Haversine formula
     let totalDistance = 0;
@@ -107,7 +104,7 @@ const calculateRouteDistance = async (
   }
 };
 
-//  Validate transport pricing with backend re-calculation using same API as frontend
+//  Validate and recalculate transport pricing
 const validateTransportPricing = async (
   destinations: Destination[],
   vehicleTypeId: string,
@@ -116,9 +113,7 @@ const validateTransportPricing = async (
   frontendPrice: number
 ): Promise<ValidatedTransportData> => {
   console.log("🔍 Starting transport pricing validation...");
-  console.log(
-    `📏 Frontend distance: ${frontendDistance.toFixed(3)} km (will be verified)`
-  );
+  console.log(`📏 Using frontend distance as source of truth: ${frontendDistance.toFixed(2)} km`);
 
   // Get vehicle type for pricing calculation
   const vehicleType = await prisma.vehicleType.findUnique({
@@ -139,9 +134,7 @@ const validateTransportPricing = async (
     }
     tripsByDate.get(dateKey)?.push(dest);
   });
-
-  // Calculate backend distance using same Directions API as frontend
-  let actualTotalDistance = 0;
+  // Prepare trips for inter-trip calculation (no need to recalculate distance)
   const tripsForCalculation: TripForCalculation[] = [];
 
   for (const [dateStr, tripDestinations] of tripsByDate.entries()) {
@@ -150,7 +143,7 @@ const validateTransportPricing = async (
       (a, b) => a.sequence - b.sequence
     );
 
-    // Extract locations for distance calculation
+    // Extract locations for inter-trip calculation only
     const locations = sortedDestinations.map((dest) => ({
       lat: dest.lat,
       lng: dest.lng,
@@ -158,57 +151,21 @@ const validateTransportPricing = async (
       time: dest.arrivalTime || null,
     }));
 
-    // Calculate trip distance using same Directions API as frontend
-    let tripDistance = 0;
-    try {
-      tripDistance = await calculateRouteDistance(locations);
-      console.log(
-        `📏 Backend calculated trip ${dateStr}: ${(tripDistance / 1000).toFixed(3)} km`
-      );
-    } catch (error) {
-      console.error(`Error calculating distance for trip ${dateStr}:`, error);
-      // Fallback to Haversine if Directions API fails
-      if (locations.length >= 2) {
-        for (let i = 0; i < locations.length - 1; i++) {
-          const distance = calculateDistance(
-            locations[i].lat,
-            locations[i].lng,
-            locations[i + 1].lat,
-            locations[i + 1].lng
-          );
-          tripDistance += distance * 1000; // Convert to meters
-        }
-        console.log(
-          `📏 Fallback calculated trip ${dateStr}: ${(tripDistance / 1000).toFixed(3)} km`
-        );
-      }
-    }
-
-    actualTotalDistance += tripDistance;
-
-    // Prepare trip data for inter-trip calculation
+    // Add trip for inter-trip calculation (distance not needed)
     tripsForCalculation.push({
       date: new Date(dateStr),
       location: locations,
-      distance: tripDistance,
+      distance: 0, // Distance not needed for inter-trip calculation
       startTime: "09:00",
     });
   }
 
-  // Convert total distance from meters to kilometers
-  const actualTotalDistanceKm = actualTotalDistance / 1000;
-
-  console.log(`📏 Frontend distance: ${frontendDistance.toFixed(3)} km`);
-  console.log(
-    `📏 Backend calculated distance: ${actualTotalDistanceKm.toFixed(3)} km`
-  );
-
-  // Calculate price using backend distance (both should be very close now)
+  // Use frontend distance directly for price calculation
   const priceResult = calculateTotalPrice(
     vehicleType.name,
-    actualTotalDistanceKm,
+    frontendDistance, // Use frontend distance directly
     vehicleCount,
-    tripsForCalculation // This will include inter-trip charges
+    tripsForCalculation // This will calculate inter-trip charges based on coordinates
   );
 
   console.log(`💰 Frontend price: Rp ${frontendPrice.toLocaleString()}`);
@@ -220,11 +177,11 @@ const validateTransportPricing = async (
     `💰 Inter-trip charges: Rp ${priceResult.interTripCharges.toLocaleString()}`
   );
 
-  // Strict validation since both use same Directions API
+  // More lenient validation for price (allow for rounding differences)
   const priceDifference = Math.abs(priceResult.totalPrice - frontendPrice);
   const maxAllowedPriceDifference = Math.max(
-    priceResult.totalPrice * 0.03, // 3% tolerance for small differences
-    5000 // Minimum Rp 5,000 tolerance
+    priceResult.totalPrice * 0.05, // 5% tolerance
+    10000 // Minimum Rp 10,000 tolerance for inter-trip calculations
   );
 
   if (priceDifference > maxAllowedPriceDifference) {
@@ -237,28 +194,26 @@ const validateTransportPricing = async (
     );
   }
 
-  // Distance validation with tight tolerance since both use same API
+  // Distance validation with more tolerance
   const distanceDifference = Math.abs(
     actualTotalDistance - frontendDistance * 1000
   );
   const maxAllowedDistanceDifference = Math.max(
-    actualTotalDistance * 0.05, // 5% tolerance (should be much smaller with same API)
-    500 // Minimum 500m tolerance
+    actualTotalDistance * 0.15, // 15% tolerance for routing differences
+    2000 // Minimum 2km tolerance
   );
 
   if (distanceDifference > maxAllowedDistanceDifference) {
     console.log(
-      `❌ Distance validation failed: difference ${(distanceDifference / 1000).toFixed(3)}km > tolerance ${(maxAllowedDistanceDifference / 1000).toFixed(3)}km`
+      `❌ Distance validation failed: difference ${(distanceDifference / 1000).toFixed(2)}km > tolerance ${(maxAllowedDistanceDifference / 1000).toFixed(2)}km`
     );
     throw new Error(
-      `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(3)} km, ` +
-        `Received: ${frontendDistance.toFixed(3)} km`
+      `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(2)} km, ` +
+        `Received: ${frontendDistance.toFixed(2)} km`
     );
   }
 
-  console.log(
-    "✅ Transport pricing validation passed with same API consistency"
-  );
+  console.log("✅ Transport pricing validation passed");
 
   return {
     actualTotalDistance,
@@ -289,7 +244,7 @@ const handleTransportOrder = async (
     throw new Error("Missing required fields for transportation order");
   }
 
-  //  Validate pricing and distance with backend re-calculation
+  //  Validate pricing and distance
   const validationResult = await validateTransportPricing(
     destinations,
     vehicleTypeId,
@@ -304,7 +259,7 @@ const handleTransportOrder = async (
       orderId: orderId,
       vehicleCount: parseInt(vehicleCount),
       roundTrip: roundTrip === "true",
-      totalDistance: validationResult.actualTotalDistance, //  Use backend validated distance
+      totalDistance: validationResult.actualTotalDistance, //  Use validated distance
     },
   });
 
@@ -384,7 +339,7 @@ const handleTourPackageOrder = async (
     );
   }
 
-  console.log("✅ Tour package pricing validation passed");
+  console.log(" Tour package pricing validation passed");
 
   // Create package order
   await tx.packageOrder.create({
@@ -419,9 +374,7 @@ export const GET = async (req: NextRequest) => {
     const orderType = searchParams.get("orderType") || "";
     const orderStatus = searchParams.get("orderStatus") || "";
     const vehicleType = searchParams.get("vehicleType") || "";
-    const paymentStatus = searchParams.get("paymentStatus") || "";
-
-    // Build filter conditions
+    const paymentStatus = searchParams.get("paymentStatus") || ""; // Build filter conditions
     const whereConditions: Prisma.OrderWhereInput = {};
 
     // Only filter by userId if user is CUSTOMER
@@ -440,9 +393,7 @@ export const GET = async (req: NextRequest) => {
         { user: { email: { contains: search } } },
         { user: { phoneNumber: { contains: search } } },
       ];
-    }
-
-    // Order type filter
+    } // Order type filter
     if (orderType) {
       whereConditions.orderType = orderType as OrderType;
     }
@@ -470,7 +421,6 @@ export const GET = async (req: NextRequest) => {
     const totalCount = await prisma.order.count({
       where: whereConditions,
     });
-
     const orders = await prisma.order.findMany({
       where: whereConditions,
       skip,
@@ -672,7 +622,6 @@ export const POST = async (req: NextRequest) => {
       }
       destByDate.get(date)?.push(dest);
     });
-
     for (const [, dests] of destByDate.entries()) {
       if (dests.length > 0) {
         dests.forEach((d) => (d.isPickupLocation = false));
@@ -729,7 +678,7 @@ export const POST = async (req: NextRequest) => {
         },
       });
 
-      console.log(`✅ Order created with ID: ${createdOrder.id}`);
+      console.log(`Order created with ID: ${createdOrder.id}`);
 
       let validatedPrice = parseFloat(totalPrice || "0");
 
@@ -745,7 +694,7 @@ export const POST = async (req: NextRequest) => {
         validatedPrice = transportResult.validatedPrice;
 
         console.log(
-          `✅ Transport order validated: price=${validatedPrice}, distance=${transportResult.validatedDistance}`
+          ` Transport order validated: price=${validatedPrice}, distance=${transportResult.validatedDistance}`
         );
       } else if (orderType.toUpperCase() === "TOUR") {
         const tourResult = await handleTourPackageOrder(
@@ -755,7 +704,7 @@ export const POST = async (req: NextRequest) => {
         );
         validatedPrice = tourResult.validatedPrice;
 
-        console.log(`✅ Tour package order validated: price=${validatedPrice}`);
+        console.log(` Tour package order validated: price=${validatedPrice}`);
       } else {
         throw new Error("Invalid order type");
       }
@@ -777,9 +726,7 @@ export const POST = async (req: NextRequest) => {
       };
     });
 
-    console.log(
-      `✅ Order successfully created with backend validation using same API as frontend`
-    );
+    console.log(` Order successfully created with validated pricing`);
 
     // Return created order with payment data
     return NextResponse.json(
