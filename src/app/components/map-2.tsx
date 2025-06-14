@@ -934,264 +934,259 @@ const Map2: React.FC<Map2Props> = ({
   if (!isLoaded) return <p>Loading Google Maps...</p>;
 
   return (
-    <div className="relative" style={{ height }}>
-      <GoogleMap
-        options={mapOptions}
-        zoom={11}
-        center={mapCenter}
-        mapContainerStyle={{ width: "100%", height: "100%" }}
-        onClick={handleMapClick}
-        onLoad={(map) => {
-          mapRef.current = map;
-        }}
-      >
-        {/* Show markers only for the active trip when using in Step2 */}
-        {onTripsChange
-          ? // When in Step2, only show markers for active trip
-            currentTripToShow &&
-            currentTripToShow.locations.map(
-              (location, locIndex) =>
-                location.lat !== null &&
-                location.lng !== null && (
-                  <Marker
-                    key={`active-${locIndex}`}
-                    position={{ lat: location.lat, lng: location.lng }}
-                    label={`${locIndex + 1}`}
-                    onClick={() => {
-                      setActiveInput({
-                        tripIndex: activeTrip,
-                        locationIndex: locIndex,
-                      });
-                    }}
-                  />
-                )
-            )
-          : // When not in Step2, show all trips' markers
-            trips.map((trip, tripIndex) =>
-              trip.locations.map(
+    <div className="flex flex-col h-full">
+      <div className="h-[400px] w-full">
+        <GoogleMap
+          options={mapOptions}
+          zoom={11}
+          center={mapCenter}
+          onClick={handleMapClick}
+          mapContainerStyle={{ height: "100%", width: "100%" }}
+          onLoad={(map) => {
+            mapRef.current = map;
+          }}
+        >
+          {/* Show markers only for the active trip when using in Step2 */}
+          {onTripsChange
+            ? // When in Step2, only show markers for active trip
+              currentTripToShow &&
+              currentTripToShow.locations.map(
                 (location, locIndex) =>
                   location.lat !== null &&
                   location.lng !== null && (
                     <Marker
-                      key={`${tripIndex}-${locIndex}`}
+                      key={`active-${locIndex}`}
                       position={{ lat: location.lat, lng: location.lng }}
                       label={`${locIndex + 1}`}
                       onClick={() => {
-                        setActiveInput({ tripIndex, locationIndex: locIndex });
+                        setActiveInput({
+                          tripIndex: activeTrip,
+                          locationIndex: locIndex,
+                        });
                       }}
                     />
                   )
               )
-            )}
-      </GoogleMap>
-
-      {showUI && (
-        <div className="absolute top-4 left-4 z-10 max-w-sm">
-          <div
-            className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"
-            style={{ maxHeight: `calc(${height} - 32px)` }}
-          >
-            <div className="pt-4 px-6 flex-shrink-0">
-              <div className="text-lg font-semibold">Inisiasi perjalanan</div>
-              <p className="text-xs text-muted-foreground">
-                {isAngkot
-                  ? "🚐 Klik input lalu pilih lokasi di peta atau ketik manual. Angkot hanya tersedia di area Malang (radius 15-50km dari pusat)."
-                  : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-2 mt-2">
-              <Accordion
-                type="single"
-                collapsible
-                defaultValue={"item-" + activeTrip}
-                className="gap-y-2 w-full"
-              >
-                {trips.map((trip, tripIndex) => {
-                  const tripDirections = directions.find(
-                    (d) => d.tripId === trip.id
-                  );
-
-                  // Only show the active trip's panel when used in Step2
-                  if (onTripsChange && tripIndex !== activeTrip) {
-                    return null;
-                  }
-
-                  return (
-                    <AccordionItem
-                      key={trip.id}
-                      value={`item-${tripIndex}`}
-                      className="border-b-0"
-                    >
-                      <AccordionTrigger className="items-center px-4 hover:[box-shadow:rgba(99,_99,_99,_0.2)_0px_2px_8px_0px] rounded-2xl">
-                        <div>
-                          <small className="text-sm font-medium leading-none">
-                            Trip {tripIndex + 1}
-                            {trip.date &&
-                              ` - ${trip.date.toLocaleDateString()}`}
-                          </small>
-                          <p className="text-xs text-muted-foreground">
-                            {
-                              trip.locations.filter(
-                                (loc) => loc.lat !== null && loc.lng !== null
-                              ).length
-                            }{" "}
-                            dari {trip.locations.length} destinasi dipilih
-                          </p>
-                          {tripDirections && (
-                            <p className="text-xs text-muted-foreground">
-                              Jarak:{" "}
-                              {formatDistance(tripDirections.totalDistance)} |
-                              Waktu:{" "}
-                              {formatDuration(tripDirections.totalDuration)}
-                            </p>
-                          )}
-                        </div>
-
-                        {!onTripsChange && (
-                          <div
-                            title="Hapus trip"
-                            className="p-2 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTrip(tripIndex);
-                            }}
-                          >
-                            <Trash className="w-4 h-4" color="#DC2626" />
-                          </div>
-                        )}
-                      </AccordionTrigger>
-                      <AccordionContent className="py-1.5 px-4 overflow-visible">
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleDragEnd}
-                          modifiers={[restrictToVerticalAxis]}
-                        >
-                          <SortableContext
-                            items={trip.locations.map((loc) => loc.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            {trip.locations.map((location, locationIndex) => (
-                              <React.Fragment key={location.id}>
-                                <div className="flex items-center w-full group mb-4">
-                                  {" "}
-                                  {/* Increased margin-bottom */}
-                                  {locationIndex === 0 ? (
-                                    <MapPin
-                                      color="#DC362E"
-                                      className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
-                                    />
-                                  ) : locationIndex ===
-                                    trip.locations.length - 1 ? (
-                                    <Flag
-                                      color="#DC362E"
-                                      className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
-                                    />
-                                  ) : (
-                                    <span className="min-w-4 min-h-4 w-4 h-4 text-[10px] text-center font-medium border border-black rounded-full mr-1 self-start mt-2">
-                                      {" "}
-                                      {/* Added self-start alignment */}
-                                      {locationIndex}
-                                    </span>
-                                  )}
-                                  <SortableLocationItem
-                                    key={location.id}
-                                    location={location}
-                                    onFocus={() =>
-                                      setActiveInput({
-                                        tripIndex,
-                                        locationIndex,
-                                      })
-                                    }
-                                    onChange={(e) =>
-                                      handleInputChange(
-                                        tripIndex,
-                                        locationIndex,
-                                        e.target.value
-                                      )
-                                    }
-                                    onTimeChange={(time) =>
-                                      handleTimeChange(
-                                        tripIndex,
-                                        locationIndex,
-                                        time
-                                      )
-                                    }
-                                    inputRef={(el) => {
-                                      inputRefs.current[
-                                        `${tripIndex}-${locationIndex}`
-                                      ] = el;
-                                    }}
-                                  />
-                                  {trip.locations.length > 2 && (
-                                    <button
-                                      title="Hapus lokasi"
-                                      className="pl-2 py-2 cursor-pointer self-start mt-2" // Added self-start alignment
-                                      onClick={() =>
-                                        handleRemoveLocation(
-                                          tripIndex,
-                                          locationIndex
-                                        )
-                                      }
-                                    >
-                                      <Trash
-                                        className="w-4 h-4"
-                                        color="#DC2626"
-                                      />
-                                    </button>
-                                  )}
-                                </div>
-
-                                {locationIndex !==
-                                  trip.locations.length - 1 && (
-                                  <div className="mr-auto mb-2">
-                                    <EllipsisVertical
-                                      strokeWidth={1}
-                                      className="min-w-4 min-h-4 w-4 h-4"
-                                    />
-                                  </div>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </SortableContext>
-                        </DndContext>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </div>
-
-            <div className="p-4 bg-white border-t flex-shrink-0">
-              {!onTripsChange ? (
-                <Button
-                  onClick={handleAddTrip}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Tambah perjalanan
-                </Button>
-              ) : (
-                <Button
-                  disabled={
-                    !!maxLocationsPerTrip &&
-                    trips[activeTrip]?.locations.length >= maxLocationsPerTrip
-                  }
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleAddLocation(activeTrip)}
-                  className="w-full"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Tambah destinasi
-                </Button>
+            : // When not in Step2, show all trips' markers
+              trips.map((trip, tripIndex) =>
+                trip.locations.map(
+                  (location, locIndex) =>
+                    location.lat !== null &&
+                    location.lng !== null && (
+                      <Marker
+                        key={`${tripIndex}-${locIndex}`}
+                        position={{ lat: location.lat, lng: location.lng }}
+                        label={`${locIndex + 1}`}
+                        onClick={() => {
+                          setActiveInput({ tripIndex, locationIndex: locIndex });
+                        }}
+                      />
+                    )
+                )
               )}
-            </div>
-          </div>
+        </GoogleMap>
+      </div>
+
+      <div className="flex-1 bg-white rounded-xl shadow-lg flex flex-col mt-4 max-h-96 overflow-y-auto">
+        <div className="pt-4 px-6 flex-shrink-0">
+          <div className="text-lg font-semibold">Inisiasi perjalanan</div>
+          <p className="text-xs text-muted-foreground">
+            {isAngkot
+              ? "🚐 Klik input lalu pilih lokasi di peta atau ketik manual. Angkot hanya tersedia di area Malang (radius 15-50km dari pusat)."
+              : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
+          </p>
         </div>
-      )}
+
+        <div className="flex-1 overflow-y-auto px-2 mt-2">
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue={"item-" + activeTrip}
+            className="gap-y-2 w-full"
+          >
+            {trips.map((trip, tripIndex) => {
+              const tripDirections = directions.find(
+                (d) => d.tripId === trip.id
+              );
+
+              // Only show the active trip's panel when used in Step2
+              if (onTripsChange && tripIndex !== activeTrip) {
+                return null;
+              }
+
+              return (
+                <AccordionItem
+                  key={trip.id}
+                  value={`item-${tripIndex}`}
+                  className="border-b-0"
+                >
+                  <AccordionTrigger className="items-center px-4 hover:[box-shadow:rgba(99,_99,_99,_0.2)_0px_2px_8px_0px] rounded-2xl">
+                    <div>
+                      <small className="text-sm font-medium leading-none">
+                        Trip {tripIndex + 1}
+                        {trip.date &&
+                          ` - ${trip.date.toLocaleDateString()}`}
+                      </small>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          trip.locations.filter(
+                            (loc) => loc.lat !== null && loc.lng !== null
+                          ).length
+                        }{" "}
+                        dari {trip.locations.length} destinasi dipilih
+                      </p>
+                      {tripDirections && (
+                        <p className="text-xs text-muted-foreground">
+                          Jarak:{" "}
+                          {formatDistance(tripDirections.totalDistance)} |
+                          Waktu:{" "}
+                          {formatDuration(tripDirections.totalDuration)}
+                        </p>
+                      )}
+                    </div>
+
+                    {!onTripsChange && (
+                      <div
+                        title="Hapus trip"
+                        className="p-2 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTrip(tripIndex);
+                        }}
+                      >
+                        <Trash className="w-4 h-4" color="#DC2626" />
+                      </div>
+                    )}
+                  </AccordionTrigger>
+                  <AccordionContent className="py-1.5 px-4 overflow-visible">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                      modifiers={[restrictToVerticalAxis]}
+                    >
+                      <SortableContext
+                        items={trip.locations.map((loc) => loc.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {trip.locations.map((location, locationIndex) => (
+                          <React.Fragment key={location.id}>
+                            <div className="flex items-center w-full group mb-4">
+                              {" "}
+                              {/* Increased margin-bottom */}
+                              {locationIndex === 0 ? (
+                                <MapPin
+                                  color="#DC362E"
+                                  className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
+                                />
+                              ) : locationIndex ===
+                                trip.locations.length - 1 ? (
+                                <Flag
+                                  color="#DC362E"
+                                  className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
+                                />
+                              ) : (
+                                <span className="min-w-4 min-h-4 w-4 h-4 text-[10px] text-center font-medium border border-black rounded-full mr-1 self-start mt-2">
+                                  {" "}
+                                  {/* Added self-start alignment */}
+                                  {locationIndex}
+                                </span>
+                              )}
+                              <SortableLocationItem
+                                key={location.id}
+                                location={location}
+                                onFocus={() =>
+                                  setActiveInput({
+                                    tripIndex,
+                                    locationIndex,
+                                  })
+                                }
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    tripIndex,
+                                    locationIndex,
+                                    e.target.value
+                                  )
+                                }
+                                onTimeChange={(time) =>
+                                  handleTimeChange(
+                                    tripIndex,
+                                    locationIndex,
+                                    time
+                                  )
+                                }
+                                inputRef={(el) => {
+                                  inputRefs.current[
+                                    `${tripIndex}-${locationIndex}`
+                                  ] = el;
+                                }}
+                              />
+                              {trip.locations.length > 2 && (
+                                <button
+                                  title="Hapus lokasi"
+                                  className="pl-2 py-2 cursor-pointer self-start mt-2" // Added self-start alignment
+                                  onClick={() =>
+                                    handleRemoveLocation(
+                                      tripIndex,
+                                      locationIndex
+                                    )
+                                  }
+                                >
+                                  <Trash
+                                    className="w-4 h-4"
+                                    color="#DC2626"
+                                  />
+                                </button>
+                              )}
+                            </div>
+
+                            {locationIndex !==
+                              trip.locations.length - 1 && (
+                              <div className="mr-auto mb-2">
+                                <EllipsisVertical
+                                  strokeWidth={1}
+                                  className="min-w-4 min-h-4 w-4 h-4"
+                                />
+                              </div>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </div>
+
+        <div className="p-4 bg-white border-t flex-shrink-0">
+          {!onTripsChange ? (
+            <Button
+              onClick={handleAddTrip}
+              variant="outline"
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Tambah perjalanan
+            </Button>
+          ) : (
+            <Button
+              disabled={
+                !!maxLocationsPerTrip &&
+                trips[activeTrip]?.locations.length >= maxLocationsPerTrip
+              }
+              size="sm"
+              variant="outline"
+              onClick={() => handleAddLocation(activeTrip)}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Tambah destinasi
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
