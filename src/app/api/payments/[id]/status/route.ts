@@ -62,7 +62,6 @@ export const PUT = async (
     if (status === "APPROVED") {
       try {
         await sendPaymentApprovalWithInvoice(id);
-        console.log(`Payment approval email sent for payment ID: ${id}`);
       } catch (emailError) {
         console.error(
           `Failed to send approval email for payment ${id}:`,
@@ -77,7 +76,6 @@ export const PUT = async (
     if (status === "REJECTED" && note) {
       try {
         await sendPaymentRejectionEmail(id, note);
-        console.log(`Payment rejection email sent for payment ID: ${id}`);
       } catch (emailError) {
         console.error(
           `Failed to send rejection email for payment ${id}:`,
@@ -95,7 +93,7 @@ export const PUT = async (
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return NextResponse.json(
       {
         message: "Internal Server Error",

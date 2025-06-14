@@ -65,12 +65,6 @@ export async function calculateRouteDistanceWithDirectionsAPI(
 
     const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}${waypointsParam}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
-    console.log("🗺️ Backend calling Directions API:", {
-      origin,
-      destination,
-      waypointsCount: locations.length - 2,
-    });
-
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -93,12 +87,6 @@ export async function calculateRouteDistanceWithDirectionsAPI(
       route.legs.forEach((leg) => {
         totalDistance += leg.distance?.value || 0;
         totalDuration += leg.duration?.value || 0;
-      });
-
-      console.log("🎯 Backend Directions API result:", {
-        totalDistanceMeters: totalDistance,
-        totalDistanceKm: (totalDistance / 1000).toFixed(3),
-        totalDurationSeconds: totalDuration,
       });
 
       return { distance: totalDistance, duration: totalDuration };
@@ -132,12 +120,6 @@ function calculateFallbackDistance(
   }
 
   const totalDuration = Math.round((totalDistance / 1000) * 120); // Rough estimate: 50 km/h
-
-  console.log("🔄 Using Haversine fallback:", {
-    totalDistanceMeters: totalDistance,
-    totalDistanceKm: (totalDistance / 1000).toFixed(3),
-    estimatedDurationSeconds: totalDuration,
-  });
 
   return { distance: totalDistance, duration: totalDuration };
 }

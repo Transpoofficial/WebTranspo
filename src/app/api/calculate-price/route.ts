@@ -103,13 +103,6 @@ export async function POST(req: NextRequest) {
     const body: PriceCalculationRequest = await req.json();
     const { vehicleTypeId, vehicleCount = 1, trips = [] } = body;
 
-    console.log("Price calculation request:", {
-      vehicleTypeId,
-      vehicleCount,
-      tripsCount: trips.length,
-      tripDates: trips.map((t) => ({ date: t.date, type: typeof t.date })),
-    });
-
     if (!vehicleTypeId || !trips.length) {
       return NextResponse.json(
         {
@@ -161,7 +154,6 @@ export async function POST(req: NextRequest) {
         let tripDistance = 0;
         if (trip.distance && trip.distance > 0) {
           tripDistance = trip.distance / 1000; // Convert meters to kilometers
-          console.log(`Using frontend distance: ${tripDistance.toFixed(2)} km`);
         } else {
           // Fallback: Calculate distance using Google Maps API
           const locations = validLocations.map((loc) => ({
@@ -169,9 +161,6 @@ export async function POST(req: NextRequest) {
             lng: loc.lng!,
           }));
           tripDistance = await calculateRouteDistance(locations);
-          console.log(
-            `Calculated backend distance: ${tripDistance.toFixed(2)} km`
-          );
         }
 
         totalDistanceKm += tripDistance;
@@ -188,8 +177,6 @@ export async function POST(req: NextRequest) {
         };
       })
     );
-
-    console.log(`Total calculated distance: ${totalDistanceKm.toFixed(2)} km`);
 
     // Use the same calculateTotalPrice function as the orders endpoint
     const priceResult = calculateTotalPrice(
@@ -249,27 +236,10 @@ export async function POST(req: NextRequest) {
               distance: Math.round(distance * 10) / 10,
               charge,
             });
-
-            console.log(`Inter-trip ${i} to ${i + 1}:`, {
-              from: lastLocationCurrent.address?.split(",")[0],
-              to: firstLocationNext.address?.split(",")[0],
-              distance: Math.round(distance * 10) / 10,
-              charge: charge,
-            });
           }
         }
       }
     }
-
-    console.log("Price calculation result:", {
-      vehicleType: vehicleType.name,
-      distanceKm: totalDistanceKm.toFixed(2),
-      vehicleCount,
-      basePrice: priceResult.basePrice,
-      interTripCharges: priceResult.interTripCharges,
-      totalPrice: priceResult.totalPrice,
-    });
-
     const responseData: PriceCalculationResponse = {
       vehicleType: vehicleType.name,
       totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
