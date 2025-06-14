@@ -149,7 +149,7 @@ const Home = () => {
           <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
           <div className="absolute top-1/2 left-1/2 -translate-1/2 w-full container">
-            <div className="flex items-start gap-x-2">
+            <div className="flex items-center md:items-start gap-x-2">
               <Image
                 className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
                 src="/images/logo/logo_3.png"
@@ -180,7 +180,7 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="block md:hidden">
+            <div className="block md:hidden w-full pl-3">
               <h1
                 className={`mt-1 ${hurricane.className} text-white text-3xl font-extrabold uppercase tracking-tight lg:text-5xl`}
               >
@@ -377,17 +377,17 @@ const Home = () => {
           {/* Tabs */}
           <div className="mt-6 md:mt-12">
             <Tabs defaultValue="angkot" className="w-full">
-              <TabsList className="w-full min-h-max">
+              <TabsList className="w-full min-h-max overflow-x-auto">
                 <TabsTrigger
                   value="angkot"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <CarFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Angkot</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="hiace_commuter"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <BusFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">
@@ -396,7 +396,7 @@ const Home = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="hiace_premio"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <BusFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">
@@ -405,7 +405,7 @@ const Home = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="elf"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
@@ -451,9 +451,13 @@ const Home = () => {
             <div className="flex justify-center mt-6 md:mt-12 text-red-500">
               Error loading articles
             </div>
+          ) : !articlesData?.data?.length ? (
+            <div className="flex justify-center mt-6 md:mt-12">
+              Tidak ada artikel yang tersedia
+            </div>
           ) : (
             <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
-              {articlesData?.data?.slice(0, 10).map((article: Article) => (
+              {articlesData.data.slice(0, 10).map((article: Article) => (
                 <Card
                   key={article.id}
                   className="min-w-xs max-w-xs md:min-w-md md:max-w-md"
@@ -514,8 +518,14 @@ const Home = () => {
                     Error loading reviews
                   </div>
                 </CarouselItem>
+              ) : !reviewsData?.data?.length ? (
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                  <>
+                    Tidak ada review yang tersedia
+                  </>
+                </CarouselItem>
               ) : (
-                reviewsData?.data.map((review: Review) => (
+                reviewsData.data.map((review: Review) => (
                   <CarouselItem
                     key={review.id}
                     className="md:basis-1/2 lg:basis-1/3"

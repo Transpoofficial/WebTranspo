@@ -7,6 +7,8 @@ CREATE TABLE `User` (
     `phoneNumber` VARCHAR(191) NULL,
     `address` VARCHAR(191) NULL,
     `role` ENUM('CUSTOMER', 'ADMIN', 'SUPER_ADMIN') NOT NULL,
+    `resetPasswordToken` VARCHAR(191) NULL,
+    `resetPasswordExpiry` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
@@ -18,7 +20,7 @@ CREATE TABLE `User` (
 CREATE TABLE `Article` (
     `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
-    `content` VARCHAR(191) NOT NULL,
+    `content` TEXT NOT NULL,
     `authorId` VARCHAR(191) NOT NULL,
     `mainImgUrl` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -115,6 +117,7 @@ CREATE TABLE `Review` (
     `orderId` VARCHAR(191) NOT NULL,
     `rating` INTEGER NOT NULL,
     `content` VARCHAR(191) NOT NULL,
+    `isShow` BOOLEAN NOT NULL DEFAULT false,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

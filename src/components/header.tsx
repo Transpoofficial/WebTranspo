@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
@@ -35,20 +36,15 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
-  // const router = useRouter();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // const handleButtonClick = (scrollFunction?: () => void) => {
-  //   if (scrollFunction) {
-  //     scrollFunction();
-  //   } else if (
-  //     !scrollToAdvantage &&
-  //     !scrollToHowToOrder &&
-  //     !scrollToFAQAndContact &&
-  //     !scrollToReview
-  //   ) {
-  //     router.push("/");
-  //   }
-  // };
+  const handleSheetItemClick = (scrollFunction?: () => void) => {
+    if (scrollFunction) {
+      scrollFunction();
+    }
+    setIsSheetOpen(false);
+  };
+
   const handleSignOut = () => {
     signOut();
   };
@@ -61,10 +57,10 @@ const Header: React.FC<HeaderProps> = ({
           <div className="inline-flex items-center md:gap-x-2">
             {/* Drawer for mobile */}
             {isLandingPage && (
-              <Sheet>
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                   <Button
-                    className="md:hidden text-white hover:text-white hover:bg-zinc-700/[.4]"
+                    className="lg:hidden text-white hover:text-white hover:bg-zinc-700/[.4]"
                     variant="ghost"
                     size="icon"
                   >
@@ -73,19 +69,44 @@ const Header: React.FC<HeaderProps> = ({
                 </SheetTrigger>
                 <SheetContent side="left">
                   <div className="flex flex-col py-10">
-                    <Button onClick={scrollToHowToOrder} variant="ghost" size="lg" className="justify-start">
+                    <Button
+                      onClick={() => handleSheetItemClick(scrollToHowToOrder)}
+                      variant="ghost"
+                      size="lg"
+                      className="justify-start"
+                    >
                       Cara kerja
                     </Button>
-                    <Button onClick={scrollToAdvantage} variant="ghost" size="lg" className="justify-start">
+                    <Button
+                      onClick={() => handleSheetItemClick(scrollToAdvantage)}
+                      variant="ghost"
+                      size="lg"
+                      className="justify-start"
+                    >
                       Kelebihan
                     </Button>
-                    <Button onClick={scrollToService} variant="ghost" size="lg" className="justify-start">
+                    <Button
+                      onClick={() => handleSheetItemClick(scrollToService)}
+                      variant="ghost"
+                      size="lg"
+                      className="justify-start"
+                    >
                       Layanan
                     </Button>
-                    <Button onClick={scrollToArticle} variant="ghost" size="lg" className="justify-start">
+                    <Button
+                      onClick={() => handleSheetItemClick(scrollToArticle)}
+                      variant="ghost"
+                      size="lg"
+                      className="justify-start"
+                    >
                       Artikel
                     </Button>
-                    <Button onClick={scrollToReview} variant="ghost" size="lg" className="justify-start">
+                    <Button
+                      onClick={() => handleSheetItemClick(scrollToReview)}
+                      variant="ghost"
+                      size="lg"
+                      className="justify-start"
+                    >
                       Review
                     </Button>
                   </div>
@@ -93,21 +114,23 @@ const Header: React.FC<HeaderProps> = ({
               </Sheet>
             )}
 
-            <Image
-              className="w-14 h-14"
-              src={"/images/logo/logo_3.png"}
-              alt="logo_3.png"
-              width={100}
-              height={100}
-            />
+            <Link href="/" className="inline-flex items-center md:gap-x-2">
+              <Image
+                className="w-14 h-14"
+                src={"/images/logo/logo_3.png"}
+                alt="logo_3.png"
+                width={100}
+                height={100}
+              />
 
-            <p className="hidden md:block text-xl uppercase font-bold text-white">
-              TRANSPO
-            </p>
+              <p className="hidden md:block text-xl uppercase font-bold text-white">
+                TRANSPO
+              </p>
+            </Link>
           </div>
 
           {isLandingPage && (
-            <div className="hidden md:flex items-center">
+            <div className="hidden lg:flex items-center">
               <Button
                 onClick={scrollToHowToOrder}
                 variant="ghost"

@@ -1,3 +1,5 @@
+import { calculateInterTripDistance } from "../google-maps";
+
 // Define Trip interface locally instead of importing from route
 export interface Trip {
   date: Date;
@@ -60,7 +62,7 @@ export function calculateInterTripCharges(trips: Trip[]): number {
         firstLocationNext.lat !== null &&
         firstLocationNext.lng !== null
       ) {
-        const distance = calculateDistance(
+        const distance = calculateInterTripDistance(
           lastLocationCurrent.lat,
           lastLocationCurrent.lng,
           firstLocationNext.lat,
@@ -94,50 +96,62 @@ export function calculateInterTripCharges(trips: Trip[]): number {
   return totalAdditionalCharge;
 }
 
-// ✅ Updated price calculation functions with consistent formulas
+// ✅ Updated price calculation functions with new formulas
 export function calculateAngkotPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  const baseRate = 5000;
-  const minCharge = 100000;
+  // New formula: (150.000 + (4100 × Jarak)) + 10%
+  const basePrice = 150000 + 4100 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+  const totalPrice = priceWithTax * vehicleCount;
 
-  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
-  return Math.round(price);
+  console.log("🔢 Angkot Price Calculation:", {
+    distanceKm: distanceKm.toFixed(3),
+    vehicleCount,
+    basePrice: basePrice.toFixed(2),
+    priceWithTax: priceWithTax.toFixed(2),
+    totalPrice: totalPrice.toFixed(2),
+    rounded: Math.round(totalPrice),
+  });
+
+  return Math.round(totalPrice);
 }
 
 export function calculateHiaceCommuterPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  const baseRate = 7000;
-  const minCharge = 150000;
+  // New formula: (1.000.000 + (2500 × Jarak)) + 10%
+  const basePrice = 1000000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+  const totalPrice = priceWithTax * vehicleCount;
 
-  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
-  return Math.round(price);
+  return Math.round(totalPrice);
 }
 
 export function calculateHiacePremioPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  // ✅ Fixed rate to match frontend expectations
-  const baseRate = 8000;
-  const minCharge = 200000;
+  // New formula: (1.150.000 + (25000 × Jarak)) + 10%
+  const basePrice = 1150000 + 25000 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+  const totalPrice = priceWithTax * vehicleCount;
 
-  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
-  return Math.round(price);
+  return Math.round(totalPrice);
 }
 
 export function calculateElfPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  const baseRate = 8000;
-  const minCharge = 180000;
+  // New formula: (1.250.000 + (2500 × Jarak)) + 10%
+  const basePrice = 1250000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+  const totalPrice = priceWithTax * vehicleCount;
 
-  const price = Math.max(baseRate * distanceKm * vehicleCount, minCharge);
-  return Math.round(price);
+  return Math.round(totalPrice);
 }
 
 // ✅ Main price calculation function for consistency

@@ -5,24 +5,23 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { articlesService } from "../services/articles-service";
 import Header from "@/components/header";
 
-export default function ArticleDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function ArticleDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const articleId = params.id as string;
+
   const {
     data: articleData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["article", params.id],
-    queryFn: () => articlesService.getArticleById(params.id),
+    queryKey: ["article", articleId],
+    queryFn: () => articlesService.getArticleById(articleId),
   });
 
   if (isLoading) {

@@ -4,7 +4,10 @@ import * as bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashedPassword = await bcrypt.hash("password123", 10);
+  const hashedPassword = await bcrypt.hash(
+    process.env.ACCOUNT_DEFAULT_PASSWORD || "password123",
+    10
+  );
 
   const users = [
     {
@@ -48,22 +51,22 @@ async function main() {
     {
       name: "Angkot",
       capacity: 12,
-      pricePerKm: 5000,
+      pricePerKm: 4100,
     },
     {
       name: "Hiace Commuter",
       capacity: 15,
-      pricePerKm: 8000,
+      pricePerKm: 2500,
     },
     {
       name: "Hiace Premio",
       capacity: 14,
-      pricePerKm: 7500,
+      pricePerKm: 25000,
     },
     {
       name: "Elf",
       capacity: 19,
-      pricePerKm: 10000,
+      pricePerKm: 2500,
     },
   ];
 
