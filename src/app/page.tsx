@@ -377,7 +377,7 @@ const Home = () => {
           {/* Tabs */}
           <div className="mt-6 md:mt-12">
             <Tabs defaultValue="angkot" className="w-full">
-              <TabsList className="w-full min-h-max overflow-x-auto">
+              <TabsList className="w-full min-h-max justify-normal md:justify-center overflow-x-auto">
                 <TabsTrigger
                   value="angkot"
                   className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
@@ -520,9 +520,7 @@ const Home = () => {
                 </CarouselItem>
               ) : !reviewsData?.data?.length ? (
                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <>
-                    Tidak ada review yang tersedia
-                  </>
+                  <>Tidak ada review yang tersedia</>
                 </CarouselItem>
               ) : (
                 reviewsData.data.map((review: Review) => (
@@ -626,7 +624,13 @@ const Home = () => {
         </div>
       </main>
 
-      <Footer />
+      <Footer
+        scrollToAdvantage={scrollToAdvantage}
+        scrollToHowToOrder={scrollToHowToOrder}
+        scrollToService={scrollToService}
+        scrollToArticle={scrollToArticle}
+        scrollToReview={scrollToReview}
+      />
     </>
   );
 };
