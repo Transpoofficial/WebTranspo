@@ -217,8 +217,6 @@ export async function sendTemplateEmail(emailData: EmailData): Promise<void> {
     html: htmlContent,
     attachments: attachments.length > 0 ? attachments : undefined,
   });
-
-  console.log(`Email sent successfully: ${type} to ${to}`);
 }
 
 /**

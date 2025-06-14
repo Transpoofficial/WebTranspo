@@ -407,7 +407,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       updatedTrip
     );
 
-    console.log("💰 Frontend calculated price:", priceResult);
 
     // Update orderData
     setOrderData((prev: OrderData) => ({

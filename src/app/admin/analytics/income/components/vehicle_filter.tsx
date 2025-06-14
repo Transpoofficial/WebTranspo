@@ -39,11 +39,14 @@ const VehicleFilter: React.FC<VehicleFilterProps> = ({
   vehicleType,
   setVehicleType,
 }) => {
-  const { data: response, isLoading, error } = useQuery<ApiResponse>({
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useQuery<ApiResponse>({
     queryKey: ["vehicle-types"],
     queryFn: async () => {
       const { data } = await axios.get("/api/vehicle-types");
-      console.log("API Response:", data); // Debug log
       return data;
     },
   });
