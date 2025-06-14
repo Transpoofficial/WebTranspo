@@ -13,22 +13,34 @@ export async function checkAuth(
   roles?: Array<"SUPER_ADMIN" | "ADMIN" | "CUSTOMER">
 ) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
   if (!token) {
+    console.error("❌ checkAuth - No token found");
     throw new Error("Unauthorized");
   }
+
   if (roles && roles.length > 0) {
     const user = await prisma.user.findFirst({
       where: {
         id: token.id,
       },
     });
+
     if (!user) {
+      console.error("❌ checkAuth - User not found in DB");
       throw new Error("Unauthorized");
     }
     if (!roles.includes(user.role)) {
+      console.error(
+        "❌ checkAuth - User role not allowed:",
+        user.role,
+        "Required:",
+        roles
+      );
       throw new Error("Unauthorized");
     }
   }
+
   return token;
 }
 
@@ -103,7 +115,6 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
-
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
@@ -116,8 +127,8 @@ export const authOptions: NextAuthOptions = {
               email: user.email,
               fullName: user.fullName,
               role: Role.CUSTOMER,
-              password: "", // Google sign-in doesn't require a password,
-              phoneNumber: "", // Add any other default values you want
+              password: null, // Set to null instead of empty string for Google OAuth
+              phoneNumber: null, // Set to null instead of empty string for Google OAuth
             },
           });
 
