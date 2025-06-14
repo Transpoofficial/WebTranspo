@@ -479,6 +479,7 @@ export const POST = async (req: NextRequest) => {
     });
 
     if (!userExists) {
+      console.error("❌ User not found in database:", token.id);
       return NextResponse.json(
         { message: "User not found. Please log in again.", data: [] },
         { status: 404 }
@@ -676,8 +677,8 @@ export const POST = async (req: NextRequest) => {
           userId: token.id,
           orderStatus: OrderStatus.PENDING,
           fullName: fullName || userExists?.fullName || "Customer",
-          phoneNumber: phoneNumber || userExists.phoneNumber || null,
-          email: email || userExists.email || null,
+          phoneNumber: phoneNumber || userExists.phoneNumber || "",
+          email: email || userExists.email || "",
           totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
           vehicleTypeId: vehicleTypeId || null,
           note: sanitizedNote,
@@ -737,6 +738,11 @@ export const POST = async (req: NextRequest) => {
     );
   } catch (error) {
     console.error("❌ Error creating order:", error);
+    console.error("❌ Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
 
     // Return specific error message for validation failures
     if (

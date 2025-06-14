@@ -111,6 +111,7 @@ const OrderTransportPage = () => {
       const fetchUserData = async () => {
         try {
           const response = await axios.get(`/api/users/${data.user.id}`);
+
           if (response.status === 200) {
             setOrderData((prevData) => ({
               ...prevData,
@@ -126,7 +127,7 @@ const OrderTransportPage = () => {
             }));
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("❌ Error fetching user data:", error);
           // Fallback to session data only
           setOrderData((prevData) => ({
             ...prevData,

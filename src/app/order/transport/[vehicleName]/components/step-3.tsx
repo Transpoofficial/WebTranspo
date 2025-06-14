@@ -202,7 +202,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
 
   // Use calculated price if available, otherwise use orderData price
   const displayPrice = calculatedPrice?.totalPrice || orderData.totalPrice || 0;
-
   // Handle creating order with enhanced error handling
   const handleCreateOrder = async () => {
     setPriceValidationError(null);
@@ -298,7 +297,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
           }
         });
       });
-
       formData.append(
         "timezone",
         Intl.DateTimeFormat().resolvedOptions().timeZone
