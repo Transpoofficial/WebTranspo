@@ -304,8 +304,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         Intl.DateTimeFormat().resolvedOptions().timeZone
       );
 
-      console.log("📤 Sending order data to API...");
-
       const response = await axios.post("/api/orders", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -320,8 +318,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         if (typeof window !== "undefined") {
           localStorage.setItem(PAYMENT_ID_KEY, paymentData.id);
         }
-
-        console.log("✅ Order created successfully:", response.data.data);        onContinue({
+        onContinue({
           id: paymentData.id,
           amount: parseFloat(paymentData.totalPrice),
         });
@@ -331,10 +328,13 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
     } catch (error: unknown) {
       console.error("❌ Error creating order:", error);
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as {
+          response?: { status?: number; data?: { message?: string } };
+        };
         if (axiosError.response?.status === 400) {
-          const errorMessage = axiosError.response?.data?.message || "Bad request";
+          const errorMessage =
+            axiosError.response?.data?.message || "Bad request";
 
           if (errorMessage.includes("Price validation failed")) {
             setPriceValidationError(errorMessage);
@@ -360,7 +360,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         } else {
           toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
         }
-      } else if (error && typeof error === 'object' && 'code' in error) {
+      } else if (error && typeof error === "object" && "code" in error) {
         const networkError = error as { code?: string };
         if (networkError.code === "NETWORK_ERROR") {
           toast.error(
@@ -717,7 +717,8 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
             <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
               <div className="text-blue-800 text-sm">
                 <strong>Yang akan terjadi selanjutnya:</strong>
-              </div>              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
+              </div>{" "}
+              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
                 <li>Pesanan akan dibuat dengan status &quot;Pending&quot;</li>
                 <li>Anda akan diarahkan ke halaman pembayaran</li>
                 <li>Admin akan memverifikasi pesanan setelah pembayaran</li>

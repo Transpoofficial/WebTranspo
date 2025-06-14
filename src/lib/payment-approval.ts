@@ -223,10 +223,6 @@ export async function sendPaymentApprovalWithInvoice(
       format(payment.transferDate, "dd MMMM yyyy", { locale: id }),
       invoiceBuffer
     );
-
-    console.log(
-      `Payment approval email with invoice sent for payment ID: ${paymentId}`
-    );
   } catch (error) {
     console.error(
       `Failed to send payment approval email for payment ${paymentId}:`,
@@ -270,8 +266,6 @@ export async function sendPaymentRejectionEmail(
       payment.order.orderType === "TRANSPORT" ? "Transportasi" : "Paket Wisata",
       Number(payment.totalPrice)
     );
-
-    console.log(`Payment rejection email sent for payment ID: ${paymentId}`);
   } catch (error) {
     console.error(
       `Failed to send payment rejection email for payment ${paymentId}:`,

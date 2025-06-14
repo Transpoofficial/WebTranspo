@@ -15,11 +15,15 @@ import { Toaster } from "sonner";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap", // Optimize font loading
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap", // Optimize font loading
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -121,6 +125,24 @@ export const metadata: Metadata = {
     "msapplication-TileColor": "#0891b2",
     "theme-color": "#0891b2",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/opengraph.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      {
+        rel: "apple-touch-icon-precomposed",
+        url: "/apple-touch-icon.png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -130,12 +152,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
+      {" "}
       <head>
         <TranspoWebsiteSchema />
         <TranspoOrganizationSchema />
         <TranspoLocalBusinessSchema />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />{" "}
+        {/* Additional icon links for better compatibility */}
+        <link rel="icon" href="/favicon.ico" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="192x192"
+          href="/icon-192.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="512x512"
+          href="/icon-512.png"
+        />
+        <link rel="icon" type="image/png" sizes="32x32" href="/opengraph.png" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

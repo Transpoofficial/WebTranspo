@@ -112,11 +112,6 @@ const validateTransportPricing = async (
   frontendDistance: number,
   frontendPrice: number
 ): Promise<ValidatedTransportData> => {
-  console.log("🔍 Starting transport pricing validation...");
-  console.log(
-    `📏 Frontend distance: ${frontendDistance.toFixed(3)} km (will be verified)`
-  );
-
   // Get vehicle type for pricing calculation
   const vehicleType = await prisma.vehicleType.findUnique({
     where: { id: vehicleTypeId },
@@ -159,9 +154,6 @@ const validateTransportPricing = async (
     let tripDistance = 0;
     try {
       tripDistance = await calculateRouteDistance(locations);
-      console.log(
-        `📏 Backend calculated trip ${dateStr}: ${(tripDistance / 1000).toFixed(3)} km`
-      );
     } catch (error) {
       console.error(`Error calculating distance for trip ${dateStr}:`, error);
       // Fallback to Haversine if Directions API fails
@@ -175,9 +167,6 @@ const validateTransportPricing = async (
           );
           tripDistance += distance * 1000; // Convert to meters
         }
-        console.log(
-          `📏 Fallback calculated trip ${dateStr}: ${(tripDistance / 1000).toFixed(3)} km`
-        );
       }
     }
 
@@ -195,26 +184,12 @@ const validateTransportPricing = async (
   // Convert total distance from meters to kilometers
   const actualTotalDistanceKm = actualTotalDistance / 1000;
 
-  console.log(`📏 Frontend distance: ${frontendDistance.toFixed(3)} km`);
-  console.log(
-    `📏 Backend calculated distance: ${actualTotalDistanceKm.toFixed(3)} km`
-  );
-
   // Calculate price using backend distance (both should be very close now)
   const priceResult = calculateTotalPrice(
     vehicleType.name,
     actualTotalDistanceKm,
     vehicleCount,
     tripsForCalculation // This will include inter-trip charges
-  );
-
-  console.log(`💰 Frontend price: Rp ${frontendPrice.toLocaleString()}`);
-  console.log(
-    `💰 Backend calculated price: Rp ${priceResult.totalPrice.toLocaleString()}`
-  );
-  console.log(`💰 Base price: Rp ${priceResult.basePrice.toLocaleString()}`);
-  console.log(
-    `💰 Inter-trip charges: Rp ${priceResult.interTripCharges.toLocaleString()}`
   );
 
   // Strict validation since both use same Directions API
@@ -225,9 +200,6 @@ const validateTransportPricing = async (
   );
 
   if (priceDifference > maxAllowedPriceDifference) {
-    console.log(
-      `❌ Price validation failed: difference Rp ${priceDifference.toLocaleString()} > tolerance Rp ${maxAllowedPriceDifference.toLocaleString()}`
-    );
     throw new Error(
       `Price validation failed. Expected: Rp ${priceResult.totalPrice.toLocaleString()}, ` +
         `Received: Rp ${frontendPrice.toLocaleString()}`
@@ -244,19 +216,11 @@ const validateTransportPricing = async (
   );
 
   if (distanceDifference > maxAllowedDistanceDifference) {
-    console.log(
-      `❌ Distance validation failed: difference ${(distanceDifference / 1000).toFixed(3)}km > tolerance ${(maxAllowedDistanceDifference / 1000).toFixed(3)}km`
-    );
     throw new Error(
       `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(3)} km, ` +
         `Received: ${frontendDistance.toFixed(3)} km`
     );
   }
-
-  console.log(
-    "✅ Transport pricing validation passed with same API consistency"
-  );
-
   return {
     actualTotalDistance,
     actualTotalPrice: priceResult.totalPrice,
@@ -313,10 +277,6 @@ const handleTransportOrder = async (
     destinations.map((dest) => {
       const departureDateStr = dest.departureDate;
       const departureTimeStr = dest.departureTime || defaultDepartureTime;
-
-      console.log(`Creating destination: ${dest.address}`);
-      console.log(`Date: ${departureDateStr}, Time: ${departureTimeStr}`);
-      console.log(`Is pickup location: ${dest.isPickupLocation}`);
 
       const dateTimeString = `${departureDateStr} ${departureTimeStr}`;
       const departureDatetime = DateTime.fromFormat(
@@ -380,8 +340,6 @@ const handleTourPackageOrder = async (
         `Received: Rp ${frontendPrice.toLocaleString()}`
     );
   }
-
-  console.log("✅ Tour package pricing validation passed");
 
   // Create package order
   await tx.packageOrder.create({
@@ -502,7 +460,7 @@ export const GET = async (req: NextRequest) => {
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
@@ -726,8 +684,6 @@ export const POST = async (req: NextRequest) => {
         },
       });
 
-      console.log(`✅ Order created with ID: ${createdOrder.id}`);
-
       let validatedPrice = parseFloat(totalPrice || "0");
 
       //  Handle different order types with validation
@@ -740,10 +696,6 @@ export const POST = async (req: NextRequest) => {
           timezone
         );
         validatedPrice = transportResult.validatedPrice;
-
-        console.log(
-          `✅ Transport order validated: price=${validatedPrice}, distance=${transportResult.validatedDistance}`
-        );
       } else if (orderType.toUpperCase() === "TOUR") {
         const tourResult = await handleTourPackageOrder(
           tx,
@@ -751,8 +703,6 @@ export const POST = async (req: NextRequest) => {
           body
         );
         validatedPrice = tourResult.validatedPrice;
-
-        console.log(`✅ Tour package order validated: price=${validatedPrice}`);
       } else {
         throw new Error("Invalid order type");
       }
@@ -773,10 +723,6 @@ export const POST = async (req: NextRequest) => {
         payment: payment,
       };
     });
-
-    console.log(
-      `✅ Order successfully created with backend validation using same API as frontend`
-    );
 
     // Return created order with payment data
     return NextResponse.json(

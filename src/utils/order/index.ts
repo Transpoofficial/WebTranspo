@@ -69,30 +69,18 @@ export function calculateInterTripCharges(trips: Trip[]): number {
           firstLocationNext.lng
         );
 
-        console.log(
-          `Inter-trip distance ${i + 1} to ${i + 2}: ${distance.toFixed(2)} km`
-        );
-
         if (distance > 50) {
           // Calculate additional charge based on distance brackets
           const excessDistance = distance - 50;
           const brackets = Math.ceil(excessDistance / 10);
           const charge = brackets * 50000;
 
-          console.log(
-            `Additional charge for ${distance.toFixed(
-              2
-            )} km: Rp ${charge.toLocaleString()}`
-          );
           totalAdditionalCharge += charge;
         }
       }
     }
   }
 
-  console.log(
-    `Total additional inter-trip charges: Rp ${totalAdditionalCharge.toLocaleString()}`
-  );
   return totalAdditionalCharge;
 }
 
@@ -105,15 +93,6 @@ export function calculateAngkotPrice(
   const basePrice = 150000 + 4100 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
   const totalPrice = priceWithTax * vehicleCount;
-
-  console.log("🔢 Angkot Price Calculation:", {
-    distanceKm: distanceKm.toFixed(3),
-    vehicleCount,
-    basePrice: basePrice.toFixed(2),
-    priceWithTax: priceWithTax.toFixed(2),
-    totalPrice: totalPrice.toFixed(2),
-    rounded: Math.round(totalPrice),
-  });
 
   return Math.round(totalPrice);
 }
@@ -191,15 +170,6 @@ export function calculateTotalPrice(
 
   // Calculate total price
   const totalPrice = basePrice + interTripCharges;
-
-  console.log("Price calculation result:", {
-    vehicleType: vehicleTypeName,
-    distanceKm: distanceKm.toFixed(2),
-    vehicleCount,
-    basePrice,
-    interTripCharges,
-    totalPrice,
-  });
 
   return {
     basePrice: Math.round(basePrice),

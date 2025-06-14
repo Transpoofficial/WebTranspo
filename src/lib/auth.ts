@@ -13,7 +13,6 @@ export async function checkAuth(
   roles?: Array<"SUPER_ADMIN" | "ADMIN" | "CUSTOMER">
 ) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  console.log({ token });
   if (!token) {
     throw new Error("Unauthorized");
   }
