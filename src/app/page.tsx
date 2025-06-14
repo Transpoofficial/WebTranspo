@@ -138,11 +138,11 @@ const Home = () => {
         {/* Carousel */}
         <div className="relative">
           <Image
-            className="w-full h-120 object-cover"
-            src="/images/angkot/angkot_4.jpg"
-            alt="angkot_4.jpg"
-            width={100}
-            height={100}
+            className="w-full min-h-120 h-120 max-h-120 object-cover object-center"
+            src="/images/hero_image.jpg"
+            alt="hero_image.jpg"
+            width={500}
+            height={500}
           />
 
           {/* Backdrop */}
