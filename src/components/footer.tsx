@@ -101,7 +101,7 @@ const Footer: React.FC<HeaderProps> = ({
             <Button
               onClick={scrollToHowToOrder}
               variant="link"
-              className="text-white"
+              className="text-white pl-0"
             >
               Cara pesan
             </Button>
@@ -110,7 +110,7 @@ const Footer: React.FC<HeaderProps> = ({
             <Button
               onClick={scrollToAdvantage}
               variant="link"
-              className="text-white"
+              className="text-white pl-0"
             >
               Kelebihan
             </Button>
@@ -119,7 +119,7 @@ const Footer: React.FC<HeaderProps> = ({
             <Button
               onClick={scrollToService}
               variant="link"
-              className="text-white"
+              className="text-white pl-0"
             >
               Layanan
             </Button>
@@ -128,7 +128,7 @@ const Footer: React.FC<HeaderProps> = ({
             <Button
               onClick={scrollToArticle}
               variant="link"
-              className="text-white"
+              className="text-white pl-0"
             >
               Artikel
             </Button>
@@ -137,7 +137,7 @@ const Footer: React.FC<HeaderProps> = ({
             <Button
               onClick={scrollToReview}
               variant="link"
-              className="text-white"
+              className="text-white pl-0"
             >
               Review
             </Button>
