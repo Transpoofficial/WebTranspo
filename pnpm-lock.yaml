@@ -2618,6 +2618,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@vis.gl/react-google-maps@1.5.2':
+    resolution: {integrity: sha512-0Ypmde7M73GgV4TgcaUTNKXsbcXWToPVuawMNrVg7htXmhpEfLARHwhtmP6N1da3od195ZKC8ShXzC6Vm+zYHQ==}
+    peerDependencies:
+      react: '>=16.8.0 || ^19.0 || ^19.0.0-rc'
+      react-dom: '>=16.8.0 || ^19.0 || ^19.0.0-rc'
+
   acorn-jsx@5.3.2:
     resolution:
       {

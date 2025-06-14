@@ -635,7 +635,7 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           </div>
 
           {/* Right panel - Map2 component */}
-          <div className="md:col-span-2 h-[500px] border border-gray-200 rounded-lg overflow-hidden">
+          <div className="md:col-span-2 border border-gray-200 rounded-lg">
             {!initialLoadRef.current && (
               <Map2
                 key={`map-instance-${trips.length}-${activeTabIndex}`}
@@ -648,7 +648,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 onTripsChange={handleTripsChange}
                 onDirectionsChange={handleDirectionsChange}
                 maxLocationsPerTrip={MAX_DESTINATIONS_PER_TRIP}
-                height="500px"
                 vehicleName={vehicleName} // Pass vehicleName to Map2
               />
             )}

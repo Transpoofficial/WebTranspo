@@ -5,7 +5,22 @@ import React from "react";
 import { Button } from "./ui/button";
 import { Facebook, Instagram, Store, Twitter } from "lucide-react";
 
-const Footer = () => {
+interface HeaderProps {
+  scrollToAdvantage?: () => void;
+  scrollToHowToOrder?: () => void;
+  scrollToService?: () => void;
+  scrollToArticle?: () => void;
+  scrollToReview?: () => void;
+  isLandingPage?: boolean;
+}
+
+const Footer: React.FC<HeaderProps> = ({
+  scrollToAdvantage,
+  scrollToHowToOrder,
+  scrollToService,
+  scrollToArticle,
+  scrollToReview,
+}) => {
   return (
     <>
       <footer className="grid grid-cols-12 gap-x-4 py-4 px-4 md:px-10 bg-[#0897B1]">
@@ -60,14 +75,14 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-2 flex flex-col gap-y-1 mt-4 md:mt-0">
+        <div className="col-span-12 md:col-span-3 flex flex-col gap-y-1 mt-4 md:mt-0">
           <h5 className="text-base md:text-lg font-medium text-white mb-1">
             Contact Us
           </h5>
-          <p className="text-xs md:text-sm text-white">085 6423 8880</p>
+          <p className="text-xs md:text-sm text-white">(+62) 85-6423-8880</p>
           <p className="text-xs md:text-sm text-white">
-            Ruko Bajang Ratu Indah Jl. Candi Waringin No.5 MojolanguLowokwaru,
-            Kota Malang, Jawa Timur 65142
+            Jl. Raya Karangsono No.18A, Sono Tengah, Kebonagung, Kec. Pakisaji,
+            Kabupaten Malang, Jawa Timur 65162
           </p>
         </div>
 
@@ -81,37 +96,53 @@ const Footer = () => {
           <p className="text-xs md:text-sm text-white">Sunday: 8 am - 6 pm</p>
         </div>
 
-        <ul className="col-span-12 md:col-span-2 mt-4 md:mt-0">
+        <ul className="col-span-12 md:col-span-3 mt-4 md:mt-0">
           <li>
-            <Button variant="link" className="cursor-pointer text-white p-0">
-              Home
+            <Button
+              onClick={scrollToHowToOrder}
+              variant="link"
+              className="text-white"
+            >
+              Cara pesan
             </Button>
           </li>
           <li>
-            <Button variant="link" className="cursor-pointer text-white p-0">
-              About Us
+            <Button
+              onClick={scrollToAdvantage}
+              variant="link"
+              className="text-white"
+            >
+              Kelebihan
             </Button>
           </li>
           <li>
-            <Button variant="link" className="cursor-pointer text-white p-0">
-              Services
+            <Button
+              onClick={scrollToService}
+              variant="link"
+              className="text-white"
+            >
+              Layanan
             </Button>
           </li>
           <li>
-            <Button variant="link" className="cursor-pointer text-white p-0">
-              Contact
+            <Button
+              onClick={scrollToArticle}
+              variant="link"
+              className="text-white"
+            >
+              Artikel
+            </Button>
+          </li>
+          <li>
+            <Button
+              onClick={scrollToReview}
+              variant="link"
+              className="text-white"
+            >
+              Review
             </Button>
           </li>
         </ul>
-
-        <div className="col-span-12 md:col-span-2 flex flex-col items-start mt-4 md:mt-0">
-          <Button variant="link" className="cursor-pointer text-white p-0">
-            Terms and conditions
-          </Button>
-          <Button variant="link" className="cursor-pointer text-white p-0">
-            Privacy policy
-          </Button>
-        </div>
       </footer>
     </>
   );
