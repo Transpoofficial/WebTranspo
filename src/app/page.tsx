@@ -314,7 +314,7 @@ const Home = () => {
 
                   <div className="flex flex-col justify-start max-w-full">
                     <h5 className="text-base md:text-xl font-medium">
-                      Aksesibilas Mudah
+                      Aksesibilitas Mudah
                     </h5>
                     <p className="text-base md:text-xl whitespace-wrap">
                       Layanan berbasis teknologi dengan fitur transparasi harga,
