@@ -723,7 +723,7 @@ export const POST = async (req: NextRequest) => {
         order: createdOrder,
         payment: payment,
       };
-    });
+    }, {timeout: 60000, maxWait: 60000});
 
     // Return created order with payment data
     return NextResponse.json(
