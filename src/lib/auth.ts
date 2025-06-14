@@ -12,7 +12,11 @@ export async function checkAuth(
   req: NextRequest,
   roles?: Array<"SUPER_ADMIN" | "ADMIN" | "CUSTOMER">
 ) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: "next-auth.session-token",
+  });
 
   if (!token) {
     console.error("❌ checkAuth - No token found");
