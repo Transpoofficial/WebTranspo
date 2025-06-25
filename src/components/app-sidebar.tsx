@@ -26,14 +26,16 @@ import {
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const data = {
     user: {
-      name: "shadcn",
-      email: "m@example.com",
+      name: session?.user?.fullName ?? "Guest",
+      email: session?.user?.email ?? "guest@example.com",
       avatar: "/avatars/shadcn.jpg",
     },
     navMain: [

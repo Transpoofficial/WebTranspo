@@ -26,6 +26,8 @@ import VehicleTypeUpdateDialog from "./vehicle-type-update-dialog";
 interface VehicleType {
   id: string;
   name: string;
+  capacity: number;
+  pricePerKm: number;
 }
 
 const VehicleTypeTable = () => {
@@ -94,22 +96,36 @@ const VehicleTypeTable = () => {
   return (
     <>
       <Table>
+        {" "}
         <TableHeader>
           <TableRow>
             <TableHead className="w-1/12">#</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead>Tipe</TableHead>
+            <TableHead>Kapasitas</TableHead>
+            <TableHead>Harga per kilometer(km)</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow>
-              <TableCell className="font-medium">
-                <Skeleton className="h-[37px] w-full" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-[37px] w-full" />
-              </TableCell>
-            </TableRow>
+            <>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <TableRow key={index}>
+                  {" "}
+                  <TableCell className="font-medium">
+                    <Skeleton className="h-[37px] w-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-[37px] w-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-[37px] w-full" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-[37px] w-full" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </>
           ) : data?.data?.length !== 0 ? (
             data?.data?.map((row, index) => {
               return (
@@ -124,10 +140,22 @@ const VehicleTypeTable = () => {
                         onTouchEnd={handleLongPressEnd}
                         className="relative transition duration-200 active:scale-99 cursor-pointer"
                       >
+                        {" "}
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
                         <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.capacity}</TableCell>
+                        <TableCell>
+                          {row.pricePerKm
+                            ? Number(row.pricePerKm).toLocaleString("id-ID", {
+                                style: "currency",
+                                currency: "IDR",
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : "N/A"}
+                        </TableCell>
                       </TableRow>
                     </ContextMenuTrigger>
                     <ContextMenuContent>
@@ -182,8 +210,8 @@ const VehicleTypeTable = () => {
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={2} className="py-3 text-center">
-                No results.
+              <TableCell colSpan={4} className="py-3 text-center">
+                Tidak ada hasil.
               </TableCell>
             </TableRow>
           )}
