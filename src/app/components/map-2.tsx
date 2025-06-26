@@ -49,7 +49,11 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { toast } from "sonner";
-import { validatePickupLocation, validateAngkotDestination, requiresAllDestinationRestriction } from "@/utils/validation";
+import {
+  validatePickupLocation,
+  validateAngkotDestination,
+  requiresAllDestinationRestriction,
+} from "@/utils/validation";
 
 export interface Location {
   id: string;
@@ -90,13 +94,21 @@ const AREA_CENTERS = {
       name: "Kota Malang",
       lat: -7.983908,
       lng: 112.621391,
-      radius: 15000, // 15 km radius untuk Kota Malang
+      radius: 15000, // 15 km - untuk Angkot & ELF
     },
     {
       name: "Kabupaten Malang",
       lat: -8.16667,
       lng: 112.66667,
-      radius: 50000, // 50 km radius untuk Kabupaten Malang (area lebih luas)
+      radius: 50000, // 50 km - untuk Angkot & ELF (area lebih luas)
+    },
+  ],
+  MALANG_HIACE: [
+    {
+      name: "Pusat Kota Malang",
+      lat: -7.983908,
+      lng: 112.621391,
+      radius: 8000, // 8 km - hanya pusat kota untuk Hiace
     },
   ],
   SURABAYA: [
@@ -105,6 +117,14 @@ const AREA_CENTERS = {
       lat: -7.250445,
       lng: 112.768845,
       radius: 20000, // 20 km radius untuk Kota Surabaya
+    },
+  ],
+  SURABAYA_HIACE: [
+    {
+      name: "Pusat Kota Surabaya",
+      lat: -7.250445,
+      lng: 112.768845,
+      radius: 8000, // 8 km - hanya pusat kota untuk Hiace
     },
   ],
 } as const;
@@ -162,7 +182,7 @@ const getAllowedAreasForVehicle = (vehicleName: string): string[] => {
   } else if (vehicleType.includes("elf")) {
     return ["MALANG"];
   } else if (vehicleType.includes("hiace")) {
-    return ["MALANG", "SURABAYA"]; // Both Hiace Premio and Commuter
+    return ["MALANG_HIACE", "SURABAYA_HIACE"]; // Both Hiace Premio and Commuter dengan area terbatas
   }
 
   // Default to Malang for unknown vehicle types
@@ -170,7 +190,9 @@ const getAllowedAreasForVehicle = (vehicleName: string): string[] => {
 };
 
 // Create bounds for autocomplete based on allowed areas for the vehicle
-const createBoundsForAllowedAreas = (allowedAreas: string[]): google.maps.LatLngBounds => {
+const createBoundsForAllowedAreas = (
+  allowedAreas: string[]
+): google.maps.LatLngBounds => {
   const bounds = new google.maps.LatLngBounds();
 
   allowedAreas.forEach((areaName) => {
@@ -434,7 +456,7 @@ const Map2: React.FC<Map2Props> = ({
       if (requiresAllDestinationRestriction(vehicleName)) {
         // For Angkot: validate ALL destinations
         const validation = validateAngkotDestination(lat, lng);
-        
+
         if (!validation.isValid) {
           toast.error(`❌ ${validation.message}`);
           return false;
@@ -448,7 +470,7 @@ const Map2: React.FC<Map2Props> = ({
 
         // Use the proper validation function from utils
         const validation = validatePickupLocation(lat, lng, vehicleName);
-        
+
         if (!validation.isValid) {
           toast.error(`❌ ${validation.message}`);
           return false;
@@ -1097,8 +1119,8 @@ const Map2: React.FC<Map2Props> = ({
             {requiresAllDestinationRestriction(vehicleName)
               ? `🚐 Klik input lalu pilih lokasi di peta atau ketik manual. ${vehicleName} memiliki pembatasan area untuk SEMUA destinasi.`
               : needsAreaRestriction(0, 0)
-              ? `🚐 Klik input lalu pilih lokasi di peta atau ketik manual. ${vehicleName} memiliki pembatasan area untuk lokasi penjemputan (destinasi pertama).`
-              : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
+                ? `🚐 Klik input lalu pilih lokasi di peta atau ketik manual. ${vehicleName} memiliki pembatasan area untuk lokasi penjemputan (destinasi pertama).`
+                : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
           </p>
         </div>
 

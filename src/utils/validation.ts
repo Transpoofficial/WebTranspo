@@ -8,13 +8,21 @@ export const AREA_CENTERS = {
       name: "Kota Malang",
       lat: -7.983908,
       lng: 112.621391,
-      radius: 15000, // 15 km radius untuk Kota Malang
+      radius: 15000, // 15 km radius untuk Kota Malang (Angkot & ELF)
     },
     {
       name: "Kabupaten Malang",
       lat: -8.16667,
       lng: 112.66667,
-      radius: 50000, // 50 km radius untuk Kabupaten Malang (area lebih luas)
+      radius: 50000, // 50 km radius untuk Kabupaten Malang (Angkot & ELF - area lebih luas)
+    },
+  ],
+  MALANG_HIACE: [
+    {
+      name: "Pusat Kota Malang",
+      lat: -7.983908,
+      lng: 112.621391,
+      radius: 8000, // 8 km radius - hanya pusat kota Malang untuk Hiace
     },
   ],
   SURABAYA: [
@@ -22,7 +30,15 @@ export const AREA_CENTERS = {
       name: "Kota Surabaya",
       lat: -7.250445,
       lng: 112.768845,
-      radius: 20000, // 20 km radius untuk Kota Surabaya
+      radius: 20000, // 20 km radius untuk Kota Surabaya (tidak digunakan untuk Hiace)
+    },
+  ],
+  SURABAYA_HIACE: [
+    {
+      name: "Pusat Kota Surabaya",
+      lat: -7.250445,
+      lng: 112.768845,
+      radius: 8000, // 8 km radius - hanya pusat kota Surabaya untuk Hiace
     },
   ],
 } as const;
@@ -31,8 +47,8 @@ export const AREA_CENTERS = {
 export const VEHICLE_PICKUP_RESTRICTIONS = {
   ANGKOT: ["MALANG"],
   ELF: ["MALANG"],
-  HIACE_PREMIO: ["MALANG", "SURABAYA"],
-  HIACE_COMMUTER: ["MALANG", "SURABAYA"],
+  HIACE_PREMIO: ["MALANG_HIACE", "SURABAYA_HIACE"],
+  HIACE_COMMUTER: ["MALANG_HIACE", "SURABAYA_HIACE"],
 } as const;
 
 export const VALIDATION_LIMITS = {
@@ -255,8 +271,14 @@ export function validatePickupLocation(
     allowedAreas = VEHICLE_PICKUP_RESTRICTIONS.HIACE_PREMIO; // Same for both Premio & Commuter
     vehicleDisplayName = "Hiace";
   } else {
-    // For unknown vehicle types, allow all areas
-    return { isValid: true };
+    // For unknown vehicle types, default to most restrictive (Malang only)
+    // This prevents bypassing validation when vehicleName is empty or unknown
+    allowedAreas = VEHICLE_PICKUP_RESTRICTIONS.ANGKOT; // Most restrictive: Malang only
+    vehicleDisplayName = "Kendaraan";
+
+    console.warn(
+      `Unknown vehicle type: "${vehicleName}". Defaulting to Malang-only restriction.`
+    );
   }
 
   // Check if pickup location is within any allowed area
@@ -333,7 +355,9 @@ export function validateAngkotDestination(
 /**
  * ✅ NEW: Check if vehicle type requires all destinations to be restricted (like Angkot)
  */
-export function requiresAllDestinationRestriction(vehicleName: string): boolean {
+export function requiresAllDestinationRestriction(
+  vehicleName: string
+): boolean {
   const vehicleType = vehicleName.toLowerCase();
   return vehicleType.includes("angkot");
 }

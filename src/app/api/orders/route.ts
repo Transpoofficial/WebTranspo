@@ -10,7 +10,11 @@ import {
   logCalculationDiscrepancy,
   isDiscrepancyAcceptable,
 } from "@/utils/calculation-monitoring";
-import { validatePickupLocation, validateAngkotDestination, requiresAllDestinationRestriction } from "@/utils/validation";
+import {
+  validatePickupLocation,
+  validateAngkotDestination,
+  requiresAllDestinationRestriction,
+} from "@/utils/validation";
 
 // Types
 interface OrderRequestBody {
@@ -354,8 +358,11 @@ const handleTransportOrder = async (
     // For Angkot: validate ALL destinations
     for (let i = 0; i < destinations.length; i++) {
       const destination = destinations[i];
-      const angkotValidation = validateAngkotDestination(destination.lat, destination.lng);
-      
+      const angkotValidation = validateAngkotDestination(
+        destination.lat,
+        destination.lng
+      );
+
       if (!angkotValidation.isValid) {
         throw new Error(
           `Destinasi ${i + 1} tidak valid: ${angkotValidation.message}`
