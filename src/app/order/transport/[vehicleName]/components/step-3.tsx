@@ -490,8 +490,9 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                     <div className="flex justify-between">
                       <span>
                         Biaya Dasar (
-                        {calculatedPrice.totalDistanceKm.toFixed(1)} km x{" "}
-                        {calculatedPrice.vehicleCount} armada):
+                        {calculatedPrice.totalDistanceKm.toFixed(1)} km ×{" "}
+                        {calculatedPrice.vehicleCount} armada ×{" "}
+                        {Object.values(tripsByDate).length} hari):
                       </span>
                       <span>{formatRupiah(calculatedPrice.basePrice)}</span>
                     </div>

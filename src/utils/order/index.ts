@@ -204,25 +204,29 @@ export function calculateTotalPrice(
   totalPrice: number;
 } {
   const vehicleType = vehicleTypeName.toLowerCase();
-  let basePrice = 0;
+  const numberOfDays = trips.length; // Jumlah hari berdasarkan jumlah trips
+  let basePricePerDay = 0;
 
-  // Calculate base price based on vehicle type
+  // Calculate base price per day based on vehicle type
   if (vehicleType.includes("angkot")) {
-    basePrice = calculateAngkotPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateAngkotPrice(distanceKm, vehicleCount);
   } else if (
     vehicleType.includes("hiace") &&
     vehicleType.includes("commuter")
   ) {
-    basePrice = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
   } else if (vehicleType.includes("hiace") && vehicleType.includes("premio")) {
-    basePrice = calculateHiacePremioPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateHiacePremioPrice(distanceKm, vehicleCount);
   } else if (vehicleType.includes("elf")) {
-    basePrice = calculateElfPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateElfPrice(distanceKm, vehicleCount);
   } else {
     // Fallback calculation
     const defaultRate = 6000;
-    basePrice = Math.round(defaultRate * distanceKm * vehicleCount);
+    basePricePerDay = Math.round(defaultRate * distanceKm * vehicleCount);
   }
+
+  // ✅ NEW: Calculate total base price = base price per day × number of days
+  const totalBasePrice = basePricePerDay * numberOfDays;
 
   // Calculate inter-trip charges
   const interTripCharges = calculateInterTripCharges(trips);
@@ -242,10 +246,10 @@ export function calculateTotalPrice(
   const elfOutOfMalangCharges = elfChargeData.totalCharge;
 
   // Calculate total price
-  const totalPrice = basePrice + interTripCharges + elfOutOfMalangCharges;
+  const totalPrice = totalBasePrice + interTripCharges + elfOutOfMalangCharges;
 
   return {
-    basePrice: Math.round(basePrice),
+    basePrice: Math.round(totalBasePrice),
     interTripCharges: Math.round(interTripCharges),
     elfOutOfMalangCharges: Math.round(elfOutOfMalangCharges),
     totalPrice: Math.round(totalPrice),
