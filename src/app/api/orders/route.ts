@@ -49,6 +49,7 @@ interface ValidatedTransportData {
   actualTotalPrice: number;
   interTripCharges: number;
   basePrice: number;
+  elfOutOfMalangCharges?: number;
 }
 
 interface TripForCalculation {
@@ -310,6 +311,7 @@ const validateTransportPricing = async (
     actualTotalPrice: priceResult.totalPrice,
     interTripCharges: priceResult.interTripCharges,
     basePrice: priceResult.basePrice,
+    elfOutOfMalangCharges: priceResult.elfOutOfMalangCharges,
   };
 };
 
@@ -447,6 +449,7 @@ const handleTransportOrder = async (
     validatedPrice: validationResult.actualTotalPrice,
     interTripCharges: validationResult.interTripCharges,
     basePrice: validationResult.basePrice,
+    elfOutOfMalangCharges: validationResult.elfOutOfMalangCharges || 0,
   };
 };
 

@@ -46,6 +46,7 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
   breakdown: {
     tripDistances: Array<{
@@ -502,6 +503,17 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                         </span>
                       </div>
                     )}
+                    {calculatedPrice.elfOutOfMalangCharges &&
+                      calculatedPrice.elfOutOfMalangCharges > 0 && (
+                        <div className="flex justify-between">
+                          <span>Biaya ELF Luar Malang:</span>
+                          <span>
+                            {formatRupiah(
+                              calculatedPrice.elfOutOfMalangCharges
+                            )}
+                          </span>
+                        </div>
+                      )}
                     <div className="flex justify-between font-medium pt-2 border-t border-blue-300">
                       <span>Total:</span>
                       <span>{formatRupiah(calculatedPrice.totalPrice)}</span>

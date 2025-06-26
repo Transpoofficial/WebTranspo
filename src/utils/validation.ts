@@ -62,6 +62,11 @@ export const VALIDATION_LIMITS = {
   MIN_REASONABLE_PRICE: 50_000, // 50 thousand IDR
 } as const;
 
+// ✅ NEW: ELF Special Charges
+export const ELF_CHARGES = {
+  OUT_OF_MALANG_PER_TRIP: 100_000, // 100k IDR per trip/day if trip has destinations outside Malang
+} as const;
+
 export const DISTANCE_VALIDATION_MESSAGES = {
   TOO_LONG: "Jarak terlalu jauh. Maksimal 2000km untuk satu pesanan.",
   TOO_SHORT:
@@ -360,4 +365,89 @@ export function requiresAllDestinationRestriction(
 ): boolean {
   const vehicleType = vehicleName.toLowerCase();
   return vehicleType.includes("angkot");
+}
+
+/**
+ * ✅ NEW: Check if coordinates are within Malang area (for ELF out-of-Malang charge calculation)
+ */
+export function isWithinMalangArea(lat: number, lng: number): boolean {
+  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+    return false;
+  }
+
+  const malangCenters = AREA_CENTERS.MALANG;
+  return isWithinArea(lat, lng, malangCenters);
+}
+
+/**
+ * ✅ NEW: Calculate ELF out-of-Malang charges per trip
+ * ELF gets charged 100k IDR per trip/day if that trip has any destination outside Malang area
+ */
+export function calculateElfOutOfMalangCharges(
+  trips: Array<{
+    date: string;
+    destinations: Array<{
+      lat: number;
+      lng: number;
+      address: string;
+    }>;
+  }>,
+  vehicleName: string
+): {
+  totalCharge: number;
+  chargedTrips: number;
+  tripDetails: Array<{
+    date: string;
+    hasOutOfMalangDestination: boolean;
+    charge: number;
+    outOfMalangDestinations: string[];
+  }>;
+} {
+  // Only apply to ELF vehicles
+  const vehicleType = vehicleName.toLowerCase();
+  if (!vehicleType.includes("elf")) {
+    return {
+      totalCharge: 0,
+      chargedTrips: 0,
+      tripDetails: [],
+    };
+  }
+
+  let totalCharge = 0;
+  let chargedTrips = 0;
+  const tripDetails = trips.map((trip) => {
+    const outOfMalangDestinations: string[] = [];
+    let hasOutOfMalangDestination = false;
+
+    // Check each destination in this trip
+    trip.destinations.forEach((destination) => {
+      const isInMalang = isWithinMalangArea(destination.lat, destination.lng);
+      if (!isInMalang) {
+        hasOutOfMalangDestination = true;
+        outOfMalangDestinations.push(destination.address);
+      }
+    });
+
+    // Apply charge if trip has any destination outside Malang
+    const charge = hasOutOfMalangDestination
+      ? ELF_CHARGES.OUT_OF_MALANG_PER_TRIP
+      : 0;
+    if (charge > 0) {
+      totalCharge += charge;
+      chargedTrips++;
+    }
+
+    return {
+      date: trip.date,
+      hasOutOfMalangDestination,
+      charge,
+      outOfMalangDestinations,
+    };
+  });
+
+  return {
+    totalCharge,
+    chargedTrips,
+    tripDetails,
+  };
 }

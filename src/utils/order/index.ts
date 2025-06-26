@@ -2,6 +2,7 @@ import { calculateInterTripDistance } from "../google-maps";
 import {
   validateDistance as validateDistanceUtil,
   logValidationError,
+  calculateElfOutOfMalangCharges,
 } from "../validation";
 
 // Define Trip interface locally instead of importing from route
@@ -199,6 +200,7 @@ export function calculateTotalPrice(
 ): {
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges: number;
   totalPrice: number;
 } {
   const vehicleType = vehicleTypeName.toLowerCase();
@@ -225,12 +227,27 @@ export function calculateTotalPrice(
   // Calculate inter-trip charges
   const interTripCharges = calculateInterTripCharges(trips);
 
+  // ✅ NEW: Calculate ELF out-of-Malang charges
+  const elfChargeData = calculateElfOutOfMalangCharges(
+    trips.map((trip) => ({
+      date: trip.date.toISOString().split("T")[0], // Convert Date to string
+      destinations: trip.location.map((loc) => ({
+        lat: loc.lat || 0,
+        lng: loc.lng || 0,
+        address: loc.address,
+      })),
+    })),
+    vehicleTypeName
+  );
+  const elfOutOfMalangCharges = elfChargeData.totalCharge;
+
   // Calculate total price
-  const totalPrice = basePrice + interTripCharges;
+  const totalPrice = basePrice + interTripCharges + elfOutOfMalangCharges;
 
   return {
     basePrice: Math.round(basePrice),
     interTripCharges: Math.round(interTripCharges),
+    elfOutOfMalangCharges: Math.round(elfOutOfMalangCharges),
     totalPrice: Math.round(totalPrice),
   };
 }
