@@ -16,8 +16,8 @@ export function isDiscrepancyAcceptable(
   const distanceDifference = Math.abs(frontendDistance - backendDistance);
 
   // ✅ TEMPORARY: Very lenient tolerances for debugging
-  let priceTolerancePercentage = 0.25; // 25% tolerance (very high for debugging)
-  let distanceTolerancePercentage = 0.5; // 50% tolerance (very high for debugging)
+  const priceTolerancePercentage = 0.25; // 25% tolerance (very high for debugging)
+  const distanceTolerancePercentage = 0.5; // 50% tolerance (very high for debugging)
 
   // Log detailed information for debugging
   console.log("🔍 Discrepancy Analysis:", {

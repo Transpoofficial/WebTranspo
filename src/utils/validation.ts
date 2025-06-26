@@ -123,7 +123,7 @@ export function validateIndonesiaCoordinates(
  */
 export function logValidationError(
   type: "distance" | "price" | "coordinates",
-  details: any,
+  details: Record<string, unknown>,
   context?: string
 ) {
   const timestamp = new Date().toISOString();

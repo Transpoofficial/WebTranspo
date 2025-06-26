@@ -1,7 +1,6 @@
 "use client";
 
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -406,7 +405,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       orderData.userData.totalVehicles || 1,
       updatedTrip
     );
-
 
     // Update orderData
     setOrderData((prev: OrderData) => ({

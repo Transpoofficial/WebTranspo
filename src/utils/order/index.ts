@@ -1,7 +1,6 @@
 import { calculateInterTripDistance } from "../google-maps";
 import {
   validateDistance as validateDistanceUtil,
-  validatePrice,
   logValidationError,
 } from "../validation";
 
