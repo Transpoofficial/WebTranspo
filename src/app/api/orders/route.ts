@@ -10,6 +10,7 @@ import {
   logCalculationDiscrepancy,
   isDiscrepancyAcceptable,
 } from "@/utils/calculation-monitoring";
+import { validatePickupLocation, validateAngkotDestination, requiresAllDestinationRestriction } from "@/utils/validation";
 
 // Types
 interface OrderRequestBody {
@@ -328,6 +329,59 @@ const handleTransportOrder = async (
     roundTrip === undefined
   ) {
     throw new Error("Missing required fields for transportation order");
+  }
+
+  // Get vehicle type for pickup location validation
+  const vehicleType = await tx.vehicleType.findUnique({
+    where: { id: vehicleTypeId },
+    select: { name: true },
+  });
+
+  if (!vehicleType) {
+    throw new Error("Invalid vehicle type");
+  }
+
+  // AREA RESTRICTION VALIDATION
+  // Sort destinations by departure date to find the very first day
+  const sortedDestinations = destinations.sort((a, b) => {
+    const dateA = a.departureDate || "";
+    const dateB = b.departureDate || "";
+    return dateA.localeCompare(dateB);
+  });
+
+  // Check if this vehicle type requires all destinations to be restricted (like Angkot)
+  if (requiresAllDestinationRestriction(vehicleType.name)) {
+    // For Angkot: validate ALL destinations
+    for (let i = 0; i < destinations.length; i++) {
+      const destination = destinations[i];
+      const angkotValidation = validateAngkotDestination(destination.lat, destination.lng);
+      
+      if (!angkotValidation.isValid) {
+        throw new Error(
+          `Destinasi ${i + 1} tidak valid: ${angkotValidation.message}`
+        );
+      }
+    }
+  } else {
+    // For other vehicles (ELF, Hiace): only validate pickup location (first destination of first trip)
+    const firstDay = sortedDestinations[0].departureDate;
+    const firstDayDestinations = sortedDestinations.filter(
+      (dest) => dest.departureDate === firstDay
+    );
+    const truePickupLocation = firstDayDestinations[0]; // First destination of first day
+
+    // Validate only the true pickup location (first destination of first trip)
+    const pickupValidation = validatePickupLocation(
+      truePickupLocation.lat,
+      truePickupLocation.lng,
+      vehicleType.name
+    );
+
+    if (!pickupValidation.isValid) {
+      throw new Error(
+        `Pickup location area restriction: ${pickupValidation.message}. Vehicle: ${vehicleType.name}, Allowed areas: ${pickupValidation.allowedAreas?.join(", ")}`
+      );
+    }
   }
 
   //  Validate pricing and distance with backend re-calculation

@@ -49,6 +49,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { toast } from "sonner";
+import { validatePickupLocation, validateAngkotDestination, requiresAllDestinationRestriction } from "@/utils/validation";
 
 export interface Location {
   id: string;
@@ -82,21 +83,31 @@ interface Map2Props {
   vehicleName?: string; // Add vehicleName prop
 }
 
-// Koordinat pusat dan radius untuk area Malang berdasarkan data yang diberikan
-const MALANG_CENTERS = [
-  {
-    name: "Kota Malang",
-    lat: -7.983908,
-    lng: 112.621391,
-    radius: 15000, // 15 km radius untuk Kota Malang
-  },
-  {
-    name: "Kabupaten Malang",
-    lat: -8.16667,
-    lng: 112.66667,
-    radius: 50000, // 50 km radius untuk Kabupaten Malang (area lebih luas)
-  },
-];
+// Area centers for vehicle pickup restrictions (synchronized with backend)
+const AREA_CENTERS = {
+  MALANG: [
+    {
+      name: "Kota Malang",
+      lat: -7.983908,
+      lng: 112.621391,
+      radius: 15000, // 15 km radius untuk Kota Malang
+    },
+    {
+      name: "Kabupaten Malang",
+      lat: -8.16667,
+      lng: 112.66667,
+      radius: 50000, // 50 km radius untuk Kabupaten Malang (area lebih luas)
+    },
+  ],
+  SURABAYA: [
+    {
+      name: "Kota Surabaya",
+      lat: -7.250445,
+      lng: 112.768845,
+      radius: 20000, // 20 km radius untuk Kota Surabaya
+    },
+  ],
+} as const;
 
 // Function to calculate distance between two points using Haversine formula
 const calculateDistance = (
@@ -120,7 +131,7 @@ const calculateDistance = (
 
 // Enhanced function to check if coordinates are within Malang area using radius-based validation
 const isWithinMalangArea = (lat: number, lng: number): boolean => {
-  for (const center of MALANG_CENTERS) {
+  for (const center of AREA_CENTERS.MALANG) {
     const distance = calculateDistance(lat, lng, center.lat, center.lng);
 
     // console.log(`🔍 Distance Check for ${center.name}:`, {
@@ -142,29 +153,55 @@ const isWithinMalangArea = (lat: number, lng: number): boolean => {
   return false;
 };
 
-// Create bounds for autocomplete based on all Malang centers
-const createMalangBounds = (): google.maps.LatLngBounds => {
+// Get allowed areas for vehicle type (matching backend logic)
+const getAllowedAreasForVehicle = (vehicleName: string): string[] => {
+  const vehicleType = vehicleName.toLowerCase();
+
+  if (vehicleType.includes("angkot")) {
+    return ["MALANG"];
+  } else if (vehicleType.includes("elf")) {
+    return ["MALANG"];
+  } else if (vehicleType.includes("hiace")) {
+    return ["MALANG", "SURABAYA"]; // Both Hiace Premio and Commuter
+  }
+
+  // Default to Malang for unknown vehicle types
+  return ["MALANG"];
+};
+
+// Create bounds for autocomplete based on allowed areas for the vehicle
+const createBoundsForAllowedAreas = (allowedAreas: string[]): google.maps.LatLngBounds => {
   const bounds = new google.maps.LatLngBounds();
 
-  MALANG_CENTERS.forEach((center) => {
-    // Add points around each center to create encompassing bounds
-    const radiusInDegrees = center.radius / 111000; // Rough conversion: 1 degree ≈ 111km
+  allowedAreas.forEach((areaName) => {
+    const areaCenters = AREA_CENTERS[areaName as keyof typeof AREA_CENTERS];
+    if (areaCenters) {
+      areaCenters.forEach((center) => {
+        // Add points around each center to create encompassing bounds
+        const radiusInDegrees = center.radius / 111000; // Rough conversion: 1 degree ≈ 111km
 
-    bounds.extend(
-      new google.maps.LatLng(
-        center.lat - radiusInDegrees,
-        center.lng - radiusInDegrees
-      )
-    );
-    bounds.extend(
-      new google.maps.LatLng(
-        center.lat + radiusInDegrees,
-        center.lng + radiusInDegrees
-      )
-    );
+        bounds.extend(
+          new google.maps.LatLng(
+            center.lat - radiusInDegrees,
+            center.lng - radiusInDegrees
+          )
+        );
+        bounds.extend(
+          new google.maps.LatLng(
+            center.lat + radiusInDegrees,
+            center.lng + radiusInDegrees
+          )
+        );
+      });
+    }
   });
 
   return bounds;
+};
+
+// Legacy function for backward compatibility
+const createMalangBounds = (): google.maps.LatLngBounds => {
+  return createBoundsForAllowedAreas(["MALANG"]);
 };
 
 const SortableLocationItem = ({
@@ -284,6 +321,28 @@ const Map2: React.FC<Map2Props> = ({
     return result;
   }, [vehicleName]);
 
+  // Helper function to check if a location is the pickup location (first destination of first trip)
+  const isPickupLocation = useCallback(
+    (tripIndex: number, locationIndex: number) => {
+      return tripIndex === 0 && locationIndex === 0;
+    },
+    []
+  );
+
+  // Check if vehicle needs area restriction (Angkot: all destinations, ELF/Hiace: pickup location only)
+  const needsAreaRestriction = useCallback(
+    (tripIndex: number, locationIndex: number) => {
+      // For Angkot: all destinations need restriction
+      if (requiresAllDestinationRestriction(vehicleName)) {
+        return true;
+      }
+
+      // For other vehicles: only pickup location (first destination of first trip) needs restriction
+      return isPickupLocation(tripIndex, locationIndex);
+    },
+    [vehicleName, isPickupLocation]
+  );
+
   // Generate default trips if no initial trips provided
   const defaultTrips = useMemo(() => {
     return [
@@ -368,24 +427,54 @@ const Map2: React.FC<Map2Props> = ({
       onDirectionsChange(directions);
     }
   }, [directions, onDirectionsChange]);
+  // Validation function that uses proper area restriction logic
+  const validateLocationForAreaRestriction = useCallback(
+    (lat: number, lng: number, tripIndex: number, locationIndex: number) => {
+      // Check if this vehicle requires all destinations to be restricted (like Angkot)
+      if (requiresAllDestinationRestriction(vehicleName)) {
+        // For Angkot: validate ALL destinations
+        const validation = validateAngkotDestination(lat, lng);
+        
+        if (!validation.isValid) {
+          toast.error(`❌ ${validation.message}`);
+          return false;
+        }
+        return true;
+      } else {
+        // For other vehicles: only validate pickup location (first destination of first trip)
+        if (!isPickupLocation(tripIndex, locationIndex)) {
+          return true; // All other locations are unrestricted
+        }
 
-  // Enhanced validation function - only check coordinates for accuracy
-  const validateLocationForAngkot = useCallback(
-    (lat: number, lng: number): boolean => {
-      if (!isAngkot) return true;
-
-      const isValid = isWithinMalangArea(lat, lng);
-
-      // console.log("✅ Final Validation:", {
-      //   lat,
-      //   lng,
-      //   isAngkot,
-      //   isValid,
-      // });
-
-      return isValid;
+        // Use the proper validation function from utils
+        const validation = validatePickupLocation(lat, lng, vehicleName);
+        
+        if (!validation.isValid) {
+          toast.error(`❌ ${validation.message}`);
+          return false;
+        }
+        return true;
+      }
     },
-    [isAngkot]
+    [vehicleName, isPickupLocation]
+  );
+
+  // Legacy validation function for backward compatibility (now only checks pickup location)
+  const validateLocationForAngkot = useCallback(
+    (
+      lat: number,
+      lng: number,
+      tripIndex: number = 0,
+      locationIndex: number = 0
+    ) => {
+      return validateLocationForAreaRestriction(
+        lat,
+        lng,
+        tripIndex,
+        locationIndex
+      );
+    },
+    [validateLocationForAreaRestriction]
   );
 
   // Handle map click to set location
@@ -394,13 +483,18 @@ const Map2: React.FC<Map2Props> = ({
       if (!e.latLng || activeInput === null) return;
       const latLng = e.latLng.toJSON();
 
-      // console.log("🗺️ Map clicked:", { latLng, isAngkot, activeInput });
+      // console.log("🗺️ Map clicked:", { latLng, activeInput });
 
-      // Validate location for angkot FIRST before geocoding
-      if (!validateLocationForAngkot(latLng.lat, latLng.lng)) {
-        toast.error(
-          "❌ Angkot hanya tersedia di area Malang Kota dan Kabupaten"
-        );
+      // Validate location for area restriction (only for pickup location)
+      if (
+        !validateLocationForAreaRestriction(
+          latLng.lat,
+          latLng.lng,
+          activeInput.tripIndex,
+          activeInput.locationIndex
+        )
+      ) {
+        // Error message already shown in validation function
         return;
       }
 
@@ -431,7 +525,7 @@ const Map2: React.FC<Map2Props> = ({
         }
       });
     },
-    [activeInput, validateLocationForAngkot]
+    [activeInput, validateLocationForAreaRestriction]
   );
 
   // Initialize or reinitialize autocomplete for an input
@@ -460,18 +554,22 @@ const Map2: React.FC<Map2Props> = ({
           componentRestrictions: { country: "id" }, // Restrict to Indonesia
         };
 
-        // For angkot, add strict location bias to Malang area
-        if (isAngkot) {
-          const malangBounds = createMalangBounds();
+        // Only apply bounds restriction for pickup location (first destination of first trip)
+        if (needsAreaRestriction(tripIndex, locIndex)) {
+          const allowedAreas = getAllowedAreasForVehicle(vehicleName);
+          const bounds = createBoundsForAllowedAreas(allowedAreas);
 
-          autocompleteOptions.bounds = malangBounds;
-          autocompleteOptions.strictBounds = true; // Enforce strict bounds for angkot
+          autocompleteOptions.bounds = bounds;
+          autocompleteOptions.strictBounds = true; // Enforce strict bounds for pickup location
 
           // console.log(
-          //   "🎯 Autocomplete configured for Angkot with strict bounds:",
+          //   `🎯 Autocomplete configured for ${vehicleName} pickup location with strict bounds:`,
           //   {
-          //     bounds: malangBounds.toJSON(),
+          //     allowedAreas,
+          //     bounds: bounds.toJSON(),
           //     strictBounds: true,
+          //     tripIndex,
+          //     locIndex,
           //   }
           // );
         }
@@ -502,14 +600,16 @@ const Map2: React.FC<Map2Props> = ({
           //   lat,
           //   lng,
           //   address,
-          //   isAngkot,
+          //   tripIndex,
+          //   locIndex,
+          //   vehicleName,
           // });
 
-          // Validate location for angkot IMMEDIATELY
-          if (!validateLocationForAngkot(lat, lng)) {
-            toast.error(
-              "❌ Angkot hanya tersedia di area Malang Kota dan Kabupaten"
-            );
+          // Validate location for area restriction (only for pickup location)
+          if (
+            !validateLocationForAreaRestriction(lat, lng, tripIndex, locIndex)
+          ) {
+            // Error message already shown in validation function
             // Clear the input
             inputElement.value = "";
             // Force blur and focus to reset autocomplete
@@ -551,7 +651,7 @@ const Map2: React.FC<Map2Props> = ({
         toast.error("Gagal mengaktifkan pencarian alamat");
       }
     },
-    [isAngkot, validateLocationForAngkot]
+    [needsAreaRestriction, validateLocationForAreaRestriction]
   );
 
   // Handle input value changes
@@ -978,7 +1078,10 @@ const Map2: React.FC<Map2Props> = ({
                         position={{ lat: location.lat, lng: location.lng }}
                         label={`${locIndex + 1}`}
                         onClick={() => {
-                          setActiveInput({ tripIndex, locationIndex: locIndex });
+                          setActiveInput({
+                            tripIndex,
+                            locationIndex: locIndex,
+                          });
                         }}
                       />
                     )
@@ -991,8 +1094,10 @@ const Map2: React.FC<Map2Props> = ({
         <div className="pt-4 px-6 flex-shrink-0">
           <div className="text-lg font-semibold">Inisiasi perjalanan</div>
           <p className="text-xs text-muted-foreground">
-            {isAngkot
-              ? "🚐 Klik input lalu pilih lokasi di peta atau ketik manual. Angkot hanya tersedia di area Malang (radius 15-50km dari pusat)."
+            {requiresAllDestinationRestriction(vehicleName)
+              ? `🚐 Klik input lalu pilih lokasi di peta atau ketik manual. ${vehicleName} memiliki pembatasan area untuk SEMUA destinasi.`
+              : needsAreaRestriction(0, 0)
+              ? `🚐 Klik input lalu pilih lokasi di peta atau ketik manual. ${vehicleName} memiliki pembatasan area untuk lokasi penjemputan (destinasi pertama).`
               : "Klik input lalu pilih lokasi di peta atau ketik manual. Tarik & lepas untuk mengubah urutan."}
           </p>
         </div>
@@ -1024,8 +1129,7 @@ const Map2: React.FC<Map2Props> = ({
                     <div>
                       <small className="text-sm font-medium leading-none">
                         Trip {tripIndex + 1}
-                        {trip.date &&
-                          ` - ${trip.date.toLocaleDateString()}`}
+                        {trip.date && ` - ${trip.date.toLocaleDateString()}`}
                       </small>
                       <p className="text-xs text-muted-foreground">
                         {
@@ -1037,9 +1141,8 @@ const Map2: React.FC<Map2Props> = ({
                       </p>
                       {tripDirections && (
                         <p className="text-xs text-muted-foreground">
-                          Jarak:{" "}
-                          {formatDistance(tripDirections.totalDistance)} |
-                          Waktu:{" "}
+                          Jarak: {formatDistance(tripDirections.totalDistance)}{" "}
+                          | Waktu:{" "}
                           {formatDuration(tripDirections.totalDuration)}
                         </p>
                       )}
@@ -1132,16 +1235,12 @@ const Map2: React.FC<Map2Props> = ({
                                     )
                                   }
                                 >
-                                  <Trash
-                                    className="w-4 h-4"
-                                    color="#DC2626"
-                                  />
+                                  <Trash className="w-4 h-4" color="#DC2626" />
                                 </button>
                               )}
                             </div>
 
-                            {locationIndex !==
-                              trip.locations.length - 1 && (
+                            {locationIndex !== trip.locations.length - 1 && (
                               <div className="mr-auto mb-2">
                                 <EllipsisVertical
                                   strokeWidth={1}
