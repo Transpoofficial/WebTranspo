@@ -10,6 +10,7 @@ import axios from "axios";
 import Image from "next/image";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { queryClient } from "@/providers/ReactQueryProvider";
 
 const PAYMENT_ID_KEY = "transpo_payment_id";
 
@@ -114,7 +115,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
     if (typeof window !== "undefined") {
       localStorage.removeItem(PAYMENT_ID_KEY);
     }
-
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
     // Redirect to orders page
     router.push("/settings/order");
   };

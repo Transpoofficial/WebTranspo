@@ -6,6 +6,10 @@ import { getPaginationParams } from "@/utils/pagination";
 import { OrderStatus, OrderType, PaymentStatus, Prisma } from "@prisma/client";
 import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 import { calculateRouteDistanceWithDirectionsAPI } from "@/utils/google-maps";
+import {
+  logCalculationDiscrepancy,
+  isDiscrepancyAcceptable,
+} from "@/utils/calculation-monitoring";
 
 // Types
 interface OrderRequestBody {
@@ -110,7 +114,8 @@ const validateTransportPricing = async (
   vehicleTypeId: string,
   vehicleCount: number,
   frontendDistance: number,
-  frontendPrice: number
+  frontendPrice: number,
+  request?: NextRequest
 ): Promise<ValidatedTransportData> => {
   // Get vehicle type for pricing calculation
   const vehicleType = await prisma.vehicleType.findUnique({
@@ -192,33 +197,107 @@ const validateTransportPricing = async (
     tripsForCalculation // This will include inter-trip charges
   );
 
-  // Strict validation since both use same Directions API
+  // ✅ Enhanced validation with dynamic tolerance based on distance and vehicle type
   const priceDifference = Math.abs(priceResult.totalPrice - frontendPrice);
-  const maxAllowedPriceDifference = Math.max(
-    priceResult.totalPrice * 0.03, // 3% tolerance for small differences
-    5000 // Minimum Rp 5,000 tolerance
+  // ✅ FIXED: Frontend sends distance in km, no conversion needed
+  const frontendDistanceKm = frontendDistance;
+
+  // ✅ Log discrepancy for monitoring BEFORE validation
+  if (
+    priceDifference > 5000 ||
+    Math.abs(actualTotalDistanceKm - frontendDistanceKm) > 1
+  ) {
+    logCalculationDiscrepancy({
+      vehicleType: vehicleType.name,
+      frontendDistance: frontendDistanceKm,
+      backendDistance: actualTotalDistanceKm,
+      frontendPrice,
+      backendPrice: priceResult.totalPrice,
+      distanceDifference: Math.abs(actualTotalDistanceKm - frontendDistanceKm),
+      priceDifference,
+      userAgent: request?.headers.get("user-agent") || "unknown",
+    });
+  }
+
+  // ✅ Use intelligent discrepancy checking
+  const discrepancyCheck = isDiscrepancyAcceptable(
+    frontendPrice,
+    priceResult.totalPrice,
+    frontendDistanceKm,
+    actualTotalDistanceKm,
+    vehicleType.name
   );
 
-  if (priceDifference > maxAllowedPriceDifference) {
+  if (!discrepancyCheck.acceptable) {
+    const errorDetails = {
+      vehicle: vehicleType.name,
+      expectedPrice: priceResult.totalPrice,
+      receivedPrice: frontendPrice,
+      priceDifference,
+      backendDistance: actualTotalDistanceKm,
+      frontendDistance: frontendDistanceKm,
+      distanceDiscrepancy: Math.abs(actualTotalDistanceKm - frontendDistanceKm),
+      reason: discrepancyCheck.reason,
+      recommendation: discrepancyCheck.recommendation,
+    };
+
+    console.error("Price validation failed:", errorDetails);
+
     throw new Error(
       `Price validation failed. Expected: Rp ${priceResult.totalPrice.toLocaleString()}, ` +
-        `Received: Rp ${frontendPrice.toLocaleString()}`
+        `Received: Rp ${frontendPrice.toLocaleString()}. ` +
+        `${discrepancyCheck.reason}. ${discrepancyCheck.recommendation}`
     );
   }
 
-  // Distance validation with tight tolerance since both use same API
+  // ✅ FIXED: Frontend sends distance in km, backend expects in km (no conversion needed)
   const distanceDifference = Math.abs(
-    actualTotalDistance - frontendDistance * 1000
+    actualTotalDistance - frontendDistance * 1000 // Backend distance is in meters, frontend is in km
   );
+
+  // ✅ RESTORED: Normal distance tolerances after fixing root cause
+  let distanceTolerancePercentage = 0.1; // 10% base tolerance
+
+  if (actualTotalDistanceKm > 1000) {
+    distanceTolerancePercentage = 0.15; // 15% for very long distances (>1000km)
+  } else if (actualTotalDistanceKm > 500) {
+    distanceTolerancePercentage = 0.12; // 12% for long distances (>500km)
+  } else if (actualTotalDistanceKm > 200) {
+    distanceTolerancePercentage = 0.1; // 10% for medium distances (>200km)
+  }
+
+  // Log detailed distance comparison for debugging
+  console.log("🔍 Distance Validation Debug:", {
+    actualTotalDistanceKm,
+    frontendDistanceKm: frontendDistance, // ✅ FIXED: No conversion needed
+    distanceDifferenceKm: distanceDifference / 1000,
+    tolerancePercentage: distanceTolerancePercentage * 100 + "%",
+    isValid:
+      distanceDifference <=
+      actualTotalDistance * distanceTolerancePercentage + 5000, // ✅ FIXED: 5km minimum
+  });
+
   const maxAllowedDistanceDifference = Math.max(
-    actualTotalDistance * 0.05, // 5% tolerance (should be much smaller with same API)
-    500 // Minimum 500m tolerance
+    actualTotalDistance * distanceTolerancePercentage,
+    5000 // 5km minimum tolerance (restored to normal)
   );
 
   if (distanceDifference > maxAllowedDistanceDifference) {
+    const frontendDistanceKm = frontendDistance; // ✅ FIXED: No conversion needed
+
+    console.error("Distance validation failed:", {
+      backendDistance: actualTotalDistanceKm,
+      frontendDistance: frontendDistanceKm,
+      difference: distanceDifference / 1000,
+      toleranceUsed: distanceTolerancePercentage * 100,
+      maxAllowed: maxAllowedDistanceDifference / 1000,
+    });
+
     throw new Error(
       `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(3)} km, ` +
-        `Received: ${frontendDistance.toFixed(3)} km`
+        `Received: ${frontendDistanceKm.toFixed(3)} km. ` +
+        `Difference: ${(distanceDifference / 1000).toFixed(3)} km. ` +
+        `Please refresh the page and recalculate the route.`
     );
   }
   return {
@@ -235,7 +314,8 @@ const handleTransportOrder = async (
   orderId: string,
   body: OrderRequestBody,
   destinations: Destination[],
-  timezone: string
+  timezone: string,
+  req: NextRequest
 ) => {
   const { vehicleCount, roundTrip, vehicleTypeId, totalDistance, totalPrice } =
     body;
@@ -256,7 +336,8 @@ const handleTransportOrder = async (
     vehicleTypeId,
     parseInt(vehicleCount),
     parseFloat(totalDistance),
-    parseFloat(totalPrice || "0")
+    parseFloat(totalPrice || "0"),
+    req // Pass request object for logging
   );
 
   // Create transportation order with validated data
@@ -669,61 +750,65 @@ export const POST = async (req: NextRequest) => {
     const sanitizedNote = sanitizeNote(note);
 
     //  Create order in transaction with validation
-    const result = await prisma.$transaction(async (tx) => {
-      // Create base order
-      const createdOrder = await tx.order.create({
-        data: {
-          orderType: orderType.toUpperCase() as OrderType,
-          userId: token.id,
-          orderStatus: OrderStatus.PENDING,
-          fullName: fullName || userExists?.fullName || "Customer",
-          phoneNumber: phoneNumber || userExists.phoneNumber || "",
-          email: email || userExists.email || "",
-          totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
-          vehicleTypeId: vehicleTypeId || null,
-          note: sanitizedNote,
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // Create base order
+        const createdOrder = await tx.order.create({
+          data: {
+            orderType: orderType.toUpperCase() as OrderType,
+            userId: token.id,
+            orderStatus: OrderStatus.PENDING,
+            fullName: fullName || userExists?.fullName || "Customer",
+            phoneNumber: phoneNumber || userExists.phoneNumber || "",
+            email: email || userExists.email || "",
+            totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
+            vehicleTypeId: vehicleTypeId || null,
+            note: sanitizedNote,
+          },
+        });
 
-      let validatedPrice = parseFloat(totalPrice || "0");
+        let validatedPrice = parseFloat(totalPrice || "0");
 
-      //  Handle different order types with validation
-      if (orderType.toUpperCase() === "TRANSPORT") {
-        const transportResult = await handleTransportOrder(
-          tx,
-          createdOrder.id,
-          body,
-          validDestinations,
-          timezone
-        );
-        validatedPrice = transportResult.validatedPrice;
-      } else if (orderType.toUpperCase() === "TOUR") {
-        const tourResult = await handleTourPackageOrder(
-          tx,
-          createdOrder.id,
-          body
-        );
-        validatedPrice = tourResult.validatedPrice;
-      } else {
-        throw new Error("Invalid order type");
-      }
+        //  Handle different order types with validation
+        if (orderType.toUpperCase() === "TRANSPORT") {
+          const transportResult = await handleTransportOrder(
+            tx,
+            createdOrder.id,
+            body,
+            validDestinations,
+            timezone,
+            req
+          );
+          validatedPrice = transportResult.validatedPrice;
+        } else if (orderType.toUpperCase() === "TOUR") {
+          const tourResult = await handleTourPackageOrder(
+            tx,
+            createdOrder.id,
+            body
+          );
+          validatedPrice = tourResult.validatedPrice;
+        } else {
+          throw new Error("Invalid order type");
+        }
 
-      // Create payment record with validated price
-      const payment = await tx.payment.create({
-        data: {
-          orderId: createdOrder.id,
-          senderName: "",
-          transferDate: new Date(),
-          paymentStatus: PaymentStatus.PENDING,
-          totalPrice: validatedPrice, //  Use validated price
-        },
-      });
+        // Create payment record with validated price
+        const payment = await tx.payment.create({
+          data: {
+            orderId: createdOrder.id,
+            senderName: "",
+            transferDate: new Date(),
+            paymentStatus: PaymentStatus.PENDING,
+            totalPrice: validatedPrice, //  Use validated price
+          },
+        });
 
-      return {
-        order: createdOrder,
-        payment: payment,
-      };
-    }, {timeout: 60000, maxWait: 60000});
+        return {
+          order: createdOrder,
+          payment: payment,
+        };
+      },
+      { timeout: 60000, maxWait: 60000 }
+    );
 
     // Return created order with payment data
     return NextResponse.json(

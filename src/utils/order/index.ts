@@ -1,4 +1,9 @@
 import { calculateInterTripDistance } from "../google-maps";
+import {
+  validateDistance as validateDistanceUtil,
+  validatePrice,
+  logValidationError,
+} from "../validation";
 
 // Define Trip interface locally instead of importing from route
 export interface Trip {
@@ -84,11 +89,46 @@ export function calculateInterTripCharges(trips: Trip[]): number {
   return totalAdditionalCharge;
 }
 
-// ✅ Updated price calculation functions with new formulas
+// ✅ Distance validation and safety limits
+export const MAX_REASONABLE_DISTANCE_KM = 2000; // Maximum reasonable distance in Indonesia
+export const MAX_SINGLE_TRIP_DISTANCE_KM = 1000; // Maximum for single trip
+
+// ✅ Enhanced validation for distance calculations
+export function validateDistance(distanceKm: number): boolean {
+  const validation = validateDistanceUtil(distanceKm);
+
+  if (!validation.isValid) {
+    logValidationError(
+      "distance",
+      {
+        distanceKm,
+        message: validation.message,
+      },
+      "order_calculation"
+    );
+  }
+
+  return validation.isValid;
+}
+
+// ✅ Enhanced price calculation functions with validation
 export function calculateAngkotPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Angkot should not be used for very long distances
+  if (distanceKm > 200) {
+    console.warn(
+      `Angkot distance too long: ${distanceKm}km. Consider other vehicles.`
+    );
+  }
+
   // New formula: (150.000 + (4100 × Jarak)) + 10%
   const basePrice = 150000 + 4100 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
@@ -101,6 +141,12 @@ export function calculateHiaceCommuterPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
+    return 0;
+  }
+
   // New formula: (1.000.000 + (2500 × Jarak)) + 10%
   const basePrice = 1000000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
@@ -113,9 +159,15 @@ export function calculateHiacePremioPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  // New formula: (1.150.000 + (25000 × Jarak)) + 10%
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Original formula as specified: 1,150,000 + (25,000 × Jarak KM) + PPN 10%
   const basePrice = 1150000 + 25000 * distanceKm;
-  const priceWithTax = basePrice * 1.1; // Add 10%
+  const priceWithTax = basePrice * 1.1; // Add 10% PPN
   const totalPrice = priceWithTax * vehicleCount;
 
   return Math.round(totalPrice);
@@ -125,6 +177,12 @@ export function calculateElfPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Elf: ${distanceKm}km`);
+    return 0;
+  }
+
   // New formula: (1.250.000 + (2500 × Jarak)) + 10%
   const basePrice = 1250000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%

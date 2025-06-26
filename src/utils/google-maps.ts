@@ -42,12 +42,31 @@ interface RouteDistanceResult {
 /**
  * Calculate route distance using Google Maps Directions API (same as frontend)
  * This ensures frontend and backend use identical calculation method
+ * ✅ Fixed: Removed traffic parameters to match frontend exactly
  */
 export async function calculateRouteDistanceWithDirectionsAPI(
   locations: Array<{ lat: number; lng: number }>
 ): Promise<RouteDistanceResult> {
   if (locations.length < 2) {
     return { distance: 0, duration: 0 };
+  }
+
+  // ✅ Add validation for extreme distances to prevent API errors
+  const firstPoint = locations[0];
+  const lastPoint = locations[locations.length - 1];
+  const straightLineDistance = calculateHaversineDistance(
+    firstPoint.lat,
+    firstPoint.lng,
+    lastPoint.lat,
+    lastPoint.lng
+  );
+
+  // If straight line distance > 2000km, likely invalid coordinates
+  if (straightLineDistance > 2000) {
+    console.warn(
+      `Extreme distance detected: ${straightLineDistance.toFixed(2)}km - using fallback`
+    );
+    return calculateFallbackDistance(locations);
   }
 
   try {
@@ -63,6 +82,7 @@ export async function calculateRouteDistanceWithDirectionsAPI(
       waypointsParam = `&waypoints=${waypoints.join("|")}`;
     }
 
+    // ✅ Use exact same parameters as frontend (no traffic params for consistency)
     const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}${waypointsParam}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
 
     const response = await fetch(url, {
@@ -88,6 +108,15 @@ export async function calculateRouteDistanceWithDirectionsAPI(
         totalDistance += leg.distance?.value || 0;
         totalDuration += leg.duration?.value || 0;
       });
+
+      // ✅ Sanity check: if API distance is much larger than straight line, use fallback
+      const routeDistanceKm = totalDistance / 1000;
+      if (routeDistanceKm > straightLineDistance * 3) {
+        console.warn(
+          `Route distance (${routeDistanceKm.toFixed(2)}km) much larger than straight line (${straightLineDistance.toFixed(2)}km) - using fallback`
+        );
+        return calculateFallbackDistance(locations);
+      }
 
       return { distance: totalDistance, duration: totalDuration };
     } else {
