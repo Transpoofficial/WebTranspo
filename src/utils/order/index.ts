@@ -128,9 +128,9 @@ export function calculateAngkotPrice(
     );
   }
 
-  // New formula: (150.000 + (4100 × Jarak)) + 10%
+  // New formula: (150.000 + (4100 × Jarak)) + 20% (updated from 10%)
   const basePrice = 150000 + 4100 * distanceKm;
-  const priceWithTax = basePrice * 1.1; // Add 10%
+  const priceWithTax = basePrice * 1.2; // Add 20% (changed from 10%)
   const totalPrice = priceWithTax * vehicleCount;
 
   return Math.round(totalPrice);
