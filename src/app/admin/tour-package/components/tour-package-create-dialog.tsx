@@ -11,17 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { z } from "zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -32,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { X, Plus, Upload, Eye } from "lucide-react";
+import { X, Plus, Upload } from "lucide-react";
 import Image from "next/image";
 
 interface TourPackageCreateDialogProps {
@@ -40,36 +33,65 @@ interface TourPackageCreateDialogProps {
   setIsTourPackageCreateDialogOpen: React.Dispatch<
     React.SetStateAction<boolean>
   >;
+  isPrivate: boolean; // Tambahan: untuk membedakan open/private trip
+  setIsPrivate: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface VehicleType {
-  id: string;
-  name: string;
-}
+type ItineraryDayItem = {
+  time: string;
+  text: string;
+};
+
+type ItineraryNotes = { notes: string };
+
+const itineraryItemSchema = z.object({
+  time: z.string().min(1, { message: "Jam wajib diisi" }),
+  text: z.string().min(1, { message: "Kegiatan wajib diisi" }),
+});
+const itinerariesSchema = z
+  .array(
+    z
+      .array(itineraryItemSchema)
+      .min(1, { message: "Minimal 1 itinerary per hari" })
+  )
+  .min(1, { message: "Minimal 1 hari itinerary" });
+
+const includesExcludesSchema = z.array(
+  z.object({
+    text: z.string().min(1, { message: "Wajib diisi" }),
+  })
+);
 
 const tourPackageSchema = z.object({
   name: z.string().min(1, { message: "Nama paket wajib diisi" }),
-  destination: z.string().min(1, { message: "Destinasi wajib diisi" }),
-  durationDays: z.number().min(1, { message: "Durasi minimal 1 hari" }),
   price: z.string().min(1, { message: "Harga wajib diisi" }),
-  vehicleId: z.string().min(1, { message: "Kendaraan wajib dipilih" }),
-  advantages: z
-    .array(
+  description: z.string().min(1, { message: "Deskripsi wajib diisi" }),
+  meetingPoint: z.string().min(1, { message: "Meeting point wajib diisi" }),
+  minPersonCapacity: z
+    .string()
+    .min(1, { message: "Minimal kapasitas wajib diisi" }),
+  maxPersonCapacity: z
+    .string()
+    .min(1, { message: "Maksimal kapasitas wajib diisi" }),
+  itineraries: itinerariesSchema,
+  itineraryNotes: z.string().optional(), // Tambahkan field untuk catatan itinerary (opsional)
+  is_private: z.boolean(),
+  tickets: z.union([
+    z.array(
       z.object({
-        text: z.string().min(1, { message: "Keunggulan wajib diisi" }),
+        date: z.string().min(1, { message: "Tanggal wajib diisi" }),
       })
-    )
-    .min(1, { message: "Minimal 1 keunggulan" }),
-  services: z
-    .array(
-      z.object({
-        text: z.string().min(1, { message: "Layanan wajib diisi" }),
-      })
-    )
-    .min(1, { message: "Minimal 1 layanan" }),
+    ),
+    z.undefined(),
+  ]),
   photos: z
     .array(z.instanceof(File, { message: "File gambar wajib dipilih" }))
     .min(1, { message: "Minimal 1 foto" }),
+  includes: includesExcludesSchema.min(1, { message: "Minimal 1 include" }),
+  excludes: includesExcludesSchema.min(1, { message: "Minimal 1 exclude" }),
+  requirements: includesExcludesSchema.min(1, {
+    message: "Minimal 1 requirement",
+  }),
 });
 
 type TourPackageInput = z.infer<typeof tourPackageSchema>;
@@ -77,36 +99,86 @@ type TourPackageInput = z.infer<typeof tourPackageSchema>;
 const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
   isTourPackageCreateDialogOpen,
   setIsTourPackageCreateDialogOpen,
+  isPrivate,
 }) => {
   const [loading, setLoading] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  const form = useForm<TourPackageInput>({
+  const form = useForm<TourPackageInput & { itineraryNotes?: string }>({
     resolver: zodResolver(tourPackageSchema),
     defaultValues: {
-      advantages: [{ text: "" }],
-      services: [{ text: "" }],
+      name: "",
+      price: "",
+      description: "",
+      meetingPoint: "",
+      minPersonCapacity: "",
+      maxPersonCapacity: "",
+      includes: [{ text: "" }],
+      excludes: [{ text: "" }],
+      itineraries: [[{ time: "", text: "" }]], // default: 1 hari, 1 kegiatan kosong
+      itineraryNotes: "",
+      requirements: [{ text: "" }],
+      is_private: isPrivate,
+      tickets: isPrivate ? undefined : [{ date: "" }],
       photos: [],
     },
   });
 
+  // Sinkronkan is_private jika berubah dari luar
+  React.useEffect(() => {
+    form.setValue("is_private", isPrivate);
+    if (isPrivate) {
+      form.setValue("tickets", undefined);
+    } else {
+      form.setValue("tickets", [{ date: "" }]);
+    }
+  }, [form, isPrivate]);
+
   const {
-    fields: advantageFields,
-    append: appendAdvantage,
-    remove: removeAdvantage,
+    fields: includesFields,
+    append: appendInclude,
+    remove: removeInclude,
   } = useFieldArray({
     control: form.control,
-    name: "advantages",
+    name: "includes",
   });
 
   const {
-    fields: serviceFields,
-    append: appendService,
-    remove: removeService,
+    fields: excludesFields,
+    append: appendExclude,
+    remove: removeExclude,
   } = useFieldArray({
     control: form.control,
-    name: "services",
+    name: "excludes",
+  });
+
+  const {
+    fields: requirementsFields,
+    append: appendRequirement,
+    remove: removeRequirement,
+  } = useFieldArray({
+    control: form.control,
+    name: "requirements",
+  });
+
+  const {
+    fields: ticketsFields,
+    append: appendTicket,
+    remove: removeTicket,
+  } = useFieldArray({
+    control: form.control,
+    name: "tickets",
+  });
+
+  // Perbaiki: gunakan useFieldArray untuk hari itinerary
+  const {
+    fields: itinerariesDayFields,
+    append: appendItineraryDay,
+    remove: removeItineraryDay,
+  } = useFieldArray({
+    control: form.control,
+    name: "itineraries",
   });
 
   // Handle file upload and preview
@@ -143,33 +215,33 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
     setImagePreviews(newPreviews);
   };
 
-  // Fetch vehicle types for dropdown
-  const { data: vehicleTypes } = useQuery<{
-    data: VehicleType[];
-  }>({
-    queryKey: ["vehicle-types"],
-    queryFn: async () => {
-      const response = await axios.get("/api/vehicle-types");
-      return response.data;
-    },
-  });
-
   const tourPackageMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-    const response = await axios.post("/api/tour-packages", formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
+      const response = await axios.post("/api/tour-packages", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    },
     onSuccess: () => {
       toast.success("Paket wisata berhasil ditambahkan.");
       queryClient.invalidateQueries({ queryKey: ["tour-packages"] });
       setIsTourPackageCreateDialogOpen(false);
       form.reset({
-        advantages: [{ text: "" }],
-        services: [{ text: "" }],
+        name: "",
+        price: "",
+        description: "",
+        meetingPoint: "",
+        minPersonCapacity: "",
+        maxPersonCapacity: "",
+        includes: [{ text: "" }],
+        excludes: [{ text: "" }],
+        itineraries: [[{ time: "", text: "" }]], // default: 1 hari, 1 kegiatan kosong
+        itineraryNotes: "",
+        requirements: [{ text: "" }],
+        is_private: isPrivate,
+        tickets: isPrivate ? undefined : [{ date: "" }],
         photos: [],
       });
       setImagePreviews([]);
@@ -185,21 +257,31 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
     },
   });
 
-  const onSubmit = (data: TourPackageInput) => {
+  const onSubmit = (data: TourPackageInput & { itineraryNotes?: string }) => {
     setLoading(true);
 
     const formData = new FormData();
     formData.append("name", data.name);
-    formData.append("destination", data.destination);
-    formData.append("durationDays", data.durationDays.toString());
     formData.append("price", data.price);
-    formData.append("vehicleId", data.vehicleId);
-
-    // Ubah advantages dan services jadi JSON string
-    formData.append("advantages", JSON.stringify(data.advantages));
-    formData.append("services", JSON.stringify(data.services));
-
-    // Append setiap file
+    formData.append("description", data.description);
+    formData.append("meetingPoint", data.meetingPoint);
+    formData.append("minPersonCapacity", data.minPersonCapacity);
+    formData.append("maxPersonCapacity", data.maxPersonCapacity);
+    formData.append("includes", JSON.stringify(data.includes));
+    formData.append("excludes", JSON.stringify(data.excludes));
+    // Gabungkan itineraries dan notes sesuai format permintaan
+    const itinerariesWithNotes: (ItineraryDayItem[] | ItineraryNotes)[] = [
+      ...data.itineraries,
+    ];
+    if (data.itineraryNotes && data.itineraryNotes.trim() !== "") {
+      itinerariesWithNotes.push({ notes: data.itineraryNotes });
+    }
+    formData.append("itineraries", JSON.stringify(itinerariesWithNotes));
+    formData.append("requirements", JSON.stringify(data.requirements));
+    formData.append("is_private", data.is_private ? "1" : "0");
+    if (!data.is_private && data.tickets) {
+      formData.append("tickets", JSON.stringify(data.tickets));
+    }
     data.photos.forEach((file) => {
       formData.append("photos", file);
     });
@@ -216,7 +298,9 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Tambah paket wisata</DialogTitle>
+              <DialogTitle>
+                Tambah paket wisata {isPrivate ? "Private Trip" : "Open Trip"}
+              </DialogTitle>
               <DialogDescription>
                 Tambah paket wisata di sini. Klik simpan setelah selesai.
               </DialogDescription>
@@ -239,39 +323,6 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
 
               <FormField
                 control={form.control}
-                name="destination"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destinasi</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Masukkan destinasi" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="durationDays"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Durasi (Hari)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Masukkan durasi"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
@@ -286,44 +337,204 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
 
               <FormField
                 control={form.control}
-                name="vehicleId"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kendaraan</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kendaraan" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicleTypes?.data?.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Deskripsi</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Masukkan deskripsi" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="meetingPoint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Meeting Point</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Masukkan meeting point" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="minPersonCapacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimal Kapasitas</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Masukkan minimal kapasitas"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="maxPersonCapacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maksimal Kapasitas</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Masukkan maksimal kapasitas"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Includes */}
               <div>
-                <FormLabel>Keunggulan</FormLabel>
-                {advantageFields.map((field, index) => (
+                <FormLabel>Termasuk (Includes)</FormLabel>
+                {includesFields.map((field, index) => (
                   <div key={field.id} className="flex gap-2 mt-2">
                     <FormField
                       control={form.control}
-                      name={`advantages.${index}.text`}
+                      name={`includes.${index}.text`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input placeholder="Masukkan include" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {includesFields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeInclude(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendInclude({ text: "" })}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Include
+                </Button>
+              </div>
+
+              {/* Excludes */}
+              <div>
+                <FormLabel>Tidak Termasuk (Excludes)</FormLabel>
+                {excludesFields.map((field, index) => (
+                  <div key={field.id} className="flex gap-2 mt-2">
+                    <FormField
+                      control={form.control}
+                      name={`excludes.${index}.text`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input placeholder="Masukkan exclude" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {excludesFields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeExclude(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendExclude({ text: "" })}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Exclude
+                </Button>
+              </div>
+
+              {/* Itineraries (per hari) */}
+              <div>
+                <FormLabel>Itinerary (per Hari)</FormLabel>
+                {itinerariesDayFields.map((dayField, dayIndex) => (
+                  <ItineraryDayFields
+                    key={dayField.id}
+                    form={form}
+                    dayIndex={dayIndex}
+                    removeItineraryDay={removeItineraryDay}
+                    totalDays={itinerariesDayFields.length}
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendItineraryDay([{ time: "", text: "" }])}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Hari
+                </Button>
+                {/* Tambahkan textarea untuk catatan itinerary */}
+                <FormField
+                  control={form.control}
+                  name="itineraryNotes"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Catatan Itinerary (Opsional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Masukkan catatan itinerary (opsional)"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <FormLabel>Persyaratan</FormLabel>
+                {requirementsFields.map((field, index) => (
+                  <div key={field.id} className="flex gap-2 mt-2">
+                    <FormField
+                      control={form.control}
+                      name={`requirements.${index}.text`}
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
                             <Input
-                              placeholder="Masukkan keunggulan"
+                              placeholder="Masukkan persyaratan"
                               {...field}
                             />
                           </FormControl>
@@ -331,12 +542,12 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
                         </FormItem>
                       )}
                     />
-                    {advantageFields.length > 1 && (
+                    {requirementsFields.length > 1 && (
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => removeAdvantage(index)}
+                        onClick={() => removeRequirement(index)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -347,58 +558,66 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendAdvantage({ text: "" })}
+                  onClick={() => appendRequirement({ text: "" })}
                   className="mt-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Tambah Keunggulan
+                  Tambah Persyaratan
                 </Button>
               </div>
 
-              <div>
-                <FormLabel>Layanan</FormLabel>
-                {serviceFields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2 mt-2">
-                    <FormField
-                      control={form.control}
-                      name={`services.${index}.text`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <Input placeholder="Masukkan layanan" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+              {/* Tickets (hanya untuk open trip) */}
+              {!isPrivate && (
+                <div>
+                  <FormLabel>Tiket (Tanggal Open Trip)</FormLabel>
+                  {ticketsFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2 mt-2">
+                      <FormField
+                        control={form.control}
+                        name={`tickets.${index}.date`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input
+                                type="date"
+                                placeholder="Pilih tanggal"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {ticketsFields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeTicket(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       )}
-                    />
-                    {serviceFields.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeService(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => appendService({ text: "" })}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Tambah Layanan
-                </Button>
-              </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendTicket({ date: "" })}
+                    className="mt-2"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Tambah Tanggal Tiket
+                  </Button>
+                </div>
+              )}
 
+              {/* Photos */}
               <FormField
                 control={form.control}
                 name="photos"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Foto Paket Wisata</FormLabel>
                     <FormControl>
@@ -480,6 +699,89 @@ const TourPackageCreateDialog: React.FC<TourPackageCreateDialogProps> = ({
         </Form>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Komponen untuk field itinerary per hari
+const ItineraryDayFields: React.FC<{
+  form: ReturnType<typeof useForm<TourPackageInput>>;
+  dayIndex: number;
+  removeItineraryDay: (index: number) => void;
+  totalDays: number;
+}> = ({ form, dayIndex, removeItineraryDay, totalDays }) => {
+  const {
+    fields: itemFields,
+    append: appendItem,
+    remove: removeItem,
+  } = useFieldArray({
+    control: form.control,
+    name: `itineraries.${dayIndex}`,
+  });
+
+  return (
+    <div className="border rounded-md p-3 mb-3 bg-gray-50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-semibold">Hari {dayIndex + 1}</span>
+        {totalDays > 1 && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => removeItineraryDay(dayIndex)}
+          >
+            <X className="h-4 w-4 mr-1" /> Hapus Hari
+          </Button>
+        )}
+      </div>
+      {itemFields.map((itemField, itemIndex) => (
+        <div key={itemField.id} className="flex gap-2 mt-2">
+          <FormField
+            control={form.control}
+            name={`itineraries.${dayIndex}.${itemIndex}.time`}
+            render={({ field }) => (
+              <FormItem className="w-28">
+                <FormControl>
+                  <Input type="time" placeholder="Jam" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`itineraries.${dayIndex}.${itemIndex}.text`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder="Kegiatan" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {itemFields.length > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => removeItem(itemIndex)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => appendItem({ time: "", text: "" })}
+        className="mt-2"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Tambah Kegiatan
+      </Button>
+    </div>
   );
 };
 

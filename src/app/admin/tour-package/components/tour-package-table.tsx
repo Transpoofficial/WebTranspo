@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -25,34 +25,28 @@ import TourPackageUpdateDialog from "./tour-package-update-dialog";
 
 interface TourPackage {
   id: string;
-  vehicleId: string;
-  name: string;
-  destination: string;
-  durationDays: number;
-  price: string;
-  advantages: Array<{ text: string }>;
-  services: Array<{ text: string }>;
   photoUrl: Array<{ url: string }>;
+  name: string;
+  price: string;
+  description: string;
+  meetingPoint: string;
+  minPersonCapacity: number;
+  maxPersonCapacity: number;
+  includes: Array<{ text: string }>;
+  excludes: Array<{ text: string }>;
+  itineraries: Array<{ text?: string; opsional?: string }>;
+  requirements: Array<{ text: string }>;
+
+  tickets: Array<{ date: string }> | null;
+  is_private: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const TourPackageTable = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUpdateDialog, setOpenUpdateDialog] = useState<string | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
-
-  const handleLongPressStart = (id: string) => {
-    longPressTimer.current = setTimeout(() => {
-      setOpenDropdown(id);
-    }, 800);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
 
   const handleDropdownToggle = (id: string) => {
     setOpenDropdown((prev) => (prev === id ? null : id));
@@ -113,11 +107,12 @@ const TourPackageTable = () => {
           <TableRow>
             <TableHead className="w-1/12">#</TableHead>
             <TableHead>Nama Paket</TableHead>
-            <TableHead>Destinasi</TableHead>
-            <TableHead>Durasi</TableHead>
             <TableHead>Harga</TableHead>
-            <TableHead>Keunggulan</TableHead>
-            <TableHead>Layanan</TableHead>
+            <TableHead>Meeting Point</TableHead>
+            <TableHead>Min/Max Person</TableHead>
+            <TableHead>Include</TableHead>
+            <TableHead>Exclude</TableHead>
+            <TableHead>Tipe Trip</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -125,6 +120,9 @@ const TourPackageTable = () => {
             Array.from({ length: 3 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell className="font-medium">
+                  <Skeleton className="h-[37px] w-full" />
+                </TableCell>
+                <TableCell>
                   <Skeleton className="h-[37px] w-full" />
                 </TableCell>
                 <TableCell>
@@ -154,47 +152,47 @@ const TourPackageTable = () => {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <TableRow
-                        onMouseDown={() => handleLongPressStart(row.id)}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={() => handleLongPressStart(row.id)}
-                        onTouchEnd={handleLongPressEnd}
-                        className="relative transition duration-200 active:scale-99 cursor-pointer"
+                        className="transition duration-200 active:scale-99 cursor-pointer"
                       >
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
                         <TableCell className="font-medium">{row.name}</TableCell>
-                        <TableCell>{row.destination}</TableCell>
-                        <TableCell>{row.durationDays} hari</TableCell>
                         <TableCell>{formatPrice(row.price)}</TableCell>
+                        <TableCell>{row.meetingPoint}</TableCell>
+                        <TableCell>
+                          {row.minPersonCapacity} / {row.maxPersonCapacity}
+                        </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            {row.advantages.slice(0, 2).map((advantage, idx) => (
+                            {row.includes?.slice(0, 2).map((inc, idx) => (
                               <div key={idx} className="text-sm">
-                                • {advantage.text}
+                                • {inc.text}
                               </div>
                             ))}
-                            {row.advantages.length > 2 && (
+                            {row.includes && row.includes.length > 2 && (
                               <div className="text-xs text-gray-500">
-                                +{row.advantages.length - 2} lainnya
+                                +{row.includes.length - 2} lainnya
                               </div>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            {row.services.slice(0, 2).map((service, idx) => (
+                            {row.excludes?.slice(0, 2).map((exc, idx) => (
                               <div key={idx} className="text-sm">
-                                • {service.text}
+                                • {exc.text}
                               </div>
                             ))}
-                            {row.services.length > 2 && (
+                            {row.excludes && row.excludes.length > 2 && (
                               <div className="text-xs text-gray-500">
-                                +{row.services.length - 2} lainnya
+                                +{row.excludes.length - 2} lainnya
                               </div>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {row.is_private ? "Private Trip" : "Open Trip"}
                         </TableCell>
                       </TableRow>
                     </ContextMenuTrigger>
@@ -241,16 +239,16 @@ const TourPackageTable = () => {
                   </Drawer>
 
                   <TourPackageUpdateDialog
-                    openUpdateDialog={openUpdateDialog === row.id}
+                    openUpdateDialog={openUpdateDialog}
                     setOpenUpdateDialog={setOpenUpdateDialog}
-                    tourPackageId={row.id}
+                    tourPackageId={openUpdateDialog}
                   />
                 </React.Fragment>
               );
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="py-3 text-center">
+              <TableCell colSpan={8} className="py-3 text-center">
                 No results.
               </TableCell>
             </TableRow>

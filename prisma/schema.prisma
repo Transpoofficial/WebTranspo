@@ -157,18 +157,24 @@ model VehicleType {
   updatedAt               DateTime            @updatedAt
 }
 
-model TourPackage {
-  id                      String              @id @default(cuid())
-  name                    String
-  destination             String
-  durationDays            Int
+model TourPackage { 
+  id                      String              @id @default(cuid()) 
+  photoUrl                Json 
+  name                    String 
   price                   Decimal             @db.Decimal(10, 2)
-  advantages              Json
-  services                Json
-  photoUrl                Json
-  packageOrders           PackageOrder[]
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
+  description             String              @db.Text
+  meetingPoint            String
+  minPersonCapacity       Int 
+  maxPersonCapacity       Int 
+  includes                Json 
+  excludes                Json 
+  itineraries             Json 
+  requirements            Json 
+  tickets                 Json? 
+  is_private              Boolean 
+  packageOrders           PackageOrder[] 
+  createdAt               DateTime            @default(now()) 
+  updatedAt               DateTime            @updatedAt 
 }
 
 model Report {

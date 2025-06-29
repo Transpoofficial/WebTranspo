@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { z } from "zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,54 +26,89 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { X, Plus, Upload } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import Image from "next/image";
 
 interface TourPackageUpdateDialogProps {
-  openUpdateDialog: boolean;
-  setOpenUpdateDialog: React.Dispatch<
-    React.SetStateAction<boolean>
-  >;
+  openUpdateDialog: string | null;
+  setOpenUpdateDialog: React.Dispatch<React.SetStateAction<string | null>>;
   tourPackageId: string | null;
 }
 
-interface VehicleType {
-  id: string;
-  name: string;
+interface ItineraryItem {
+  time: string;
+  text: string;
 }
+
+type Itinerary = ItineraryItem[] | { notes: string };
 
 interface TourPackage {
   id: string;
   name: string;
+  description: string;
   destination: string;
   durationDays: number;
   price: string;
   vehicleId: string;
   advantages: { text: string }[];
   services: { text: string }[];
-  photoUrl: { url: string }[]; // Array of objects with url property
+  photoUrl: { url: string }[];
+  meetingPoint: string;
+  minPersonCapacity: number;
+  maxPersonCapacity: number;
+  includes?: { text: string }[];
+  excludes?: { text: string }[];
+  itineraries?: Itinerary[];
+  requirements?: { text: string }[];
+  is_private?: boolean;
+  tickets?: { date: string }[];
 }
+
+const itineraryItemSchema = z.object({
+  time: z.string().min(1, { message: "Jam wajib diisi" }),
+  text: z.string().min(1, { message: "Kegiatan wajib diisi" }),
+});
+
+const itinerariesSchema = z
+  .array(
+    z
+      .array(itineraryItemSchema)
+      .min(1, { message: "Minimal 1 itinerary per hari" })
+  )
+  .min(1, { message: "Minimal 1 hari itinerary" });
+
+const includesExcludesSchema = z.array(
+  z.object({
+    text: z.string().min(1, { message: "Wajib diisi" }),
+  })
+);
 
 const tourPackageSchema = z.object({
   name: z.string().min(1, { message: "Nama paket wajib diisi" }),
-  destination: z.string().min(1, { message: "Destinasi wajib diisi" }),
-  durationDays: z.number().min(1, { message: "Durasi minimal 1 hari" }),
   price: z.string().min(1, { message: "Harga wajib diisi" }),
-  vehicleId: z.string().min(1, { message: "Kendaraan wajib dipilih" }),
-  advantages: z
+  description: z.string().min(1, { message: "Deskripsi wajib diisi" }),
+  meetingPoint: z.string().min(1, { message: "Meeting point wajib diisi" }),
+  minPersonCapacity: z
+    .string()
+    .min(1, { message: "Minimal kapasitas wajib diisi" }),
+  maxPersonCapacity: z
+    .string()
+    .min(1, { message: "Maksimal kapasitas wajib diisi" }),
+  includes: includesExcludesSchema.min(1, { message: "Minimal 1 include" }),
+  excludes: includesExcludesSchema.min(1, { message: "Minimal 1 exclude" }),
+  itineraries: itinerariesSchema,
+  itineraryNotes: z.string().optional(),
+  requirements: includesExcludesSchema.min(1, {
+    message: "Minimal 1 requirement",
+  }),
+  is_private: z.boolean(),
+  tickets: z
     .array(
       z.object({
-        text: z.string().min(1, { message: "Keunggulan wajib diisi" }),
+        date: z.string().min(1, { message: "Tanggal wajib diisi" }),
       })
     )
-    .min(1, { message: "Minimal 1 keunggulan" }),
-  services: z
-    .array(
-      z.object({
-        text: z.string().min(1, { message: "Layanan wajib diisi" }),
-      })
-    )
-    .min(1, { message: "Minimal 1 layanan" }),
+    .optional(),
   photos: z.array(z.instanceof(File)).optional(),
 });
 
@@ -95,31 +125,67 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  const form = useForm<TourPackageInput>({
+  // Initialize form with consistent default values
+  const form = useForm<TourPackageInput & { itineraryNotes?: string }>({
     resolver: zodResolver(tourPackageSchema),
     defaultValues: {
-      advantages: [{ text: "" }],
-      services: [{ text: "" }],
+      name: "",
+      price: "",
+      description: "",
+      meetingPoint: "",
+      minPersonCapacity: "",
+      maxPersonCapacity: "",
+      includes: [{ text: "" }],
+      excludes: [{ text: "" }],
+      itineraries: [[{ time: "", text: "" }]],
+      itineraryNotes: "",
+      requirements: [{ text: "" }],
+      is_private: false,
+      tickets: [],
       photos: [],
     },
   });
 
+  // Field arrays
   const {
-    fields: advantageFields,
-    append: appendAdvantage,
-    remove: removeAdvantage,
+    fields: includesFields,
+    append: appendInclude,
+    remove: removeInclude,
   } = useFieldArray({
     control: form.control,
-    name: "advantages",
+    name: "includes",
   });
-
   const {
-    fields: serviceFields,
-    append: appendService,
-    remove: removeService,
+    fields: excludesFields,
+    append: appendExclude,
+    remove: removeExclude,
   } = useFieldArray({
     control: form.control,
-    name: "services",
+    name: "excludes",
+  });
+  const {
+    fields: requirementsFields,
+    append: appendRequirement,
+    remove: removeRequirement,
+  } = useFieldArray({
+    control: form.control,
+    name: "requirements",
+  });
+  const {
+    fields: ticketsFields,
+    append: appendTicket,
+    remove: removeTicket,
+  } = useFieldArray({
+    control: form.control,
+    name: "tickets",
+  });
+  const {
+    fields: itinerariesDayFields,
+    append: appendItineraryDay,
+    remove: removeItineraryDay,
+  } = useFieldArray({
+    control: form.control,
+    name: "itineraries",
   });
 
   // Fetch tour package data
@@ -131,121 +197,138 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
       const response = await axios.get(`/api/tour-packages/${tourPackageId}`);
       return response.data;
     },
-    enabled: !!tourPackageId && openUpdateDialog,
-  });
-
-  // Fetch vehicle types for dropdown
-  const { data: vehicleTypes } = useQuery<{
-    data: VehicleType[];
-  }>({
-    queryKey: ["vehicle-types"],
-    queryFn: async () => {
-      const response = await axios.get("/api/vehicle-types");
-      console.log("Vehicle types:", response.data); // Debug log
-      return response.data;
-    },
+    enabled: !!tourPackageId && !!openUpdateDialog,
   });
 
   // Populate form when data is loaded
   useEffect(() => {
-    if (tourPackageData?.data) {
+    if (tourPackageData?.data && openUpdateDialog) {
       const data = tourPackageData.data;
-      
-      console.log("Tour Package Data:", data); // Debug log
-      
-      // Extract URLs from photoUrl array
-      const photoUrls = data.photoUrl ? data.photoUrl.map(photo => photo.url) : [];
-      console.log("Extracted photo URLs:", photoUrls); // Debug log
-      
+      const photoUrls = data.photoUrl
+        ? data.photoUrl.map((photo) => photo.url)
+        : [];
+      let itineraryNotes = "";
+      let itineraries: ItineraryItem[][] = [];
+
+      function isItineraryItemArray(
+        itinerary: Itinerary
+      ): itinerary is ItineraryItem[] {
+        return (
+          Array.isArray(itinerary) &&
+          itinerary.every((item) => "time" in item && "text" in item)
+        );
+      }
+
+      if (Array.isArray(data.itineraries) && data.itineraries.length > 0) {
+        const last = data.itineraries[data.itineraries.length - 1];
+        if (
+          last &&
+          !Array.isArray(last) &&
+          "notes" in last &&
+          typeof last.notes === "string"
+        ) {
+          itineraryNotes = last.notes || "";
+          itineraries = data.itineraries
+            .slice(0, -1)
+            .filter(isItineraryItemArray) as ItineraryItem[][];
+        } else {
+          itineraries = data.itineraries.filter(
+            isItineraryItemArray
+          ) as ItineraryItem[][];
+        }
+      }
+
+      // Ensure itineraries has at least one day with one item
+      if (itineraries.length === 0) {
+        itineraries = [[{ time: "", text: "" }]];
+      }
+
+      // Populate form with fetched data
       form.reset({
-        name: data.name,
-        destination: data.destination,
-        durationDays: data.durationDays,
-        price: data.price,
-        vehicleId: data.vehicleId,
-        advantages: data.advantages.length > 0 ? data.advantages : [{ text: "" }],
-        services: data.services.length > 0 ? data.services : [{ text: "" }],
+        name: data.name || "",
+        price: data.price ? String(data.price) : "",
+        description: data.description || "",
+        meetingPoint: data.meetingPoint || "",
+        minPersonCapacity: data.minPersonCapacity
+          ? String(data.minPersonCapacity)
+          : "",
+        maxPersonCapacity: data.maxPersonCapacity
+          ? String(data.maxPersonCapacity)
+          : "",
+        includes: data.includes?.length ? data.includes : [{ text: "" }],
+        excludes: data.excludes?.length ? data.excludes : [{ text: "" }],
+        itineraries,
+        itineraryNotes,
+        requirements: data.requirements?.length
+          ? data.requirements
+          : [{ text: "" }],
+        is_private: !!data.is_private,
+        tickets: data.is_private
+          ? []
+          : data.tickets?.length
+            ? data.tickets
+            : [],
         photos: [],
       });
 
       setExistingPhotos(photoUrls);
       setImagePreviews([]);
       setPhotosToDelete([]);
-      
-      console.log("Form values after reset:", form.getValues()); // Debug log
     }
-  }, [tourPackageData, form]);
+  }, [tourPackageData, openUpdateDialog, form]);
 
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!openUpdateDialog) {
-      form.reset({
-        advantages: [{ text: "" }],
-        services: [{ text: "" }],
-        photos: [],
-      });
-      setImagePreviews([]);
-      setExistingPhotos([]);
-      setPhotosToDelete([]);
-    }
-  }, [openUpdateDialog, form]);
+  // image handlers
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const existing = form.getValues("photos") || [];
+    form.setValue("photos", [...existing, ...files]);
 
-  // Handle file upload and preview
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const fileArray = Array.from(files);
-      const currentImages = form.getValues("photos") || [];
-      const newImages = [...currentImages, ...fileArray];
-
-      form.setValue("photos", newImages);
-
-      // Create previews for new files
-      const newPreviews: string[] = [];
-      fileArray.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          newPreviews.push(e.target?.result as string);
-          if (newPreviews.length === fileArray.length) {
-            setImagePreviews((prev) => [...prev, ...newPreviews]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setImagePreviews((prev) => [...prev, ev.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const removeNewImage = (index: number) => {
-    const currentImages = form.getValues("photos") || [];
-    const newImages = currentImages.filter((_, i) => i !== index);
-    form.setValue("photos", newImages);
-
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    setImagePreviews(newPreviews);
+  const handleRemoveNewImage = (index: number) => {
+    const current = form.getValues("photos") || [];
+    form.setValue(
+      "photos",
+      current.filter((_, i) => i !== index)
+    );
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const removeExistingImage = (photoUrl: string) => {
-    setExistingPhotos((prev) => prev.filter((url) => url !== photoUrl));
-    setPhotosToDelete((prev) => [...prev, photoUrl]);
+  const handleRemoveExistingImage = (url: string) => {
+    setExistingPhotos((prev) => prev.filter((x) => x !== url));
+    setPhotosToDelete((prev) => [...prev, url]);
   };
 
   const tourPackageUpdateMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await axios.put(`/api/tour-packages/${tourPackageId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.put(
+        `/api/tour-packages/${tourPackageId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       return response.data;
     },
     onSuccess: () => {
       toast.success("Paket wisata berhasil diperbarui.");
       queryClient.invalidateQueries({ queryKey: ["tour-packages"] });
-      queryClient.invalidateQueries({ queryKey: ["tour-package", tourPackageId] });
-      setOpenUpdateDialog(false);
+      queryClient.invalidateQueries({
+        queryKey: ["tour-package", tourPackageId],
+      });
+      setOpenUpdateDialog(null);
     },
     onError: (error: import("axios").AxiosError<{ message?: string }>) => {
-      toast.error(
+      toast(
         error.response?.data?.message ||
           "Uh oh! Terjadi kesalahan, silakan coba lagi."
       );
@@ -255,45 +338,52 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
     },
   });
 
-  const onSubmit = (data: TourPackageInput) => {
+  const onSubmit = (data: TourPackageInput & { itineraryNotes?: string }) => {
     setLoading(true);
 
     const formData = new FormData();
     formData.append("name", data.name);
-    formData.append("destination", data.destination);
-    formData.append("durationDays", data.durationDays.toString());
     formData.append("price", data.price);
-    formData.append("vehicleId", data.vehicleId);
-
-    // Ubah advantages dan services jadi JSON string
-    formData.append("advantages", JSON.stringify(data.advantages));
-    formData.append("services", JSON.stringify(data.services));
-
-    // Append existing photos that are not deleted
+    formData.append("description", data.description);
+    formData.append("meetingPoint", data.meetingPoint);
+    formData.append("minPersonCapacity", data.minPersonCapacity);
+    formData.append("maxPersonCapacity", data.maxPersonCapacity);
+    formData.append("includes", JSON.stringify(data.includes));
+    formData.append("excludes", JSON.stringify(data.excludes));
+    const itinerariesWithNotes: unknown[] = [...data.itineraries];
+    if (data.itineraryNotes && data.itineraryNotes.trim() !== "") {
+      itinerariesWithNotes.push({ notes: data.itineraryNotes });
+    }
+    formData.append("itineraries", JSON.stringify(itinerariesWithNotes));
+    formData.append("requirements", JSON.stringify(data.requirements));
+    formData.append("is_private", data.is_private ? "1" : "0");
+    if (!data.is_private && data.tickets && data.tickets.length > 0) {
+      formData.append("tickets", JSON.stringify(data.tickets));
+    }
     formData.append("existingPhotos", JSON.stringify(existingPhotos));
-    
-    // Append photos to delete
     if (photosToDelete.length > 0) {
       formData.append("photosToDelete", JSON.stringify(photosToDelete));
     }
-
-    // Append new photos
     if (data.photos) {
       data.photos.forEach((file) => {
         formData.append("photos", file);
       });
     }
-
     tourPackageUpdateMutation.mutate(formData);
   };
 
   if (isTourPackageLoading) {
     return (
       <Dialog
-        open={openUpdateDialog}
-        onOpenChange={setOpenUpdateDialog}
+        open={!!openUpdateDialog}
+        onOpenChange={(open) =>
+          setOpenUpdateDialog(open ? openUpdateDialog : null)
+        }
       >
         <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Loading Paket Wisata</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -304,8 +394,10 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
 
   return (
     <Dialog
-      open={openUpdateDialog}
-      onOpenChange={setOpenUpdateDialog}
+      open={!!openUpdateDialog}
+      onOpenChange={(open) =>
+        setOpenUpdateDialog(open ? openUpdateDialog : null)
+      }
     >
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <Form {...form}>
@@ -334,39 +426,6 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
 
               <FormField
                 control={form.control}
-                name="destination"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destinasi</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Masukkan destinasi" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="durationDays"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Durasi (Hari)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Masukkan durasi"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
@@ -381,57 +440,105 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
 
               <FormField
                 control={form.control}
-                name="vehicleId"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kendaraan</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih kendaraan" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicleTypes?.data?.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Deskripsi</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Masukkan deskripsi"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="meetingPoint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Meeting Point</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Masukkan meeting point"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="minPersonCapacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimal Kapasitas</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Masukkan minimal kapasitas"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="maxPersonCapacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maksimal Kapasitas</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Masukkan maksimal kapasitas"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Includes */}
               <div>
-                <FormLabel>Keunggulan</FormLabel>
-                {advantageFields.map((field, index) => (
+                <FormLabel>Termasuk (Includes)</FormLabel>
+                {includesFields.map((field, index) => (
                   <div key={field.id} className="flex gap-2 mt-2">
                     <FormField
                       control={form.control}
-                      name={`advantages.${index}.text`}
+                      name={`includes.${index}.text`}
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
                             <Input
-                              placeholder="Masukkan keunggulan"
+                              placeholder="Masukkan include"
                               {...field}
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    {advantageFields.length > 1 && (
+                    {includesFields.length > 1 && (
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => removeAdvantage(index)}
+                        onClick={() => removeInclude(index)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -442,36 +549,41 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendAdvantage({ text: "" })}
+                  onClick={() => appendInclude({ text: "" })}
                   className="mt-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Tambah Keunggulan
+                  Tambah Include
                 </Button>
               </div>
 
+              {/* Excludes */}
               <div>
-                <FormLabel>Layanan</FormLabel>
-                {serviceFields.map((field, index) => (
+                <FormLabel>Tidak Termasuk (Excludes)</FormLabel>
+                {excludesFields.map((field, index) => (
                   <div key={field.id} className="flex gap-2 mt-2">
                     <FormField
                       control={form.control}
-                      name={`services.${index}.text`}
+                      name={`excludes.${index}.text`}
                       render={({ field }) => (
                         <FormItem className="flex-1">
                           <FormControl>
-                            <Input placeholder="Masukkan layanan" {...field} />
+                            <Input
+                              placeholder="Masukkan exclude"
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    {serviceFields.length > 1 && (
+                    {excludesFields.length > 1 && (
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => removeService(index)}
+                        onClick={() => removeExclude(index)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -482,96 +594,178 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendService({ text: "" })}
+                  onClick={() => appendExclude({ text: "" })}
                   className="mt-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Tambah Layanan
+                  Tambah Exclude
                 </Button>
               </div>
 
+              {/* Itineraries (per hari) */}
+              <div>
+                <FormLabel>Itinerary (per Hari)</FormLabel>
+                {itinerariesDayFields.map((dayField, dayIndex) => (
+                  <ItineraryDayFields
+                    key={dayField.id}
+                    form={form}
+                    dayIndex={dayIndex}
+                    removeItineraryDay={removeItineraryDay}
+                    totalDays={itinerariesDayFields.length}
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendItineraryDay([{ time: "", text: "" }])}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Hari
+                </Button>
+                <FormField
+                  control={form.control}
+                  name="itineraryNotes"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Catatan Itinerary (Opsional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Masukkan catatan itinerary (opsional)"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <FormLabel>Persyaratan</FormLabel>
+                {requirementsFields.map((field, index) => (
+                  <div key={field.id} className="flex gap-2 mt-2">
+                    <FormField
+                      control={form.control}
+                      name={`requirements.${index}.text`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <Input
+                              placeholder="Masukkan persyaratan"
+                              {...field}
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {requirementsFields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeRequirement(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => appendRequirement({ text: "" })}
+                  className="mt-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tambah Persyaratan
+                </Button>
+              </div>
+
+              {/* Tickets (hanya untuk open trip) */}
+              {!form.watch("is_private") && (
+                <div>
+                  <FormLabel>Tiket (Tanggal Open Trip)</FormLabel>
+                  {ticketsFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2 mt-2">
+                      <FormField
+                        control={form.control}
+                        name={`tickets.${index}.date`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input
+                                type="date"
+                                placeholder="Pilih tanggal"
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {ticketsFields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeTicket(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendTicket({ date: "" })}
+                    className="mt-2"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Tambah Tanggal Tiket
+                  </Button>
+                </div>
+              )}
+
+              {/* Photos */}
               <div>
                 <FormLabel>Foto Paket Wisata</FormLabel>
                 <div className="space-y-4">
-                  {/* Existing Photos */}
                   {existingPhotos.length > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-2">Foto yang sudah ada:</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Foto yang sudah ada:
+                      </p>
                       <div className="grid grid-cols-2 gap-4">
-                        {existingPhotos.map((photoUrl, index) => {
-                          console.log(`Rendering existing photo ${index}:`, photoUrl); // Debug log
-                          return (
-                            <div key={index} className="relative group">
-                              <div className="relative w-full h-32 rounded-lg overflow-hidden border-2 border-gray-200">
-                                <Image
-                                  src={photoUrl}
-                                  alt={`Existing photo ${index + 1}`}
-                                  fill
-                                  className="object-cover"
-                                  onError={() => console.log(`Failed to load image: ${photoUrl}`)} // Debug log
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeExistingImage(photoUrl)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Upload new photos */}
-                  <div className="flex items-center justify-center w-full">
-                    <label
-                      htmlFor="image-upload"
-                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-                    >
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 mb-4 text-gray-500" />
-                        <p className="mb-2 text-sm text-gray-500">
-                          <span className="font-semibold">
-                            Klik untuk upload foto baru
-                          </span>{" "}
-                          atau drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          PNG, JPG atau JPEG (MAX. 5MB)
-                        </p>
-                      </div>
-                      <input
-                        id="image-upload"
-                        type="file"
-                        className="hidden"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                    </label>
-                  </div>
-
-                  {/* New Image Previews */}
-                  {imagePreviews.length > 0 && (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">Foto baru yang akan ditambahkan:</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        {imagePreviews.map((preview, index) => (
+                        {existingPhotos.map((photoUrl, index) => (
                           <div key={index} className="relative group">
                             <div className="relative w-full h-32 rounded-lg overflow-hidden border-2 border-gray-200">
                               <Image
-                                src={preview}
-                                alt={`New preview ${index + 1}`}
+                                src={photoUrl}
+                                alt={`Existing photo ${index + 1}`}
                                 fill
                                 className="object-cover"
+                                onError={() =>
+                                  console.log(
+                                    `Failed to load image: ${photoUrl}`
+                                  )
+                                }
                               />
                             </div>
                             <button
                               type="button"
-                              onClick={() => removeNewImage(index)}
+                              onClick={() =>
+                                handleRemoveExistingImage(photoUrl)
+                              }
                               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
                             >
                               <X className="h-4 w-4" />
@@ -580,6 +774,49 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  <div className="flex items-center justify-center w-full mt-2">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="block w-full border border-gray-200 shadow-sm rounded-lg text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none file:bg-gray-50 file:border-0 file:me-4 file:py-2 file:px-4"
+                    />
+                  </div>
+
+                  {imagePreviews.length > 0 && (
+                    <>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Foto baru yang akan ditambahkan:
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        {imagePreviews.length > 0 && 
+                            imagePreviews.map((src, i) => (
+                              <div
+                                key={i}
+                                className="relative w-full h-32 border overflow-hidden rounded-lg"
+                              >
+                                <Image
+                                  src={src}
+                                  alt={`Preview ${i}`}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveNewImage(i)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            )
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -602,6 +839,97 @@ const TourPackageUpdateDialog: React.FC<TourPackageUpdateDialogProps> = ({
         </Form>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const ItineraryDayFields: React.FC<{
+  form: ReturnType<typeof useForm<TourPackageInput>>;
+  dayIndex: number;
+  removeItineraryDay: (index: number) => void;
+  totalDays: number;
+}> = ({ form, dayIndex, removeItineraryDay, totalDays }) => {
+  const {
+    fields: itemFields,
+    append: appendItem,
+    remove: removeItem,
+  } = useFieldArray({
+    control: form.control,
+    name: `itineraries.${dayIndex}`,
+  });
+
+  return (
+    <div className="border rounded-md p-3 mb-3 bg-gray-50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-semibold">Hari {dayIndex + 1}</span>
+        {totalDays > 1 && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => removeItineraryDay(dayIndex)}
+          >
+            <X className="h-4 w-4 mr-1" /> Hapus Hari
+          </Button>
+        )}
+      </div>
+      {itemFields.map((itemField, itemIndex) => (
+        <div key={itemField.id} className="flex gap-2 mt-2">
+          <FormField
+            control={form.control}
+            name={`itineraries.${dayIndex}.${itemIndex}.time`}
+            render={({ field }) => (
+              <FormItem className="w-28">
+                <FormControl>
+                  <Input
+                    type="time"
+                    placeholder="Jam"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`itineraries.${dayIndex}.${itemIndex}.text`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input
+                    placeholder="Kegiatan"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {itemFields.length > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => removeItem(itemIndex)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => appendItem({ time: "", text: "" })}
+        className="mt-2"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Tambah Kegiatan
+      </Button>
+    </div>
   );
 };
 
