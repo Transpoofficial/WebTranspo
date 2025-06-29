@@ -13,10 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Header from "@/components/header";
-<<<<<<< HEAD
-=======
 import { useSession } from "next-auth/react";
->>>>>>> e2471bb634979a23356ceb4ef6b48a54fe7ff7db
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -331,11 +328,7 @@ const OrderTransportPage = () => {
 
   return (
     <>
-<<<<<<< HEAD
-      <Header isLandingPage={false} />
-=======
       <Header isLandingPage={false} />{" "}
->>>>>>> e2471bb634979a23356ceb4ef6b48a54fe7ff7db
       <div className="container mx-auto py-8">
         {" "}
         {/* Progress steps */}
