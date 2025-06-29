@@ -28,27 +28,9 @@ interface UploadPaymentDialogProps {
 // Bank account data
 const BANK_ACCOUNTS = [
   {
-    bank: "BCA",
-    number: "0065010452605",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/bca.png",
-  },
-  {
-    bank: "Mandiri",
-    number: "1440024149178",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/mandiri.png",
-  },
-  {
-    bank: "BNI",
-    number: "1884588906",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/bni.png",
-  },
-  {
     bank: "BRI",
-    number: "0894580796",
-    name: "Defrina Eka Orchid",
+    number: "0065 0104 5260 538",
+    name: "Defrina Eka Orchidta",
     logo: "/icons/bri.png",
   },
 ];
@@ -143,7 +125,7 @@ export function UploadPaymentDialog({ open, onClose, paymentId, amount, onSucces
         <DialogHeader>
           <DialogTitle>Upload Bukti Transfer</DialogTitle>
         </DialogHeader>
-
+        
         <div className="space-y-4 overflow-y-auto">
           <div className="mb-2 px-2 flex flex-col items-center">
             <div className="text-sm text-gray-500">Total Biaya:</div>

@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Header from "@/components/header";
+<<<<<<< HEAD
+=======
+import { useSession } from "next-auth/react";
+>>>>>>> e2471bb634979a23356ceb4ef6b48a54fe7ff7db
 
 // Constants
 const PAYMENT_ID_KEY = "transpo_payment_id";
@@ -60,6 +64,7 @@ const getStartDate = (vehicleName: string) => {
 
 const OrderTransportPage = () => {
   const params = useParams();
+  const { data, status } = useSession();
   const vehicleName = decodeURIComponent(
     Array.isArray(params.vehicleName)
       ? params.vehicleName[0]
@@ -67,7 +72,6 @@ const OrderTransportPage = () => {
   );
   const startDate = getStartDate(vehicleName as string);
   const router = useRouter();
-
   const [step, setStep] = useState(1);
   const [orderData, setOrderData] = useState<OrderData>({
     userData: {
@@ -103,7 +107,49 @@ const OrderTransportPage = () => {
     "hiace commuter",
     "hiace premio",
     "elf",
-  ].includes(vehicleName.toLowerCase());
+  ].includes(vehicleName.toLowerCase()); // Update user data when session data changes
+  useEffect(() => {
+    if (data?.user && status === "authenticated") {
+      // Fetch full user data including phone number
+      const fetchUserData = async () => {
+        try {
+          const response = await axios.get(`/api/users/${data.user.id}`);
+
+          if (response.status === 200) {
+            setOrderData((prevData) => ({
+              ...prevData,
+              userData: {
+                ...prevData.userData,
+                name: prevData?.userData.name || data.user.fullName || "",
+                email: prevData?.userData.email || data.user.email || "",
+                phone: prevData?.userData.phone || data.user.phoneNumber || "",
+                // Keep existing totalPassangers, totalVehicles if already filled
+                totalPassangers: prevData.userData.totalPassangers || 0,
+                totalVehicles: prevData.userData.totalVehicles || 0,
+              },
+            }));
+          }
+        } catch (error) {
+          console.error("❌ Error fetching user data:", error);
+          // Fallback to session data only
+          setOrderData((prevData) => ({
+            ...prevData,
+            userData: {
+              ...prevData.userData,
+              name: data.user.fullName || "",
+              email: data.user.email || "",
+              phone: prevData.userData.phone || "",
+              // Keep existing totalPassangers, totalVehicles if already filled
+              totalPassangers: prevData.userData.totalPassangers || 0,
+              totalVehicles: prevData.userData.totalVehicles || 0,
+            },
+          }));
+        }
+      };
+
+      fetchUserData();
+    }
+  }, [data, status]);
 
   // Check for payment ID in localStorage and fetch payment data if exists
   useEffect(() => {
@@ -190,6 +236,9 @@ const OrderTransportPage = () => {
   };
 
   const handlePreviousStep = () => {
+    if (step === 1) {
+      router.back();
+    }
     setStep(step - 1);
   };
 
@@ -282,50 +331,89 @@ const OrderTransportPage = () => {
 
   return (
     <>
+<<<<<<< HEAD
       <Header isLandingPage={false} />
+=======
+      <Header isLandingPage={false} />{" "}
+>>>>>>> e2471bb634979a23356ceb4ef6b48a54fe7ff7db
       <div className="container mx-auto py-8">
+        {" "}
         {/* Progress steps */}
         <div className="flex justify-center mb-12">
-          <div className="flex items-center">
-            {[1, 2, 3, 4].map((stepNumber) => (
-              <React.Fragment key={stepNumber}>
-                <div
-                  className={cn(
-                    "rounded-full w-12 h-12 flex items-center justify-center border-2",
-                    step === stepNumber
-                      ? "border-transpo-primary text-transpo-primary font-bold"
-                      : stepNumber < step
-                      ? "border-transpo-primary bg-transpo-primary text-white"
-                      : "border-gray-300 text-gray-300"
-                  )}
-                >
-                  {stepNumber}
-                </div>
-                {stepNumber < 4 && (
-                  <div className="flex mx-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-2 h-2 rounded-full mx-1",
-                          step > stepNumber
-                            ? "bg-transpo-primary"
-                            : step === stepNumber
-                            ? i < 3
+          <div className="flex flex-row items-center justify-center w-full max-w-4xl">
+            {[
+              { number: 1, label: "Data Pemesanan" },
+              { number: 2, label: "Jadwal Perjalanan" },
+              { number: 3, label: "Detail Pesanan" },
+              { number: 4, label: "Upload Bukti" },
+            ].map((stepItem) => (
+              <React.Fragment key={stepItem.number}>
+                <div className="flex flex-col items-center">
+                  <div
+                    className={cn(
+                      "rounded-full w-12 h-12 flex items-center justify-center border-2 transition-all duration-300",
+                      step === stepItem.number
+                        ? "border-transpo-primary text-transpo-primary font-bold scale-110"
+                        : stepItem.number < step
+                          ? "border-transpo-primary bg-transpo-primary text-white"
+                          : "border-gray-300 text-gray-300"
+                    )}
+                  >
+                    {stepItem.number}
+                  </div>
+                  <div
+                    className={cn(
+                      "mt-2 text-sm font-medium text-center px-2 transition-colors duration-300 hidden md:block",
+                      step === stepItem.number
+                        ? "text-transpo-primary"
+                        : stepItem.number < step
+                          ? "text-transpo-primary"
+                          : "text-gray-400"
+                    )}
+                  >
+                    {stepItem.label}
+                  </div>
+                </div>{" "}
+                {stepItem.number < 4 && (
+                  <div className="flex mx-2 md:mx-4">
+                    {/* Mobile: show 3 dots, Desktop: show 5 dots */}
+                    <div className="flex md:hidden">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-2 h-2 rounded-full mx-1 transition-colors duration-300",
+                            step > stepItem.number
                               ? "bg-transpo-primary"
                               : "bg-gray-300"
-                            : "bg-gray-300"
-                        )}
-                      />
-                    ))}
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="hidden md:flex">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-2 h-2 rounded-full mx-1 transition-colors duration-300",
+                            step > stepItem.number
+                              ? "bg-transpo-primary"
+                              : step === stepItem.number
+                                ? i < 3
+                                  ? "bg-transpo-primary"
+                                  : "bg-gray-300"
+                                : "bg-gray-300"
+                          )}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </React.Fragment>
             ))}
           </div>
         </div>
-
-        {renderStep()}
+        <div className="px-4">{renderStep()}</div>
       </div>
     </>
   );

@@ -24,29 +24,29 @@ interface Step4Props {
 // Bank account data
 const BANK_ACCOUNTS = [
   {
-    bank: "BCA",
-    number: "0065010452605",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/bca.png",
-  },
-  {
-    bank: "Mandiri",
-    number: "1440024149178",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/mandiri.png",
-  },
-  {
-    bank: "BNI",
-    number: "1884588906",
-    name: "Defrina Eka Orchid",
-    logo: "/icons/bni.png",
-  },
-  {
     bank: "BRI",
-    number: "0894580796",
-    name: "Defrina Eka Orchid",
+    number: "0065 0104 5260 538",
+    name: "Defrina Eka Orchidta",
     logo: "/icons/bri.png",
   },
+  // {
+  //   bank: "Mandiri",
+  //   number: "1440024149178",
+  //   name: "Defrina Eka Orchid",
+  //   logo: "/icons/mandiri.png",
+  // },
+  // {
+  //   bank: "BNI",
+  //   number: "1884588906",
+  //   name: "Defrina Eka Orchid",
+  //   logo: "/icons/bni.png",
+  // },
+  // {
+  //   bank: "BRI",
+  //   number: "0894580796",
+  //   name: "Defrina Eka Orchid",
+  //   logo: "/icons/bri.png",
+  // },
 ];
 
 const Step4 = ({ paymentData }: Step4Props) => {
@@ -116,7 +116,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
     }
 
     // Redirect to orders page
-    router.push("/dashboard/orders");
+    router.push("/settings/order");
   };
 
   // Validate file before accepting
@@ -208,7 +208,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
 
         // Navigate to the orders page after successful upload
         setTimeout(() => {
-          router.push("/dashboard/orders");
+          router.push("/settings/order");
         }, 1500);
       } else {
         toast.error("Gagal mengunggah bukti pembayaran");
@@ -243,7 +243,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
 
   return (
     <Card
-      className="mx-auto max-w-2xl shadow-lg border-0 text-gray-700"
+      className="mx-auto max-w-4xl shadow-lg border-0 text-gray-700"
       style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
     >
       <CardHeader className="text-center border-b">
@@ -316,8 +316,8 @@ const Step4 = ({ paymentData }: Step4Props) => {
                 isDragActive
                   ? "border-transpo-primary bg-transpo-primary/5"
                   : fileError
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300 hover:border-transpo-primary hover:bg-gray-50"
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300 hover:border-transpo-primary hover:bg-gray-50"
               }`}
             >
               <input {...getInputProps()} />
@@ -379,7 +379,7 @@ const Step4 = ({ paymentData }: Step4Props) => {
               className="border-gray-300 hover:bg-gray-100 text-gray-700"
               disabled={isSubmitting}
             >
-              Kembali
+              Kembali ke Pesanan Saya
             </Button>
             <Button
               type="submit"

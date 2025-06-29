@@ -21,7 +21,7 @@ import { z } from "zod";
 import axios, { AxiosError } from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// Zod schema for form validation
+// Update the schema to make mainImage truly optional
 const articleSchema = z.object({
   title: z
     .string()
@@ -31,34 +31,31 @@ const articleSchema = z.object({
     .string()
     .min(1, "Konten artikel wajib diisi")
     .max(10000, "Konten maksimal 10.000 karakter"),
-  mainImage: z
-    .instanceof(File)
-    .optional()
-    .refine(
-      (file) => {
-        if (!file) return true;
-        const validTypes = [
-          "image/jpeg",
-          "image/jpg",
-          "image/png",
-          "image/gif",
-          "image/webp",
-        ];
-        return validTypes.includes(file.type);
-      },
-      {
-        message: "Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.",
-      }
-    )
-    .refine(
-      (file) => {
-        if (!file) return true;
-        return file.size <= 5 * 1024 * 1024;
-      },
-      {
+  mainImage: z.union([
+    z
+      .instanceof(File)
+      .refine(
+        (file) => {
+          const validTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ];
+          return validTypes.includes(file.type);
+        },
+        {
+          message:
+            "Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.",
+        }
+      )
+      .refine((file) => file.size <= 5 * 1024 * 1024, {
         message: "Ukuran file terlalu besar. Maksimal 5MB.",
-      }
-    ),
+      }),
+    z.null(),
+    z.undefined(),
+  ]),
 });
 
 interface FormData {
@@ -87,7 +84,6 @@ interface ArticleResponse {
 const fetchArticle = async (id: string): Promise<ArticleData> => {
   try {
     const response = await axios.get<ArticleResponse>(`/api/articles/${id}`);
-    console.log("API Response:", response.data);
     return response.data.data; // Mengambil data dari nested property
   } catch (error) {
     console.error("Error fetching article:", error);
@@ -100,7 +96,10 @@ export default function EditArticlePage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { data: session, status } = useSession();
-  const [formData, setFormData] = useState<FormData>({ title: "", content: "" });
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    content: "",
+  });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -128,33 +127,19 @@ export default function EditArticlePage() {
 
   // Inisialisasi form data saat artikel berhasil dimuat
   useEffect(() => {
-    console.log("Form initialization effect triggered:", {
-      isArticleSuccess,
-      hasArticle: !!article,
-      isFormInitialized,
-      articleData: article
-    });
-
     if (isArticleSuccess && article && !isFormInitialized) {
-      console.log("Setting form data:", {
-        title: article.title,
-        content: article.content,
-        mainImgUrl: article.mainImgUrl
-      });
-      
       // Set form data dengan nilai dari artikel
       setFormData({
         title: article.title || "",
         content: article.content || "",
       });
-      
+
       // Set image preview
       if (article.mainImgUrl) {
         setImagePreview(article.mainImgUrl);
       }
-      
+
       setIsFormInitialized(true);
-      console.log("Form initialized successfully");
     }
   }, [article, isArticleSuccess, isFormInitialized]);
 
@@ -169,21 +154,18 @@ export default function EditArticlePage() {
   }, [articleId]);
 
   // Debug logging dengan informasi lebih lengkap
-  useEffect(() => {
-    console.log("=== DEBUG INFO ===", {
-      articleId,
-      sessionStatus: status,
-      isArticleLoading,
-      isArticleSuccess,
-      isFetched,
-      hasArticle: !!article,
-      isFormInitialized,
-      currentFormData: formData,
-      articleData: article,
-      imagePreview,
-      articleError: articleError?.message,
-    });
-  }, [articleId, status, isArticleLoading, isArticleSuccess, isFetched, article, formData, isFormInitialized, imagePreview, articleError]);
+  useEffect(() => {}, [
+    articleId,
+    status,
+    isArticleLoading,
+    isArticleSuccess,
+    isFetched,
+    article,
+    formData,
+    isFormInitialized,
+    imagePreview,
+    articleError,
+  ]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -195,26 +177,34 @@ export default function EditArticlePage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    
+
     if (file) {
       // Validasi tipe file
-      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+      const validTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
       if (!validTypes.includes(file.type)) {
-        toast.error("Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.");
+        toast.error(
+          "Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP."
+        );
         e.target.value = ""; // Reset input
         return;
       }
-      
+
       // Validasi ukuran file (5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
         e.target.value = ""; // Reset input
         return;
       }
-      
+
       // Set selected file
       setSelectedFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -223,39 +213,33 @@ export default function EditArticlePage() {
         }
       };
       reader.readAsDataURL(file);
-      
+
       // Clear errors dan show success
       setErrors(null);
       toast.success(`Gambar "${file.name}" berhasil dipilih!`);
-      
-      console.log("File selected:", {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
     }
   };
 
   const removeImage = () => {
     // Reset selected file
     setSelectedFile(null);
-    
+
     // Kembalikan preview ke gambar asli artikel (jika ada)
     if (article?.mainImgUrl) {
       setImagePreview(article.mainImgUrl);
     } else {
       setImagePreview("");
     }
-    
+
     // Reset file input
     const fileInput = document.getElementById("mainImage") as HTMLInputElement;
     if (fileInput) {
       fileInput.value = "";
     }
-    
+
     // Clear errors
     setErrors(null);
-    
+
     // Toast notification
     if (article?.mainImgUrl) {
       toast.info("Gambar baru dihapus, kembali ke gambar asli");
@@ -268,102 +252,71 @@ export default function EditArticlePage() {
     e.preventDefault();
     setIsLoading(true);
     setErrors(null);
-  
+
     if (status === "loading") {
       toast.error("Sedang memuat data session...");
       setIsLoading(false);
       return;
     }
-  
+
     if (!session?.user?.id) {
       toast.error("Anda harus login terlebih dahulu untuk mengedit artikel");
       setIsLoading(false);
       return;
     }
-  
+
     try {
-      // Validasi form data
+      // Validasi form data dengan mainImage yang benar-benar opsional
       articleSchema.parse({
         title: formData.title,
         content: formData.content,
-        mainImage: selectedFile,
+        mainImage: selectedFile || undefined, // Pass undefined jika tidak ada file baru
       });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        setErrors(error);
-        error.errors.forEach((err) => {
-          toast.error(err.message);
-        });
-        setIsLoading(false);
-        return;
-      }
-    }
-  
-    try {
+
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title);
       formDataToSend.append("content", formData.content);
-      
-      // Cek apakah ada file gambar baru yang dipilih
-      const hasNewImage = selectedFile !== null;
-      
-      // Jika ada gambar baru, append ke FormData
-      if (hasNewImage) {
+
+      // Hanya append image jika ada file baru yang dipilih
+      if (selectedFile) {
         formDataToSend.append("mainImgUrl", selectedFile);
-        console.log("Sending new image:", selectedFile.name, selectedFile.size);
       }
-  
-      // Debug: Log semua data yang akan dikirim
-      console.log("Form data being sent:");
-      console.log("- Has new image:", hasNewImage);
-      for (const [key, value] of formDataToSend.entries()) {
-        console.log(`- ${key}:`, value instanceof File ? `File: ${value.name}` : value);
-      }
-  
+
       toast.loading("Menyimpan perubahan...", { id: "upload-progress" });
-  
+
       // Buat URL dengan query parameter replace-photo sesuai kebutuhan backend
-      const apiUrl = `/api/articles/${articleId}${hasNewImage ? '?replace-photo=true' : ''}`;
-      
-      console.log("API URL:", apiUrl);
-  
-      const response = await axios.put<ArticleResponse>(
-        apiUrl,
-        formDataToSend,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          // Tambahkan timeout untuk upload file besar
-          timeout: 30000, // 30 detik
-        }
-      );
-  
-      console.log("Update response:", response.data);
-  
+      const apiUrl = `/api/articles/${articleId}${selectedFile ? "?replace-photo=true" : ""}`;
+
+      await axios.put<ArticleResponse>(apiUrl, formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        // Tambahkan timeout untuk upload file besar
+        timeout: 30000, // 30 detik
+      });
+
       toast.success("Artikel berhasil diperbarui!", {
         id: "upload-progress",
-        description: hasNewImage 
-          ? "Artikel dan gambar telah diperbarui." 
+        description: selectedFile
+          ? "Artikel dan gambar telah diperbarui."
           : "Artikel telah diperbarui.",
       });
-  
+
       // Invalidate queries untuk refresh data
       queryClient.invalidateQueries({ queryKey: ["articles"] });
       queryClient.invalidateQueries({ queryKey: ["article", articleId] });
-  
+
       // Redirect ke halaman admin
       router.push("/admin/article");
-      
     } catch (error) {
       console.error("Error updating article:", error);
-      
+
       let errorMessage = "Terjadi kesalahan saat memperbarui artikel";
       if (error instanceof AxiosError && error.response) {
         errorMessage = error.response.data.message || errorMessage;
         console.error("Server error:", error.response.data);
       }
-      
+
       toast.error(errorMessage, {
         id: "upload-progress",
         description: "Silakan coba lagi.",
@@ -389,7 +342,10 @@ export default function EditArticlePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/admin/article")} className="w-full">
+            <Button
+              onClick={() => router.push("/admin/article")}
+              className="w-full"
+            >
               Kembali ke Daftar Artikel
             </Button>
           </CardContent>
@@ -446,13 +402,19 @@ export default function EditArticlePage() {
               Artikel yang Anda cari tidak ada atau terjadi kesalahan.
               {articleError && (
                 <div className="mt-2 text-sm text-red-600">
-                  Error: {articleError instanceof Error ? articleError.message : "Unknown error"}
+                  Error:{" "}
+                  {articleError instanceof Error
+                    ? articleError.message
+                    : "Unknown error"}
                 </div>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/admin/article")} className="w-full">
+            <Button
+              onClick={() => router.push("/admin/article")}
+              className="w-full"
+            >
               Kembali ke Daftar Artikel
             </Button>
           </CardContent>
@@ -463,7 +425,6 @@ export default function EditArticlePage() {
 
   // Jika form belum diinisialisasi tapi artikel sudah ada, paksa inisialisasi
   if (article && !isFormInitialized && !isArticleLoading) {
-    console.log("Force initializing form...");
     setFormData({
       title: article.title || "",
       content: article.content || "",
@@ -515,7 +476,10 @@ export default function EditArticlePage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="mainImage" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="mainImage"
+            className="text-sm font-medium text-gray-700"
+          >
             Gambar Utama
           </Label>
           <div className="space-y-4">
@@ -535,7 +499,8 @@ export default function EditArticlePage() {
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="w-8 h-8 mb-4 text-gray-500" />
                   <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Klik untuk upload</span> atau drag & drop
+                    <span className="font-semibold">Klik untuk upload</span>{" "}
+                    atau drag & drop
                   </p>
                   <p className="text-xs text-gray-500">
                     PNG, JPG, GIF, WebP (maksimal 5MB)
@@ -570,21 +535,29 @@ export default function EditArticlePage() {
                 {selectedFile && (
                   <div className="mt-2 text-sm text-gray-600">
                     <p>Nama file: {selectedFile.name}</p>
-                    <p>Ukuran: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p>
+                      Ukuran: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
                   </div>
                 )}
               </div>
             )}
             {errors?.errors.find((e) => e.path.includes("mainImage")) && (
               <p className="text-sm text-red-500">
-                {errors.errors.find((e) => e.path.includes("mainImage"))?.message}
+                {
+                  errors.errors.find((e) => e.path.includes("mainImage"))
+                    ?.message
+                }
               </p>
             )}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="content" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="content"
+            className="text-sm font-medium text-gray-700"
+          >
             Konten Artikel *
           </Label>
           <Textarea

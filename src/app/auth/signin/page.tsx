@@ -51,7 +51,7 @@ const SigninPage = () => {
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         router.push("/admin");
       } else {
-        router.push("/");
+        router.push("/dashboard");
       }
     }
   };
@@ -59,7 +59,7 @@ const SigninPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     await signIn("google", {
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
     setLoading(false);
   };
@@ -124,16 +124,16 @@ const SigninPage = () => {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
+                            {" "}
                             <div className="flex items-center">
                               <FormLabel>Password</FormLabel>
                               <Link
-                                href="#"
+                                href="/auth/forgot-password"
                                 className="ml-auto text-sm underline-offset-4 hover:underline"
                               >
                                 Lupa password?
                               </Link>
                             </div>
-
                             <FormControl>
                               <Input
                                 type="password"
