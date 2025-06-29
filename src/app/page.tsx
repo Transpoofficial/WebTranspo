@@ -44,6 +44,7 @@ import { useRouter } from "next/navigation";
 import HiaceCommuter from "./components/hiace-commuter";
 import HiacePremio from "./components/hiace-premio";
 import Link from "next/link";
+import TourPackages from "./components/tour-packages";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -427,6 +428,17 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Tour Packages */}
+        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+            Paket Wisata Malang
+          </h1>
+
+          <div className="mt-6 md:mt-12">
+            <TourPackages />
+          </div>
+        </div>
+
         {/* Articles */}
         <div
           ref={articleRef}
@@ -499,31 +511,25 @@ const Home = () => {
         >
           <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
 
-          <Carousel
-            opts={{
-              align: "center",
-            }}
-            className="w-full mt-3 md:mt-9"
-          >
-            <CarouselContent className="py-3">
-              {isLoadingReviews ? (
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <div className="py-4 px-6 shadow-md rounded-3xl border">
-                    Loading reviews...
-                  </div>
-                </CarouselItem>
-              ) : reviewsError ? (
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <div className="py-4 px-6 shadow-md rounded-3xl border">
-                    Error loading reviews
-                  </div>
-                </CarouselItem>
-              ) : !reviewsData?.data?.length ? (
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <>Tidak ada review yang tersedia</>
-                </CarouselItem>
-              ) : (
-                reviewsData.data.map((review: Review) => (
+          {isLoadingReviews ? (
+            <div className="flex justify-center mt-6 md:mt-12">Loading...</div>
+          ) : reviewsError ? (
+            <div className="flex justify-center mt-6 md:mt-12 text-red-500">
+              Error loading reviews
+            </div>
+          ) : !reviewsData?.data?.length ? (
+            <div className="flex justify-center mt-6 md:mt-12">
+              Tidak ada review yang tersedia
+            </div>
+          ) : (
+            <Carousel
+              opts={{
+                align: "center",
+              }}
+              className="w-full mt-3 md:mt-9"
+            >
+              <CarouselContent className="py-3">
+                {reviewsData.data.map((review: Review) => (
                   <CarouselItem
                     key={review.id}
                     className="md:basis-1/2 lg:basis-1/3"
@@ -554,10 +560,10 @@ const Home = () => {
                       </h6>
                     </div>
                   </CarouselItem>
-                ))
-              )}
-            </CarouselContent>
-          </Carousel>
+                ))}
+              </CarouselContent>
+            </Carousel>
+          )}
         </div>
 
         {/* Contact */}

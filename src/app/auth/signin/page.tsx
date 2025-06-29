@@ -51,7 +51,7 @@ const SigninPage = () => {
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         router.push("/admin");
       } else {
-        router.push("/");
+        router.push("/dashboard");
       }
     }
   };
@@ -59,7 +59,7 @@ const SigninPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     await signIn("google", {
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
     setLoading(false);
   };
