@@ -1,20 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
-import { ResultUploadFiles } from "@/../types/supabase";
 import { getPaginationParams } from "@/utils/pagination";
 
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
 
-    // Get total count
     const totalCount = await prisma.tourPackage.count();
 
     const packages = await prisma.tourPackage.findMany({
       skip,
       take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return NextResponse.json(
@@ -43,77 +43,88 @@ export const POST = async (req: NextRequest) => {
   try {
     const formData = await req.formData();
     const name = formData.get("name") as string;
-    const vehicleId = formData.get("vehicleId") as string;
-    const destination = formData.get("destination") as string;
-    const durationDays = formData.get("durationDays") as string;
-    const advantagesArray = JSON.parse(
-      formData.get("advantages") as string
-    ) as Advantages;
-    const servicesArray = JSON.parse(
-      formData.get("services") as string
-    ) as Services;
     const price = formData.get("price") as string;
+    const description = formData.get("description") as string;
+    const meetingPoint = formData.get("meetingPoint") as string;
+    const minPersonCapacity = formData.get("minPersonCapacity") as string;
+    const maxPersonCapacity = formData.get("maxPersonCapacity") as string;
+    const includes = JSON.parse(formData.get("includes") as string);
+    const excludes = JSON.parse(formData.get("excludes") as string);
+    const itineraries = JSON.parse(formData.get("itineraries") as string);
+    const requirements = JSON.parse(formData.get("requirements") as string);
+    const tickets = formData.get("tickets")
+      ? JSON.parse(formData.get("tickets") as string)
+      : null;
+    // Ubah parsing is_private agar hanya menerima 0 atau 1
+    const is_private_raw = formData.get("is_private");
+    let is_private = false;
+    if (is_private_raw === "1") is_private = true;
+    else if (is_private_raw === "0") is_private = false;
+    else
+      return NextResponse.json(
+        { message: "is_private must be 0 or 1", data: null },
+        { status: 400 }
+      );
+
+    // Validation
     if (
       !name ||
-      !vehicleId ||
-      !destination ||
-      durationDays === null ||
-      durationDays === undefined ||
-      !advantagesArray ||
-      !Array.isArray(advantagesArray) ||
-      advantagesArray.length === 0 ||
-      !servicesArray ||
-      !Array.isArray(servicesArray) ||
-      servicesArray.length === 0 ||
-      price === null ||
-      price === undefined
+      !price ||
+      !description ||
+      !meetingPoint ||
+      !minPersonCapacity ||
+      !maxPersonCapacity ||
+      !includes ||
+      !excludes ||
+      !itineraries ||
+      !requirements
     ) {
       return NextResponse.json(
-        { message: "Missing or invalid required fields", data: [] },
+        { message: "Missing required fields", data: null },
         { status: 400 }
       );
     }
-    // Check if vehicleId exists in the database
-    // const vehicle = await prisma.vehicle.findUnique({
-    //   where: { id: vehicleId },
-    // });
-    // if (!vehicle) {
-    //   return NextResponse.json(
-    //     { message: "Vehicle not found", data: [] },
-    //     { status: 404 }
-    //   );
-    // }
 
     const files = formData.getAll("photos") as File[];
     if (!files || files.length === 0) {
       return NextResponse.json(
-        { message: "At least one file is required", data: [] },
+        { message: "At least one photo is required", data: null },
         { status: 400 }
       );
     }
-    const results: ResultUploadFiles = await uploadFiles(
+
+    const results = await uploadFiles(
       process.env.SUPABASE_BUCKET || "",
       files,
       "tourPackage"
     );
+
     if (results.some((result) => result.success === false)) {
       return NextResponse.json(
-        { message: "One or more file uploads failed", data: [] },
+        { message: "One or more file uploads failed", data: null },
         { status: 500 }
       );
     }
-    const photoUrl: PhotoUrl = results.map((result) => ({
+
+    const photoUrl = results.map((result) => ({
       url: result.photoUrl.data.publicUrl,
     }));
+
     const createdPackage = await prisma.tourPackage.create({
       data: {
         name,
-        destination,
-        durationDays: parseInt(durationDays),
-        advantages: advantagesArray,
-        services: servicesArray,
         photoUrl,
         price: parseFloat(price),
+        description,
+        meetingPoint,
+        minPersonCapacity: parseInt(minPersonCapacity),
+        maxPersonCapacity: parseInt(maxPersonCapacity),
+        includes,
+        excludes,
+        itineraries,
+        requirements,
+        tickets,
+        is_private,
       },
     });
 
@@ -122,9 +133,9 @@ export const POST = async (req: NextRequest) => {
       { status: 201 }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return NextResponse.json(
-      { message: "Internal Server Error", data: [] },
+      { message: "Internal Server Error", data: null },
       { status: 500 }
     );
   }
