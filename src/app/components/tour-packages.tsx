@@ -54,7 +54,7 @@ const TourPackages = () => {
   return (
     <div className="flex items-strech gap-x-2 overflow-x-auto p-4">
       {data?.data.map((pkg) => (
-        <Link key={pkg.id} href={`/tour-package/${pkg.id}`}>
+        <Link key={pkg.id} href={`/tour-package/detail/${pkg.id}`}>
         <Card
           className="w-full min-w-full max-w-full md:min-w-md md:max-w-md overflow-hidden bg-white shadow-lg cursor-pointer !pt-0"
           onClick={() => handlePackageClick(pkg.id)}
