@@ -339,12 +339,14 @@ const DashboardPage = () => {
               Paket Wisata Open Trip
             </h2>
 
-            <Button
-              variant="link"
-              className="text-[#0897B1] hover:text-[#0897B1]/80"
-            >
-              Lihat Semua
-            </Button>
+            <Link href="/tour-package/open-trip">
+              <Button
+                variant="link"
+                className="text-[#0897B1] hover:text-[#0897B1]/80"
+              >
+                Lihat Semua
+              </Button>
+            </Link>
           </div>
 
           <div className="flex items-strech gap-x-2 overflow-x-auto ">
@@ -495,12 +497,14 @@ const DashboardPage = () => {
               Paket Wisata Private Trip
             </h2>
 
-            <Button
-              variant="link"
-              className="text-[#0897B1] hover:text-[#0897B1]/80"
-            >
-              Lihat Semua
-            </Button>
+            <Link href="/tour-package/private-trip">
+              <Button
+                variant="link"
+                className="text-[#0897B1] hover:text-[#0897B1]/80"
+              >
+                Lihat Semua
+              </Button>
+            </Link>
           </div>
 
           <div className="flex items-strech gap-x-2 overflow-x-auto ">
