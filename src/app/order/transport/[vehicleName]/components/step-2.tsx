@@ -22,6 +22,8 @@ import {
   calculateTotalPrice,
   Trip as UtilsTrip,
 } from "@/utils/order";
+// ✅ Import trip duration validation
+import { validateTripDuration } from "@/utils/validation";
 
 interface Step2Props {
   orderData: OrderData;
@@ -45,6 +47,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   const [directions, setDirections] = useState<DirectionInfo[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [note, setNote] = useState(orderData.note || "");
+  const [tripDurationError, setTripDurationError] = useState<string | null>(
+    null
+  );
   const initialLoadRef = useRef(true);
   const directionLoadedRef = useRef(false);
   const mapStateRef = useRef<{
@@ -341,8 +346,36 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           ),
         };
       });
+
+      // ✅ Real-time validation when destinations change
+      const allDestinations = trips.flatMap((trip) =>
+        trip.locations
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+            address: loc.address,
+          }))
+      );
+
+      if (allDestinations.length > 0) {
+        const totalDays = trips.length;
+        const durationValidation = validateTripDuration(
+          allDestinations,
+          totalDays,
+          vehicleName
+        );
+
+        if (!durationValidation.isValid) {
+          setTripDurationError(
+            durationValidation.message || "Validasi durasi gagal"
+          );
+        } else {
+          setTripDurationError(null);
+        }
+      }
     },
-    [trips, setOrderData]
+    [trips, setOrderData, vehicleName]
   );
 
   // Update orderData when continuing
@@ -358,6 +391,34 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     if (invalidTrips.length > 0) {
       toast.error("Setiap perjalanan harus memiliki minimal 2 destinasi");
       return;
+    }
+
+    // ✅ Validate minimum trip duration based on destinations
+    const allDestinations = trips.flatMap((trip) =>
+      trip.locations
+        .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+        .map((loc) => ({
+          lat: loc.lat!,
+          lng: loc.lng!,
+          address: loc.address,
+        }))
+    );
+
+    const totalDays = trips.length;
+    const durationValidation = validateTripDuration(
+      allDestinations,
+      totalDays,
+      vehicleName
+    );
+
+    if (!durationValidation.isValid) {
+      setTripDurationError(
+        durationValidation.message || "Validasi durasi gagal"
+      );
+      toast.error(durationValidation.message);
+      return;
+    } else {
+      setTripDurationError(null);
     }
 
     // Convert trips data back to orderData.trip format
@@ -538,6 +599,25 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               </div>
             )}
 
+            {/* ✅ Trip Duration Validation Error */}
+            {tripDurationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                  <div className="text-sm">
+                    <div className="font-medium text-red-800 mb-2">
+                      Durasi Perjalanan Tidak Mencukupi
+                    </div>
+                    <p className="text-red-700 mb-2">{tripDurationError}</p>
+                    <p className="text-red-600 text-sm">
+                      💡 Silakan kembali ke step sebelumnya untuk menambah
+                      jumlah hari perjalanan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ✅ Note Input Field */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <Label
@@ -662,7 +742,11 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           </Button>
           <Button
             onClick={handleContinue}
-            className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
+            disabled={!!tripDurationError}
+            className={cn(
+              "bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark",
+              tripDurationError && "opacity-50 cursor-not-allowed"
+            )}
           >
             Selanjutnya
           </Button>

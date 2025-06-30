@@ -451,3 +451,134 @@ export function calculateElfOutOfMalangCharges(
     tripDetails,
   };
 }
+
+// ✅ NEW: Region boundaries for minimum trip duration validation
+export const REGION_BOUNDARIES = {
+  JAWA_TENGAH: {
+    name: "Jawa Tengah",
+    minLat: -8.5,
+    maxLat: -6.0,
+    minLng: 108.0,
+    maxLng: 111.5,
+    minDays: 2,
+  },
+  JABODETABEK: {
+    name: "Jabodetabek",
+    minLat: -6.5,
+    maxLat: -5.8,
+    minLng: 106.0,
+    maxLng: 107.2,
+    minDays: 3,
+  },
+  BALI: {
+    name: "Bali",
+    minLat: -8.8,
+    maxLat: -8.0,
+    minLng: 114.4,
+    maxLng: 115.8,
+    minDays: 3,
+  },
+  LOMBOK: {
+    name: "Lombok",
+    minLat: -8.9,
+    maxLat: -8.1,
+    minLng: 115.8,
+    maxLng: 116.8,
+    minDays: 4,
+  },
+} as const;
+
+/**
+ * Detect which region a coordinate belongs to
+ */
+export function detectRegion(
+  lat: number,
+  lng: number
+): {
+  region: keyof typeof REGION_BOUNDARIES | null;
+  name: string | null;
+  minDays: number;
+} {
+  for (const [regionKey, boundary] of Object.entries(REGION_BOUNDARIES)) {
+    if (
+      lat >= boundary.minLat &&
+      lat <= boundary.maxLat &&
+      lng >= boundary.minLng &&
+      lng <= boundary.maxLng
+    ) {
+      return {
+        region: regionKey as keyof typeof REGION_BOUNDARIES,
+        name: boundary.name,
+        minDays: boundary.minDays,
+      };
+    }
+  }
+
+  return {
+    region: null,
+    name: null,
+    minDays: 1, // Default minimum is 1 day
+  };
+}
+
+/**
+ * Validate minimum trip duration based on destinations
+ */
+export function validateTripDuration(
+  destinations: Array<{
+    lat: number | null;
+    lng: number | null;
+    address: string;
+  }>,
+  totalDays: number,
+  vehicleType: string
+): {
+  isValid: boolean;
+  message?: string;
+  requiredDays?: number;
+  detectedRegions?: string[];
+  suggestion?: string;
+} {
+  // Skip validation for Angkot (only operates in Malang area)
+  if (vehicleType.toLowerCase() === "angkot") {
+    return { isValid: true };
+  }
+
+  let maxRequiredDays = 1;
+  const detectedRegions: string[] = [];
+
+  // Check each destination
+  for (const destination of destinations) {
+    if (destination.lat && destination.lng) {
+      const regionInfo = detectRegion(destination.lat, destination.lng);
+
+      if (regionInfo.region && regionInfo.name) {
+        detectedRegions.push(regionInfo.name);
+        maxRequiredDays = Math.max(maxRequiredDays, regionInfo.minDays);
+      }
+    }
+  }
+
+  // If no special regions detected, allow any duration
+  if (maxRequiredDays === 1) {
+    return { isValid: true };
+  }
+
+  // Check if current total days meets requirement
+  if (totalDays < maxRequiredDays) {
+    const regionNames = [...new Set(detectedRegions)].join(", ");
+
+    return {
+      isValid: false,
+      message: `Destinasi di ${regionNames} memerlukan minimal ${maxRequiredDays} hari perjalanan, tetapi Anda hanya memilih ${totalDays} hari.`,
+      requiredDays: maxRequiredDays,
+      detectedRegions: [...new Set(detectedRegions)],
+      suggestion: `Silakan tambahkan trip hingga total ${maxRequiredDays} hari atau lebih untuk melanjutkan pemesanan.`,
+    };
+  }
+
+  return {
+    isValid: true,
+    detectedRegions: [...new Set(detectedRegions)],
+  };
+}

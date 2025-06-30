@@ -14,6 +14,7 @@ import {
   validatePickupLocation,
   validateAngkotDestination,
   requiresAllDestinationRestriction,
+  validateTripDuration,
 } from "@/utils/validation";
 
 // Types
@@ -372,6 +373,26 @@ const handleTransportOrder = async (
       }
     }
   } else {
+    // ✅ TRIP DURATION VALIDATION - Only for non-Angkot vehicles
+    const uniqueDates = new Set(destinations.map((dest) => dest.departureDate));
+    const totalDays = uniqueDates.size;
+
+    const durationValidation = validateTripDuration(
+      destinations.map((dest) => ({
+        lat: dest.lat,
+        lng: dest.lng,
+        address: dest.address,
+      })),
+      totalDays,
+      vehicleType.name
+    );
+
+    if (!durationValidation.isValid) {
+      throw new Error(
+        `Validasi durasi perjalanan gagal: ${durationValidation.message}`
+      );
+    }
+
     // For other vehicles (ELF, Hiace): only validate pickup location (first destination of first trip)
     const firstDay = sortedDestinations[0].departureDate;
     const firstDayDestinations = sortedDestinations.filter(
