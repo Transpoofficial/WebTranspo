@@ -1,4 +1,9 @@
 import { calculateInterTripDistance } from "../google-maps";
+import {
+  validateDistance as validateDistanceUtil,
+  logValidationError,
+  calculateElfOutOfMalangCharges,
+} from "../validation";
 
 // Define Trip interface locally instead of importing from route
 export interface Trip {
@@ -84,14 +89,49 @@ export function calculateInterTripCharges(trips: Trip[]): number {
   return totalAdditionalCharge;
 }
 
-// ✅ Updated price calculation functions with new formulas
+// ✅ Distance validation and safety limits
+export const MAX_REASONABLE_DISTANCE_KM = 2000; // Maximum reasonable distance in Indonesia
+export const MAX_SINGLE_TRIP_DISTANCE_KM = 1000; // Maximum for single trip
+
+// ✅ Enhanced validation for distance calculations
+export function validateDistance(distanceKm: number): boolean {
+  const validation = validateDistanceUtil(distanceKm);
+
+  if (!validation.isValid) {
+    logValidationError(
+      "distance",
+      {
+        distanceKm,
+        message: validation.message,
+      },
+      "order_calculation"
+    );
+  }
+
+  return validation.isValid;
+}
+
+// ✅ Enhanced price calculation functions with validation
 export function calculateAngkotPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  // New formula: (150.000 + (4100 × Jarak)) + 10%
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Angkot should not be used for very long distances
+  if (distanceKm > 200) {
+    console.warn(
+      `Angkot distance too long: ${distanceKm}km. Consider other vehicles.`
+    );
+  }
+
+  // New formula: (150.000 + (4100 × Jarak)) + 20% (updated from 10%)
   const basePrice = 150000 + 4100 * distanceKm;
-  const priceWithTax = basePrice * 1.1; // Add 10%
+  const priceWithTax = basePrice * 1.2; // Add 20% (changed from 10%)
   const totalPrice = priceWithTax * vehicleCount;
 
   return Math.round(totalPrice);
@@ -101,6 +141,12 @@ export function calculateHiaceCommuterPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
+    return 0;
+  }
+
   // New formula: (1.000.000 + (2500 × Jarak)) + 10%
   const basePrice = 1000000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
@@ -113,9 +159,15 @@ export function calculateHiacePremioPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
-  // New formula: (1.150.000 + (25000 × Jarak)) + 10%
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Original formula as specified: 1,150,000 + (25,000 × Jarak KM) + PPN 10%
   const basePrice = 1150000 + 25000 * distanceKm;
-  const priceWithTax = basePrice * 1.1; // Add 10%
+  const priceWithTax = basePrice * 1.1; // Add 10% PPN
   const totalPrice = priceWithTax * vehicleCount;
 
   return Math.round(totalPrice);
@@ -125,6 +177,12 @@ export function calculateElfPrice(
   distanceKm: number,
   vehicleCount: number
 ): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Elf: ${distanceKm}km`);
+    return 0;
+  }
+
   // New formula: (1.250.000 + (2500 × Jarak)) + 10%
   const basePrice = 1250000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
@@ -142,38 +200,58 @@ export function calculateTotalPrice(
 ): {
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges: number;
   totalPrice: number;
 } {
   const vehicleType = vehicleTypeName.toLowerCase();
-  let basePrice = 0;
+  const numberOfDays = trips.length; // Jumlah hari berdasarkan jumlah trips
+  let basePricePerDay = 0;
 
-  // Calculate base price based on vehicle type
+  // Calculate base price per day based on vehicle type
   if (vehicleType.includes("angkot")) {
-    basePrice = calculateAngkotPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateAngkotPrice(distanceKm, vehicleCount);
   } else if (
     vehicleType.includes("hiace") &&
     vehicleType.includes("commuter")
   ) {
-    basePrice = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
   } else if (vehicleType.includes("hiace") && vehicleType.includes("premio")) {
-    basePrice = calculateHiacePremioPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateHiacePremioPrice(distanceKm, vehicleCount);
   } else if (vehicleType.includes("elf")) {
-    basePrice = calculateElfPrice(distanceKm, vehicleCount);
+    basePricePerDay = calculateElfPrice(distanceKm, vehicleCount);
   } else {
     // Fallback calculation
     const defaultRate = 6000;
-    basePrice = Math.round(defaultRate * distanceKm * vehicleCount);
+    basePricePerDay = Math.round(defaultRate * distanceKm * vehicleCount);
   }
+
+  // ✅ NEW: Calculate total base price = base price per day × number of days
+  const totalBasePrice = basePricePerDay * numberOfDays;
 
   // Calculate inter-trip charges
   const interTripCharges = calculateInterTripCharges(trips);
 
+  // ✅ NEW: Calculate ELF out-of-Malang charges
+  const elfChargeData = calculateElfOutOfMalangCharges(
+    trips.map((trip) => ({
+      date: trip.date.toISOString().split("T")[0], // Convert Date to string
+      destinations: trip.location.map((loc) => ({
+        lat: loc.lat || 0,
+        lng: loc.lng || 0,
+        address: loc.address,
+      })),
+    })),
+    vehicleTypeName
+  );
+  const elfOutOfMalangCharges = elfChargeData.totalCharge;
+
   // Calculate total price
-  const totalPrice = basePrice + interTripCharges;
+  const totalPrice = totalBasePrice + interTripCharges + elfOutOfMalangCharges;
 
   return {
-    basePrice: Math.round(basePrice),
+    basePrice: Math.round(totalBasePrice),
     interTripCharges: Math.round(interTripCharges),
+    elfOutOfMalangCharges: Math.round(elfOutOfMalangCharges),
     totalPrice: Math.round(totalPrice),
   };
 }

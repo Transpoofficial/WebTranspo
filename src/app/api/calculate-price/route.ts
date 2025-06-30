@@ -34,6 +34,7 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
   breakdown: {
     tripDistances: Array<{
@@ -246,6 +247,7 @@ export async function POST(req: NextRequest) {
       vehicleCount,
       basePrice: priceResult.basePrice,
       interTripCharges: priceResult.interTripCharges,
+      elfOutOfMalangCharges: priceResult.elfOutOfMalangCharges || 0,
       totalPrice: priceResult.totalPrice,
       breakdown: {
         tripDistances,
