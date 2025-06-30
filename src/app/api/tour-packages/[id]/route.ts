@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { removeFiles, uploadFiles } from "@/utils/supabase";
-import { Advantages, PhotoUrl, Services } from "@/../types/tourPackage";
+import { PhotoUrl } from "@/../types/tourPackage";
 import { ResultUploadFiles } from "@/../types/supabase";
 
+// GET: Get tour package by id, return all fields as in schema.prisma
 export const GET = async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,142 +13,263 @@ export const GET = async (
     const { id } = await params;
     if (!id) {
       return NextResponse.json(
-        { message: "Missing required fields", data: [] },
+        { message: "Missing required fields", data: null },
         { status: 400 }
       );
     }
     const tourPackage = await prisma.tourPackage.findUnique({
-      where: { id: id },
+      where: { id },
     });
+    if (!tourPackage) {
+      return NextResponse.json(
+        { message: "Tour package not found", data: null },
+        { status: 404 }
+      );
+    }
     return NextResponse.json(
-      { message: "Vehicle retrieved successfully", data: tourPackage },
+      { message: "Tour package retrieved successfully", data: tourPackage },
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("Error fetching tour package:", error);
     return NextResponse.json(
-      { message: "Internal Server Error", data: [] },
+      { message: "Internal Server Error", data: null },
       { status: 500 }
     );
   }
 };
 
+// PUT: Update tour package by id
 export const PUT = async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(req.url);
-    const replacePhoto = searchParams.get("replace-photo") === "true";
     const formData = await req.formData();
+
+    // Parse all fields as in schema.prisma
     const name = formData.get("name") as string;
-    const vehicleId = formData.get("vehicleId") as string;
-    const destination = formData.get("destination") as string;
-    const durationDays = formData.get("durationDays") as string;
-    const advantagesArray = JSON.parse(
-      formData.get("advantages") as string
-    ) as Advantages;
-    const servicesArray = JSON.parse(
-      formData.get("services") as string
-    ) as Services;
     const price = formData.get("price") as string;
+    const description = formData.get("description") as string;
+    const meetingPoint = formData.get("meetingPoint") as string;
+    const minPersonCapacity = formData.get("minPersonCapacity") as string;
+    const maxPersonCapacity = formData.get("maxPersonCapacity") as string;
+    const includes = JSON.parse(formData.get("includes") as string);
+    const excludes = JSON.parse(formData.get("excludes") as string);
+    const itineraries = JSON.parse(formData.get("itineraries") as string);
+    const requirements = JSON.parse(formData.get("requirements") as string);
+    const tickets = formData.get("tickets")
+      ? JSON.parse(formData.get("tickets") as string)
+      : null;
+    const is_private_raw = formData.get("is_private");
+    let is_private = false;
+
+    if (is_private_raw === "1") is_private = true;
+    else if (is_private_raw === "0") is_private = false;
+    else
+      return NextResponse.json(
+        { message: "is_private must be 0 or 1", data: null },
+        { status: 400 }
+      );
 
     // Validate required fields
     if (
       !name ||
-      !vehicleId ||
-      !destination ||
-      durationDays === null ||
-      durationDays === undefined ||
-      !advantagesArray ||
-      !Array.isArray(advantagesArray) ||
-      advantagesArray.length === 0 ||
-      !servicesArray ||
-      !Array.isArray(servicesArray) ||
-      servicesArray.length === 0 ||
-      price === null ||
-      price === undefined
+      !price ||
+      !description ||
+      !meetingPoint ||
+      !minPersonCapacity ||
+      !maxPersonCapacity ||
+      !includes ||
+      !excludes ||
+      !itineraries ||
+      !requirements
     ) {
       return NextResponse.json(
-        { message: "Missing or invalid required fields", data: [] },
+        { message: "Missing required fields", data: null },
         { status: 400 }
       );
     }
 
-    let tourPackage = await prisma.tourPackage.findUnique({
-      where: { id: id },
+    // Validate numeric fields
+    if (isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+      return NextResponse.json(
+        { message: "Price must be a valid number", data: null },
+        { status: 400 }
+      );
+    }
+    if (
+      isNaN(parseInt(minPersonCapacity)) ||
+      parseInt(minPersonCapacity) < 1
+    ) {
+      return NextResponse.json(
+        { message: "minPersonCapacity must be a valid positive number", data: null },
+        { status: 400 }
+      );
+    }
+    if (
+      isNaN(parseInt(maxPersonCapacity)) ||
+      parseInt(maxPersonCapacity) < parseInt(minPersonCapacity)
+    ) {
+      return NextResponse.json(
+        { message: "maxPersonCapacity must be greater than or equal to minPersonCapacity", data: null },
+        { status: 400 }
+      );
+    }
+
+    const tourPackage = await prisma.tourPackage.findUnique({
+      where: { id },
     });
     if (!tourPackage) {
       return NextResponse.json(
-        { message: "Tour package not found", data: [] },
+        { message: "Tour package not found", data: null },
         { status: 404 }
       );
     }
 
-    const files = formData.getAll("photos") as File[];
-    let updatedPhotoUrl: PhotoUrl = tourPackage.photoUrl as PhotoUrl;
-    if (files && files.length > 0) {
-      // Upload files to Supabase storage
-      const results: ResultUploadFiles = await uploadFiles(
-        process.env.SUPABASE_BUCKET || "",
-        files,
-        "tourPackage"
-      );
-      if (results.some((result) => result.success === false)) {
-        return NextResponse.json(
-          { message: "One or more file uploads failed", data: [] },
-          { status: 500 }
-        );
-      }
+    // Handle photo update
+    let updatedPhotoUrl: PhotoUrl = tourPackage.photoUrl
+      ? (tourPackage.photoUrl as PhotoUrl)
+      : [];
 
-      // Storing the new URLs
-      const newPhotoUrl: PhotoUrl = results.map((result) => ({
-        url: result.photoUrl.data.publicUrl,
-      }));
-      if (replacePhoto) {
-        // Remove old photos from Supabase storage
+    // Handle photos to delete
+    const photosToDeleteRaw = formData.get("photosToDelete");
+    if (photosToDeleteRaw) {
+      const photosToDelete: string[] = JSON.parse(photosToDeleteRaw as string);
+      if (photosToDelete.length > 0) {
+        console.log("Photos to delete:", photosToDelete);
         const removeResults = await removeFiles(
           process.env.SUPABASE_BUCKET || "",
-          // updatedPhotoUrl is still an array of old URLs
-          updatedPhotoUrl.map((photo) => photo.url)
+          photosToDelete
         );
         if (removeResults.some((result) => result.success === false)) {
+          console.error("Failed to delete photos:", removeResults);
           return NextResponse.json(
-            { message: "One or more file deletions failed", data: [] },
+            { message: "One or more file deletions failed", data: null },
             { status: 500 }
           );
         }
-        updatedPhotoUrl = [...newPhotoUrl];
-      } else {
-        updatedPhotoUrl.push(...newPhotoUrl);
+        updatedPhotoUrl = updatedPhotoUrl.filter(
+          (photo) => !photosToDelete.includes(photo.url)
+        );
       }
     }
-    tourPackage = await prisma.tourPackage.update({
-      where: { id: id },
+
+    // Handle new photo uploads
+    const files: File[] = [];
+    
+    // Method 1: Handle photos[index] format
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("photos[")) {
+        if (value instanceof File && value.size > 0) {
+          files.push(value);
+        }
+      }
+    }
+
+    // Method 2: Handle multiple "photos" entries (fallback)
+    if (files.length === 0) {
+      const photoFiles = formData.getAll("photos");
+      for (const file of photoFiles) {
+        if (file instanceof File && file.size > 0) {
+          files.push(file);
+        }
+      }
+    }
+
+    console.log("Files to upload:", files.map((f) => `${f.name} (${f.size} bytes, ${f.type})`));
+    
+    if (files.length > 0) {
+  // Validate file types and sizes
+  const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  
+  for (const file of files) {
+    console.log(`Validating file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+    
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { message: `File ${file.name} is not a valid image type. Allowed: ${allowedTypes.join(", ")}`, data: null },
+        { status: 400 }
+      );
+    }
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { message: `File ${file.name} exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`, data: null },
+        { status: 400 }
+      );
+    }
+  }
+
+  try {
+    const results: ResultUploadFiles = await uploadFiles(
+      process.env.SUPABASE_BUCKET || "",
+      files,
+      "tourPackage"
+    );
+    
+    console.log("Upload results:", results);
+    
+    if (results.some((result) => result.success === false)) {
+      console.error("Failed to upload files:", results);
+      return NextResponse.json(
+        { message: "One or more file uploads failed", data: null },
+        { status: 500 }
+      );
+    }
+    
+    const newPhotoUrl: PhotoUrl = results
+      .filter((result) => result.success && result.photoUrl?.data?.publicUrl)
+      .map((result) => ({
+        url: result.photoUrl!.data.publicUrl,
+      }));
+      
+    updatedPhotoUrl = [...updatedPhotoUrl, ...newPhotoUrl];
+    console.log("Updated photo URLs:", updatedPhotoUrl);
+  } catch (uploadError) {
+    console.error("Error during file upload:", uploadError);
+    return NextResponse.json(
+      { message: "File upload failed due to server error", data: null },
+      { status: 500 }
+    );
+  }
+}
+
+    // Update the tour package
+    const updated = await prisma.tourPackage.update({
+      where: { id },
       data: {
         name,
-        destination,
-        durationDays: Number(durationDays),
-        advantages: advantagesArray,
-        services: servicesArray,
-        price: Number(price),
+        price: parseFloat(price),
+        description,
+        meetingPoint,
+        minPersonCapacity: parseInt(minPersonCapacity),
+        maxPersonCapacity: parseInt(maxPersonCapacity),
+        includes,
+        excludes,
+        itineraries,
+        requirements,
+        tickets,
+        is_private,
         photoUrl: updatedPhotoUrl,
       },
     });
+
     return NextResponse.json(
-      { message: "Tour package updated successfully", data: tourPackage },
+      { message: "Tour package updated successfully", data: updated },
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("Error updating tour package:", error);
     return NextResponse.json(
-      { message: "Internal Server Error", data: [] },
+      { message: "Internal Server Error", data: null },
       { status: 500 }
     );
   }
 };
 
+// DELETE: Delete tour package by id
 export const DELETE = async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -191,7 +313,7 @@ export const DELETE = async (
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("Error deleting tour package:", error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }

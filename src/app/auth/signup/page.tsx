@@ -53,7 +53,7 @@ const SignupPage = () => {
           res?.error || "An error occurred while signing in. Please try again."
         );
       } else {
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (error: unknown) {
       setLoading(false);
@@ -71,7 +71,7 @@ const SignupPage = () => {
   const handleGoogleSignUp = async () => {
     setLoading(true);
     await signIn("google", {
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
     setLoading(false);
   };

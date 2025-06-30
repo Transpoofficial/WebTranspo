@@ -1,39 +1,60 @@
 "use client";
-import React from "react";
-// import VehicleTypeTable from "./components/vehicle-type-table";
+import React, { useState } from "react";
+import TourPackageTable from "./components/tour-package-table";
 import { Button } from "@/components/ui/button";
-// import VehicleTypeCreateDialog from "./components/vehicle-type-create-dialog";
+import TourPackageCreateDialog from "./components/tour-package-create-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const TourPackage = () => {
-  // const [isVehicleTypeCreateDialogOpen, setIsVehicleTypeCreateDialogOpen] =
-  //   useState<boolean>(false);
+  const [isTourPackageCreateDialogOpen, setIsTourPackageCreateDialogOpen] =
+    useState<boolean>(false);
+  const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
-  // const handleOpenVehicleTypeCreateDialog = (): void => {
-  //   setIsVehicleTypeCreateDialogOpen(true);
-  // };
+  const handleOpenTourPackageCreateDialog = (privateTrip: boolean): void => {
+    setIsPrivate(privateTrip);
+    setIsTourPackageCreateDialogOpen(true);
+  };
 
   return (
     <>
       <h2 className="text-3xl font-bold tracking-tight first:mt-0">
-        Paket wisata
+        Paket Wisata
       </h2>
 
       <div className="flex justify-end mt-4 mb-1">
-        <Button
-          // onClick={handleOpenVehicleTypeCreateDialog}
-          className="cursor-pointer"
-        >
-          Tambah paket wisata
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="cursor-pointer">Tambah paket wisata</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              onClick={() => handleOpenTourPackageCreateDialog(false)}
+            >
+              Tambah Open Trip
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleOpenTourPackageCreateDialog(true)}
+            >
+              Tambah Private Trip
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Vehicle type dialog */}
-      {/* <VehicleTypeCreateDialog
-        isVehicleTypeCreateDialogOpen={isVehicleTypeCreateDialogOpen}
-        setIsVehicleTypeCreateDialogOpen={setIsVehicleTypeCreateDialogOpen}
+      {/* Tour package dialog */}
+      <TourPackageCreateDialog
+        isTourPackageCreateDialogOpen={isTourPackageCreateDialogOpen}
+        setIsTourPackageCreateDialogOpen={setIsTourPackageCreateDialogOpen}
+        isPrivate={isPrivate}
+        setIsPrivate={setIsPrivate}
       />
 
-      <VehicleTypeTable /> */}
+      <TourPackageTable />
     </>
   );
 };

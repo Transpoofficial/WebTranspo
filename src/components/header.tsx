@@ -208,6 +208,9 @@ const Header: React.FC<HeaderProps> = ({
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/settings/profile">Profil</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
