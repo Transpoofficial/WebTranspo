@@ -283,7 +283,7 @@ const SortableLocationItem = ({
         <div className="flex items-center gap-1 mb-1">
           <Clock className="h-3.5 w-3.5 text-teal-600" />
           <span className="text-xs font-medium text-teal-700">
-            Jam Kedatangan (Opsional)
+            Jam Kedatangan
           </span>
         </div>
         <div className="relative w-full max-w-[150px]">
@@ -376,12 +376,14 @@ const Map2: React.FC<Map2Props> = ({
             lat: null,
             lng: null,
             address: "",
+            time: "09:00", // Default time for new locations
           },
           {
             id: `loc-1-end-${Date.now() + 1}`,
             lat: null,
             lng: null,
             address: "",
+            time: "09:00", // Default time for new locations
           },
         ],
       },
@@ -781,7 +783,7 @@ const Map2: React.FC<Map2Props> = ({
           ...trip,
           locations: [
             ...trip.locations,
-            { id: newId, lat: null, lng: null, address: "" },
+            { id: newId, lat: null, lng: null, address: "", time: "09:00" },
           ],
         };
 
@@ -839,12 +841,14 @@ const Map2: React.FC<Map2Props> = ({
               lat: null,
               lng: null,
               address: "",
+              time: "09:00", // Default time for new locations
             },
             {
               id: `loc-${prevTrips.length + 1}-end-${timestamp + 1}`,
               lat: null,
               lng: null,
               address: "",
+              time: "09:00", // Default time for new locations
             },
           ],
         },

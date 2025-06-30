@@ -23,7 +23,10 @@ import {
   Trip as UtilsTrip,
 } from "@/utils/order";
 // ✅ Import trip duration validation
-import { validateTripDuration } from "@/utils/validation";
+import {
+  validateTripDuration,
+  validateDestinationTimes,
+} from "@/utils/validation";
 
 interface Step2Props {
   orderData: OrderData;
@@ -48,6 +51,9 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [note, setNote] = useState(orderData.note || "");
   const [tripDurationError, setTripDurationError] = useState<string | null>(
+    null
+  );
+  const [timeValidationError, setTimeValidationError] = useState<string | null>(
     null
   );
   const initialLoadRef = useRef(true);
@@ -240,14 +246,14 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               lat: null,
               lng: null,
               address: "",
-              time: null,
+              time: "09:00", // Default time for new locations
             },
             {
               id: `loc-${idx}-end-${Date.now() + 1}`,
               lat: null,
               lng: null,
               address: "",
-              time: null,
+              time: "09:00", // Default time for new locations
             },
           ];
         }
@@ -374,6 +380,24 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           setTripDurationError(null);
         }
       }
+
+      // ✅ Real-time time validation for all destinations
+      const allDestinationsWithTime = trips.flatMap((trip) =>
+        trip.locations
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            address: loc.address,
+            time: loc.time,
+          }))
+      );
+      const timeValidation = validateDestinationTimes(allDestinationsWithTime);
+      if (!timeValidation.isValid) {
+        setTimeValidationError(
+          timeValidation.message || "Format waktu tidak valid"
+        );
+      } else {
+        setTimeValidationError(null);
+      }
     },
     [trips, setOrderData, vehicleName]
   );
@@ -419,6 +443,36 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
       return;
     } else {
       setTripDurationError(null);
+    }
+
+    // ✅ Validate that pickup locations (first destination of each trip) have valid departure times
+    const pickupDestinations: Array<{
+      address: string;
+      time: string | null | undefined;
+    }> = [];
+
+    trips.forEach((trip, tripIndex) => {
+      const firstValidLocation = trip.locations.find(
+        (loc) => loc.lat !== null && loc.lng !== null && loc.address
+      );
+      if (firstValidLocation) {
+        const startTime = orderData.trip[tripIndex]?.startTime || "09:00";
+        pickupDestinations.push({
+          address: firstValidLocation.address,
+          time: startTime,
+        });
+      }
+    });
+
+    const timeValidation = validateDestinationTimes(pickupDestinations);
+    if (!timeValidation.isValid) {
+      setTimeValidationError(
+        timeValidation.message || "Format waktu tidak valid"
+      );
+      toast.error(timeValidation.message);
+      return;
+    } else {
+      setTimeValidationError(null);
     }
 
     // Convert trips data back to orderData.trip format
@@ -618,6 +672,25 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               </div>
             )}
 
+            {/* ✅ Time Validation Error */}
+            {timeValidationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                  <div className="text-sm">
+                    <div className="font-medium text-red-800 mb-2">
+                      Waktu Keberangkatan Tidak Valid
+                    </div>
+                    <p className="text-red-700 mb-2">{timeValidationError}</p>
+                    <p className="text-red-600 text-sm">
+                      💡 Pastikan semua destinasi memiliki waktu keberangkatan
+                      dalam format HH:MM (contoh: 09:00).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ✅ Note Input Field */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <Label
@@ -742,10 +815,11 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           </Button>
           <Button
             onClick={handleContinue}
-            disabled={!!tripDurationError}
+            disabled={!!tripDurationError || !!timeValidationError}
             className={cn(
               "bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark",
-              tripDurationError && "opacity-50 cursor-not-allowed"
+              (tripDurationError || timeValidationError) &&
+                "opacity-50 cursor-not-allowed"
             )}
           >
             Selanjutnya

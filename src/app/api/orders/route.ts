@@ -15,6 +15,7 @@ import {
   validateAngkotDestination,
   requiresAllDestinationRestriction,
   validateTripDuration,
+  validateDestinationTimes,
 } from "@/utils/validation";
 
 // Types
@@ -390,6 +391,24 @@ const handleTransportOrder = async (
     if (!durationValidation.isValid) {
       throw new Error(
         `Validasi durasi perjalanan gagal: ${durationValidation.message}`
+      );
+    }
+
+    // ✅ TIME VALIDATION - Only pickup locations must have valid departure times
+    // Apply default time "09:00" for missing times before validation
+    const pickupDestinations = destinations.filter(
+      (dest) => dest.isPickupLocation
+    );
+    const timeValidation = validateDestinationTimes(
+      pickupDestinations.map((dest) => ({
+        address: dest.address,
+        time: dest.departureTime || "09:00", // Apply default time if missing
+      }))
+    );
+
+    if (!timeValidation.isValid) {
+      throw new Error(
+        `Validasi waktu keberangkatan gagal: ${timeValidation.message}`
       );
     }
 

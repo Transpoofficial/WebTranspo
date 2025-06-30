@@ -582,3 +582,82 @@ export function validateTripDuration(
     detectedRegions: [...new Set(detectedRegions)],
   };
 }
+
+/**
+ * Validate time format (HH:mm)
+ */
+export function validateTimeFormat(time: string | null | undefined): {
+  isValid: boolean;
+  message?: string;
+  normalizedTime?: string;
+} {
+  if (!time || time.trim() === "") {
+    return {
+      isValid: false,
+      message: "Waktu harus diisi",
+    };
+  }
+
+  const trimmedTime = time.trim();
+
+  // Check basic HH:mm format
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+  if (!timeRegex.test(trimmedTime)) {
+    return {
+      isValid: false,
+      message: "Format waktu harus HH:mm (contoh: 09:00, 14:30)",
+    };
+  }
+
+  // Parse hours and minutes
+  const [hours, minutes] = trimmedTime.split(":").map(Number);
+
+  // Additional validation
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return {
+      isValid: false,
+      message: "Waktu tidak valid. Jam: 00-23, Menit: 00-59",
+    };
+  }
+
+  // Normalize format (ensure leading zeros)
+  const normalizedTime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+  return {
+    isValid: true,
+    normalizedTime,
+  };
+}
+
+/**
+ * Validate all destinations have required arrival time
+ */
+export function validateDestinationTimes(
+  destinations: Array<{ address: string; time: string | null | undefined }>
+): {
+  isValid: boolean;
+  message?: string;
+  invalidDestinations?: number[];
+} {
+  const invalidDestinations: number[] = [];
+
+  destinations.forEach((dest, index) => {
+    if (!dest.address) return; // Skip empty destinations
+
+    const timeValidation = validateTimeFormat(dest.time);
+    if (!timeValidation.isValid) {
+      invalidDestinations.push(index + 1); // 1-based index for user display
+    }
+  });
+
+  if (invalidDestinations.length > 0) {
+    const destNumbers = invalidDestinations.join(", ");
+    return {
+      isValid: false,
+      message: `Destinasi ${destNumbers} belum memiliki waktu yang valid. Semua destinasi wajib memiliki waktu keberangkatan.`,
+      invalidDestinations,
+    };
+  }
+
+  return { isValid: true };
+}
