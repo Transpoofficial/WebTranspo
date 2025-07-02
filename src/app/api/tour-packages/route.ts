@@ -2,36 +2,75 @@ import { prisma } from "@/lib/prisma";
 import { uploadFiles } from "@/utils/supabase";
 import { NextRequest, NextResponse } from "next/server";
 import { getPaginationParams } from "@/utils/pagination";
+import { parse } from "url";
 
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
+    const { query } = parse(req.url!, true);
 
-    const totalCount = await prisma.tourPackage.count();
+    const search = (query.search as string) || "";
+    const date = query.date as string | undefined;
+    const is_private_raw = query.is_private as string | undefined;
 
-    const packages = await prisma.tourPackage.findMany({
-      skip,
-      take: limit,
+    // Konversi string ke boolean
+    let is_private: boolean | undefined = undefined;
+    if (is_private_raw === "true") is_private = true;
+    if (is_private_raw === "false") is_private = false;
+
+    // Ambil semua paket berdasarkan is_private dan search
+    const allPackages = await prisma.tourPackage.findMany({
+      where: {
+        ...(is_private !== undefined && { is_private }),
+        ...(search && {
+          name: {
+            contains: search,
+          },
+        }),
+      },
       orderBy: {
         createdAt: "desc",
       },
     });
 
+    function isTicketWithDate(ticket: unknown): ticket is { date: string } {
+      return (
+        typeof ticket === "object" &&
+        ticket !== null &&
+        "date" in ticket &&
+        typeof (ticket as { date: unknown }).date === "string"
+      );
+    }
+
+    // Filter manual berdasarkan tanggal JSON (jika ada)
+    const filteredPackages = date
+      ? allPackages.filter(
+          (pkg) =>
+            Array.isArray(pkg.tickets) &&
+            pkg.tickets.some(
+              (ticket) => isTicketWithDate(ticket) && ticket.date === date
+            )
+        )
+      : allPackages;
+
+    // Pagination manual
+    const paginated = filteredPackages.slice(skip, skip + limit);
+
     return NextResponse.json(
       {
         message: "Packages retrieved successfully",
-        data: packages,
+        data: paginated,
         pagination: {
-          total: totalCount,
+          total: filteredPackages.length,
           skip,
           limit,
-          hasMore: skip + packages.length < totalCount,
+          hasMore: skip + paginated.length < filteredPackages.length,
         },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("Error in GET /api/tour-packages", error);
     return NextResponse.json(
       { message: "Internal Server Error", data: [] },
       { status: 500 }
