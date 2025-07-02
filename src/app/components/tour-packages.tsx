@@ -54,7 +54,7 @@ const TourPackages = () => {
   return (
     <div className="flex items-strech gap-x-2 overflow-x-auto p-4">
       {data?.data.map((pkg) => (
-        <Link key={pkg.id} href={`/tour-package/detail/${pkg.id}`}>
+        <Link key={pkg.id} href={`/tour-package/${pkg.is_private === true ? "private-trip" : "open-trip"}/detail/${pkg.id}`}>
         <Card
           className="w-full min-w-full max-w-full md:min-w-md md:max-w-md overflow-hidden bg-white shadow-lg cursor-pointer !pt-0"
           onClick={() => handlePackageClick(pkg.id)}
@@ -70,10 +70,10 @@ const TourPackages = () => {
             />
             {pkg.is_private ? (
               <Badge className="absolute top-4 left-4 bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1">
-                Private Tour
+                Private Trip
               </Badge>
             ) : <Badge className="absolute top-4 left-4 bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1">
-                Open Tour
+                Open Trip
               </Badge>}
           </div>
 

@@ -22,6 +22,9 @@ import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import TourPackageUpdateDialog from "./tour-package-update-dialog";
+import Pagination from "./pagination";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TourPackage {
   id: string;
@@ -36,7 +39,6 @@ interface TourPackage {
   excludes: Array<{ text: string }>;
   itineraries: Array<{ text?: string; opsional?: string }>;
   requirements: Array<{ text: string }>;
-
   tickets: Array<{ date: string }> | null;
   is_private: boolean;
   createdAt: string;
@@ -47,6 +49,11 @@ const TourPackageTable = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUpdateDialog, setOpenUpdateDialog] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const [search, setSearch] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(10);
+  const [isPrivate, setIsPrivate] = useState<string>("all");
 
   const handleDropdownToggle = (id: string) => {
     setOpenDropdown((prev) => (prev === id ? null : id));
@@ -54,11 +61,23 @@ const TourPackageTable = () => {
 
   const { data, isLoading, error } = useQuery<{
     data: TourPackage[];
+    pagination: {
+      total: number;
+      skip: number;
+      limit: number;
+      hasMore: boolean;
+    };
   }>({
-    queryKey: ["tour-packages"],
+    queryKey: ["tour-packages", search, page, limit, isPrivate],
     queryFn: async () => {
-      const response = await axios.get("/api/tour-packages");
-      return response.data;
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      params.append("skip", ((page - 1) * limit).toString());
+      params.append("limit", limit.toString());
+      params.append("is_private", isPrivate); // atau "true" kalau mau halaman private trip
+
+      const res = await axios.get(`/api/tour-packages?${params.toString()}`);
+      return res.data;
     },
   });
 
@@ -88,9 +107,9 @@ const TourPackageTable = () => {
   };
 
   const formatPrice = (price: string) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(Number(price));
   };
@@ -100,8 +119,49 @@ const TourPackageTable = () => {
     return null;
   }
 
+  const handleLongPressStart = (id: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setOpenDropdown((prev) => (prev === id ? null : id));
+    }, 800);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   return (
     <>
+      <div className="flex items-center gap-x-4 my-4">
+        <Input
+          placeholder="Cari berdasarkan nama paket..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <Select
+          value={`${isPrivate}`}
+          onValueChange={(value) => setIsPrivate(value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`${isPrivate}`} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              Semua Trip
+            </SelectItem>
+            <SelectItem value="true">
+              Private Trip
+            </SelectItem>
+            <SelectItem value="false">
+              Open Trip
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -152,12 +212,19 @@ const TourPackageTable = () => {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <TableRow
+                        onMouseDown={() => handleLongPressStart(row.id)}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={() => handleLongPressStart(row.id)}
+                        onTouchEnd={handleLongPressEnd}
                         className="transition duration-200 active:scale-99 cursor-pointer"
                       >
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
-                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {row.name}
+                        </TableCell>
                         <TableCell>{formatPrice(row.price)}</TableCell>
                         <TableCell>{row.meetingPoint}</TableCell>
                         <TableCell>
@@ -237,12 +304,6 @@ const TourPackageTable = () => {
                       </div>
                     </DrawerContent>
                   </Drawer>
-
-                  <TourPackageUpdateDialog
-                    openUpdateDialog={openUpdateDialog}
-                    setOpenUpdateDialog={setOpenUpdateDialog}
-                    tourPackageId={openUpdateDialog}
-                  />
                 </React.Fragment>
               );
             })
@@ -255,6 +316,25 @@ const TourPackageTable = () => {
           )}
         </TableBody>
       </Table>
+
+      {data?.pagination && (
+        <Pagination
+          pagination={data.pagination}
+          currentPage={page}
+          pageSize={limit}
+          onPageChange={(newPage) => setPage(newPage)}
+          onPageSizeChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+        />
+      )}
+
+      <TourPackageUpdateDialog
+        openUpdateDialog={openUpdateDialog}
+        setOpenUpdateDialog={setOpenUpdateDialog}
+        tourPackageId={openUpdateDialog}
+      />
     </>
   );
 };
