@@ -136,7 +136,7 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
         >
           <CardHeader className="text-center rounded-t-lg">
             <CardTitle className="text-2xl font-semibold">
-              ORDER CONFIRMATION
+              CONFIRMASI PESANAN
             </CardTitle>
           </CardHeader>
 
@@ -144,17 +144,17 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
             {/* Customer Details */}
             <div className="space-y-4">
               <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
-                Customer Information
+                Informasi Pemesan
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
                 <div className="space-y-1">
-                  <div className="text-gray-500 text-sm">Name</div>
+                  <div className="text-gray-500 text-sm">Nama</div>
                   <div className="font-medium">{orderData.userData.name}</div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-gray-500 text-sm">Phone</div>
+                  <div className="text-gray-500 text-sm">No. Telepon</div>
                   <div className="font-medium">{orderData.userData.phone}</div>
                 </div>
 
@@ -168,13 +168,13 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
             {/* Package Details */}
             <div className="space-y-4">
               <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
-                Package Information
+                Informasi Paket Wisata
               </h3>
 
               <div className="space-y-2">
                 <div className="font-medium">{orderData.packageData.name}</div>
                 <div className="text-gray-500">
-                  Type:{" "}
+                  Tipe paket wisata:{" "}
                   {orderData.packageData.type === false
                     ? "Open Trip"
                     : "Private Trip"}
@@ -182,15 +182,15 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                 {orderData.packageData.type === true &&
                   orderData.tripDetails.people && (
                     <div className="text-gray-500">
-                      Participants: {orderData.tripDetails.people} people
+                      Jumlah orang: {orderData.tripDetails.people} orang
                     </div>
                   )}
                 <div className="text-gray-500">
-                  Departure Date:{" "}
+                  Tanggal Keberangkatan:{" "}
                   {formatLocalizedDate(orderData.tripDetails.departureDate)}
                 </div>
                 <div className="text-gray-500">
-                  Number of people: {orderData.tripDetails.people}
+                  Jumlah orang: {orderData.tripDetails.people}
                 </div>
               </div>
 
@@ -198,14 +198,14 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                 orderData.tripDetails.people && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 className="font-medium text-blue-800 mb-2">
-                      Price Breakdown
+                      Detail Harga
                     </h4>
                     <div className="flex justify-between">
-                      <span>Price per person:</span>
+                      <span>Harga per orang:</span>
                       <span>{formatRupiah(orderData.packageData.price)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Number of people:</span>
+                      <span>Jumlah orang:</span>
                       <span>{orderData.tripDetails.people}</span>
                     </div>
                     <div className="flex justify-between font-medium pt-2 border-t border-blue-300">
@@ -217,14 +217,14 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
 
               {orderData.tripDetails.note && (
                 <div className="mt-4">
-                  <h4 className="font-medium">Additional Note:</h4>
+                  <h4 className="font-medium">Catatan tambahan:</h4>
                   <p className="text-gray-600">{orderData.tripDetails.note}</p>
                 </div>
               )}
 
               <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex justify-between items-center">
-                  <div className="font-medium">Total Price:</div>
+                  <div className="font-medium">Total Harga:</div>
                   <div className="font-semibold text-lg text-transpo-primary">
                     {formatRupiah(orderData.packageData.price)}
                   </div>
@@ -239,14 +239,14 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
                 className="border-gray-300 hover:bg-gray-100 text-gray-700"
                 disabled={isSubmitting}
               >
-                Back
+                Kembali
               </Button>
               <Button
                 onClick={() => setIsConfirmDialogOpen(true)}
                 disabled={isSubmitting}
                 className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark disabled:opacity-50"
               >
-                {isSubmitting ? "Processing..." : "Confirm Order"}
+                {isSubmitting ? "Memproses..." : "Konfirmasi"}
               </Button>
             </div>
           </CardContent>
@@ -260,29 +260,28 @@ const Step3 = ({ orderData, onContinue, onBack }: Step3Props) => {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Order</AlertDialogTitle>
+            <AlertDialogTitle>Konfirmasi Pesanan</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to create a tour package order with total payment of{" "}
+              Anda akan membuat pesanan paket wisata dengan total pembayaran{" "}
               {formatRupiah(orderData.totalPrice)}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="text-amber-600 font-medium text-sm">
-            ⚠️ Please ensure all details are correct as orders cannot be changed
-            after confirmation.
+            ⚠️ Pastikan semua rincian sudah benar karena pesanan tidak dapat diubah setelah konfirmasi.
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={isSubmitting}
               className="border-gray-300"
             >
-              Cancel
+              Batal
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCreateOrder}
               disabled={isSubmitting}
               className="bg-transpo-primary hover:bg-transpo-primary-dark disabled:opacity-50"
             >
-              {isSubmitting ? "Processing..." : "Confirm Order"}
+              {isSubmitting ? "Memproses..." : "Konfirmasi"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

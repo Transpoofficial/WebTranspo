@@ -166,17 +166,17 @@ const Step1 = ({ orderData, setOrderData, onBack, onContinue }: Step1Props) => {
       style={{ boxShadow: "0 5px 35px rgba(0, 0, 0, 0.2)" }}
     >
       <CardHeader className="text-center rounded-t-lg">
-        <CardTitle className="text-2xl font-semibold">ORDER DETAILS</CardTitle>
+        <CardTitle className="text-2xl font-semibold">DETAIL PESANAN</CardTitle>
       </CardHeader>
 
       <CardContent className="p-6 space-y-8">
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="font-medium text-blue-800 mb-2">
-            Package Information
+            Informasi Paket Wisata
           </h3>
           <p className="text-blue-700">{orderData.packageData.name}</p>
           <p className="text-blue-700 mt-1">
-            Type:{" "}
+            Tipe paket wisata:{" "}
             {orderData.packageData.type === false
               ? "Open Trip"
               : "Private Trip"}
@@ -185,10 +185,10 @@ const Step1 = ({ orderData, setOrderData, onBack, onContinue }: Step1Props) => {
             orderData.tripDetails.people && (
               <>
                 <p className="text-blue-700 mt-1">
-                  Participants: {orderData.tripDetails.people} people
+                  Jumlah orang: {orderData.tripDetails.people} orang
                 </p>
                 <p className="text-blue-700 mt-1">
-                  Price per person:{" "}
+                  Harga per orang:{" "}
                   {new Intl.NumberFormat("id-ID", {
                     style: "currency",
                     currency: "IDR",
@@ -197,11 +197,11 @@ const Step1 = ({ orderData, setOrderData, onBack, onContinue }: Step1Props) => {
               </>
             )}
           <p className="text-blue-700 mt-1">
-            Departure Date:{" "}
+            Tanggal Keberangkatan:{" "}
             {formatLocalizedDate(orderData.tripDetails.departureDate)}
           </p>
           <p className="text-blue-700 mt-1 font-semibold">
-            Total Price:{" "}
+            Total Harga:{" "}
             {orderData.packageData.type === true && orderData.tripDetails.people
               ? new Intl.NumberFormat("id-ID", {
                   style: "currency",
