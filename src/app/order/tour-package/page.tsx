@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useSearchParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import Step1 from "./components/step-1";
 import Step3 from "./components/step-3";
@@ -114,7 +114,7 @@ const OrderTourPackagePage = () => {
         fetchUserData();
       }
     }
-  }, [data, status]);
+  }, [data, status, orderData.userData.name, orderData.userData.email, orderData.userData.phone]);
 
   // Check for payment ID in localStorage
   useEffect(() => {
@@ -318,4 +318,12 @@ const OrderTourPackagePage = () => {
   );
 };
 
-export default OrderTourPackagePage;
+const Page = () => {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+      <OrderTourPackagePage />
+    </Suspense>
+  )
+}
+
+export default Page;
