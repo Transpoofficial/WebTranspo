@@ -1,10 +1,11 @@
+// page.tsx
 "use client";
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import OrderBarChart from "./components/order_barchart";
-import OrderLineChart from "./components/order_linechart";
+import OrderBarChart from "./components/order-barchart";
+import OrderLineChart from "./components/order-linechart";
 import {
   Card,
   CardContent,
@@ -13,26 +14,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ChartConfig } from "@/components/ui/chart";
-import ChartFilter from "./components/chart_filter";
-import DateFilter from "./components/date_filter";
-import VehicleFilter from "./components/vehicle_filter";
-import StatusFilter from "./components/status_filter";
+import ChartFilter from "./components/chart-filter";
+import DateFilter from "./components/date-filter";
+import VehicleFilter from "./components/vehicle-filter";
+import StatusFilter from "./components/status-filter";
+import OrderTypeFilter from "./components/order-type-filter";
 import { DateRange } from "react-day-picker";
-import {
-  endOfDay,
-  startOfDay,
-  subDays,
-  format,
-} from "date-fns";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import TourTypeFilter from "./components/tour-type-filter";
 
 interface Order {
   id: string;
   fullName: string;
   totalPassengers: number;
   orderStatus: string;
+  orderType: string;
   createdAt: string;
   vehicleType: {
     name: string;
+  } | null;
+  packageOrder?: {
+    package: {
+      is_private: boolean;
+    };
   };
 }
 
@@ -60,58 +64,47 @@ const OrderAnalysis = () => {
   const [dateRange, setDateRange] = useState<DateRange>();
   const [vehicleType, setVehicleType] = useState<string>("all");
   const [orderStatus, setOrderStatus] = useState<string>("all");
+  const [orderType, setOrderType] = useState<string>("all");
+  const [tourType, setTourType] = useState<string>("all");
+
+  const buildQueryParams = () => {
+  const params = new URLSearchParams();
+
+  if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
+    params.append("dateFilter", "custom");
+    params.append("startDate", startOfDay(dateRange.from).toISOString());
+    params.append("endDate", endOfDay(dateRange.to).toISOString());
+  } else {
+    params.append("dateFilter", dateFilter);
+  }
+
+  if (vehicleType !== "all") {
+    params.append("vehicleType", vehicleType);
+  }
+
+  if (orderStatus !== "all") {
+    params.append("orderStatus", orderStatus);
+  }
+
+  if (orderType !== "all") {
+    params.append("orderType", orderType);
+  }
+
+  if (orderType === "TOUR" && tourType !== "all") {
+    params.append("isPrivate", tourType === "private" ? "true" : "false");
+  }
+
+  return params.toString();
+};
 
   const { data: ordersData, isLoading } = useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", dateFilter, dateRange, vehicleType, orderStatus, orderType, tourType],
     queryFn: async () => {
-      const { data } = await axios.get<OrdersResponse>("/api/orders");
+      const queryParams = buildQueryParams();
+      const { data } = await axios.get<OrdersResponse>(`/api/orders?${queryParams}`);
       return data;
     },
   });
-
-  const filteredOrders = React.useMemo(() => {
-    if (!ordersData?.data) return [];
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    try {
-      if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
-        // Untuk custom date range, gunakan waktu 00:00 untuk from dan 23:59 untuk to
-        startDate = startOfDay(dateRange.from);
-        endDate = endOfDay(dateRange.to);
-      } else {
-        // Untuk preset filter
-        const days = parseInt(dateFilter);
-        if (!isNaN(days)) {
-          startDate = startOfDay(subDays(now, days - 1));
-          endDate = endOfDay(now);
-        } else {
-          startDate = startOfDay(subDays(now, 6));
-          endDate = endOfDay(now);
-        }
-      }
-
-      let filtered = ordersData.data.filter((order) => {
-        const orderDate = new Date(order.createdAt);
-        return orderDate >= startDate && orderDate <= endDate;
-      });
-
-      if (vehicleType !== "all") {
-        filtered = filtered.filter((order) => order.vehicleType.name === vehicleType);
-      }
-
-      if (orderStatus !== "all") {
-        filtered = filtered.filter((order) => order.orderStatus === orderStatus);
-      }
-
-      return filtered;
-    } catch (error) {
-      console.error("Filtering error:", error);
-      return [];
-    }
-  }, [ordersData?.data, dateFilter, dateRange, vehicleType, orderStatus]);
 
   const getDateDescription = React.useMemo(() => {
     try {
@@ -125,7 +118,7 @@ const OrderAnalysis = () => {
       }
 
       const days = parseInt(dateFilter);
-      const startDate = startOfDay(subDays(now, days));
+      const startDate = subDays(now, days);
       return `${days} hari terakhir (${format(startDate, "d MMMM yyyy")} - ${format(
         now,
         "d MMMM yyyy"
@@ -156,8 +149,18 @@ const OrderAnalysis = () => {
             {/* Select for chart filter */}
             <ChartFilter chartType={chartType} setChartType={setChartType} />
 
+            {/* Select for order type filter */}
+            <OrderTypeFilter orderType={orderType} setOrderType={setOrderType} />
+
+            {/* Show tour type filter only when orderType is TOUR */}
+            {orderType === "TOUR" && (
+              <TourTypeFilter tourType={tourType} setTourType={setTourType} />
+            )}
+
             {/* Select for vehicle type filter */}
-            <VehicleFilter vehicleType={vehicleType} setVehicleType={setVehicleType} />
+            {orderType === "TRANSPORT" && (
+              <VehicleFilter vehicleType={vehicleType} setVehicleType={setVehicleType} />
+            )}
 
             {/* Select for order status filter */}
             <StatusFilter orderStatus={orderStatus} setOrderStatus={setOrderStatus} />
@@ -171,17 +174,17 @@ const OrderAnalysis = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Chats */}
+          {/* Charts */}
           {chartType === "line" ? (
             <OrderLineChart
-              orders={filteredOrders}
+              orders={ordersData?.data || []}
               chartConfig={chartConfig}
               dateFilter={dateFilter}
               dateRange={dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined}
             />
           ) : chartType === "bar" ? (
             <OrderBarChart
-              orders={filteredOrders}
+              orders={ordersData?.data || []}
               chartConfig={chartConfig}
               dateFilter={dateFilter}
               dateRange={dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined}
@@ -191,7 +194,6 @@ const OrderAnalysis = () => {
           )}
         </CardContent>
       </Card>
-
     </>
   );
 };

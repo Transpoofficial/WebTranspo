@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Header from "@/components/header";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ import {
   DrawerFooter,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface TourPackage {
   id: string;
@@ -56,9 +58,11 @@ interface TourPackage {
 
 export default function PrivateTourDetailPage() {
   const { id } = useParams();
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  const [people, setPeople] = useState<number>(0)
   const [date, setDate] = useState<Date | undefined>(new Date());
   const isSmallScreen = useMediaQuery("(max-width: 1024px)");
+  const router = useRouter();
 
   const { data, isLoading, error } = useQuery<{
     data: TourPackage;
@@ -76,6 +80,34 @@ export default function PrivateTourDetailPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(Number.parseInt(price));
+  };
+
+  const handleOrder = () => {
+    if (!people || !date) {
+      toast.error("Mohon isi jumlah orang dan tanggal keberangkatan.");
+      return;
+    }
+
+    if (
+      !data?.data ||
+      people < (data.data.minPersonCapacity ?? 0) ||
+      people > (data.data.maxPersonCapacity ?? Infinity)
+    ) {
+      const min = data?.data?.minPersonCapacity ?? 0;
+      const max = data?.data?.maxPersonCapacity ?? 0;
+
+      toast.error(`Jumlah orang harus antara ${min} dan ${max}`);
+      return;
+    }
+
+    const query = new URLSearchParams({
+      packageId: data?.data?.id || "",
+      people: people.toString(),
+      departureDate: date.toISOString().split("T")[0],
+      orderType: "TOUR",
+    });
+
+    router.push(`/order/tour-package?${query.toString()}`);
   };
 
   const visibleImages = data?.data?.photoUrl || [];
@@ -440,7 +472,7 @@ export default function PrivateTourDetailPage() {
                       <Button variant="outline" size="icon">
                         <ChevronUp />
                       </Button>
-                      <Button>Pesan Sekarang</Button>
+                      <Button onClick={handleOrder}>Pesan Sekarang</Button>
                     </div>
                   </DrawerTrigger>
                   <DrawerContent>
@@ -453,21 +485,41 @@ export default function PrivateTourDetailPage() {
                           per orang
                         </p>
                       </div>
-                      <Input type="number" placeholder="Total orang" />
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md border shadow w-full"
-                        classNames={{
-                          months:
-                            "flex w-full flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 flex-1",
-                          month: "space-y-4 w-full flex flex-col",
-                          table: "w-full h-full border-collapse space-y-1",
-                          head_row: "",
-                          row: "w-full mt-2",
-                        }}
-                      />
+
+                      <div>
+                        <Label>Total orang</Label>
+                        <Input
+                          type="number"
+                          placeholder="Total orang"
+                          onChange={(e) => setPeople(Number(e.target.value))}
+                          min={data.data.minPersonCapacity}
+                          max={data.data.maxPersonCapacity}
+                          className="mt-2"
+                        />
+
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          * Ketika menentukan jumlah total orang, harap pastikan
+                          bahwa Anda juga turut dihitung dalam jumlah tersebut.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Pilih tanggal keberangkatan</Label>
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          className="rounded-md border shadow w-full"
+                          classNames={{
+                            months:
+                              "flex w-full flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 flex-1",
+                            month: "space-y-4 w-full flex flex-col",
+                            table: "w-full h-full border-collapse space-y-1",
+                            head_row: "",
+                            row: "w-full mt-2",
+                          }}
+                        />
+                      </div>
                     </div>
                     <DrawerFooter className="flex flex-row justify-end items-center">
                       <DrawerClose>
@@ -492,21 +544,40 @@ export default function PrivateTourDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <Input type="number" placeholder="Total orang" />
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      className="rounded-md border shadow w-full"
-                      classNames={{
-                        months:
-                          "flex w-full flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 flex-1",
-                        month: "space-y-4 w-full flex flex-col",
-                        table: "w-full h-full border-collapse space-y-1",
-                        head_row: "",
-                        row: "w-full mt-2",
-                      }}
-                    />
+                    <div>
+                      <Label>Total orang</Label>
+                      <Input
+                        type="number"
+                        placeholder="Total orang"
+                        onChange={(e) => setPeople(Number(e.target.value))}
+                        min={data.data.minPersonCapacity}
+                        max={data.data.maxPersonCapacity}
+                        className="mt-2"
+                      />
+
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        * Ketika menentukan jumlah total orang, harap pastikan
+                        bahwa Anda juga turut dihitung dalam jumlah tersebut.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Pilih tanggal keberangkatan</Label>
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        className="rounded-md border shadow w-full"
+                        classNames={{
+                          months:
+                            "flex w-full flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 flex-1",
+                          month: "space-y-4 w-full flex flex-col",
+                          table: "w-full h-full border-collapse space-y-1",
+                          head_row: "",
+                          row: "w-full mt-2",
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <Separator />
@@ -529,7 +600,7 @@ export default function PrivateTourDetailPage() {
 
                   {/* Contact Options */}
                   <div className="space-y-3">
-                    <Button size="lg" className="w-full">
+                    <Button size="lg" className="w-full" onClick={handleOrder}>
                       Pesan Sekarang
                     </Button>
                   </div>
