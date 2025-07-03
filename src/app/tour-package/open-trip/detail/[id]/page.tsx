@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import Header from "@/components/header";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Footer from "@/components/footer";
@@ -33,6 +33,7 @@ import {
   DrawerFooter,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { toast } from "sonner";
 
 interface TourPackage {
   id: string;
@@ -51,6 +52,11 @@ interface TourPackage {
   is_private: boolean;
   createdAt: string;
   updatedAt: string;
+  ticketAvailability: Array<{
+    date: string;
+    totalBooked: number;
+    remainingTickets: number;
+  }>;
 }
 
 export default function TourDetailPage() {
@@ -60,6 +66,7 @@ export default function TourDetailPage() {
     null
   );
   const isSmallScreen = useMediaQuery("(max-width: 1024px)");
+  const router = useRouter();
 
   const { data, isLoading, error } = useQuery<{
     data: TourPackage;
@@ -88,9 +95,29 @@ export default function TourDetailPage() {
     });
   };
 
-  const visibleImages = Array.isArray(data?.data.photoUrl) ? data.data.photoUrl.slice(0, 5) : [];
+  const getAvailabilityByDate = (date: string) => {
+    return data?.data.ticketAvailability?.find((item) => item.date === date);
+  };
+
+  const visibleImages = Array.isArray(data?.data.photoUrl)
+    ? data.data.photoUrl.slice(0, 5)
+    : [];
 
   const hasMoreImages = (data?.data.photoUrl?.length ?? 0) > 5;
+
+  const handleOrder = () => {
+    if (!selectedTicketDate) {
+      toast.error("Mohon pilih ticket yang ingin anda pesan.");
+      return;
+    }
+
+    const query = new URLSearchParams({
+      packageId: data?.data?.id || "",
+      departureDate: selectedTicketDate,
+    });
+
+    router.push(`/order/tour-package?${query.toString()}`);
+  };
 
   const advantageRef = useRef<HTMLDivElement | null>(null);
   const howToOrderRef = useRef<HTMLDivElement | null>(null);
@@ -442,7 +469,7 @@ export default function TourDetailPage() {
                       <Button variant="outline" size="icon">
                         <ChevronUp />
                       </Button>
-                      <Button>Pesan Sekarang</Button>
+                      <Button onClick={handleOrder}>Pesan Sekarang</Button>
                     </div>
                   </DrawerTrigger>
                   <DrawerContent>
@@ -459,21 +486,27 @@ export default function TourDetailPage() {
                         {Array.isArray(data?.data.tickets) &&
                           data.data.tickets.map((ticket, index) => {
                             const ticketDate = new Date(ticket.date);
-                            ticketDate.setHours(0, 0, 0, 0); // normalisasi jam ticket
+                            ticketDate.setHours(0, 0, 0, 0);
 
                             const today = new Date();
-                            today.setHours(0, 0, 0, 0); // normalisasi jam hari ini
+                            today.setHours(0, 0, 0, 0);
 
-                            const isUnavailable =
-                              ticketDate.getTime() <= today.getTime();
+                            const isPastDate = ticketDate < today;
+                            const availability = getAvailabilityByDate(
+                              ticket.date
+                            );
+                            const remainingTickets =
+                              availability?.remainingTickets || 0;
+                            const isSoldOut = remainingTickets <= 0;
+                            const isUnavailable = isPastDate || isSoldOut;
 
                             return (
                               <label
                                 key={index}
-                                className={`flex items-center gap-2 p-3 border rounded-lg transition-colors cursor-pointer ${
+                                className={`flex items-center gap-2 p-3 border rounded-lg ${
                                   isUnavailable
                                     ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                    : "hover:bg-muted/50"
+                                    : "hover:bg-muted/50 cursor-pointer"
                                 }`}
                               >
                                 <input
@@ -487,14 +520,26 @@ export default function TourDetailPage() {
                                   }
                                   className="accent-primary"
                                 />
-                                <span className="text-sm font-medium">
-                                  {formatDate(ticket.date)}{" "}
-                                  {isUnavailable && (
-                                    <span className="text-red-500 ml-1">
-                                      (tidak tersedia)
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {formatDate(ticket.date)}
+                                    {!isUnavailable && (
+                                      <span className="ml-2 text-xs font-normal text-green-600">
+                                        ({remainingTickets} tersedia dari{" "}
+                                        {data?.data.maxPersonCapacity})
+                                      </span>
+                                    )}
+                                  </span>
+                                  {isPastDate ? (
+                                    <span className="text-xs text-red-500">
+                                      (tanggal sudah lewat)
                                     </span>
-                                  )}
-                                </span>
+                                  ) : isSoldOut ? (
+                                    <span className="text-xs text-red-500">
+                                      (sudah habis)
+                                    </span>
+                                  ) : null}
+                                </div>
                               </label>
                             );
                           })}
@@ -532,21 +577,27 @@ export default function TourDetailPage() {
                       {Array.isArray(data?.data.tickets) &&
                         data.data.tickets.map((ticket, index) => {
                           const ticketDate = new Date(ticket.date);
-                          ticketDate.setHours(0, 0, 0, 0); // normalisasi jam ticket
+                          ticketDate.setHours(0, 0, 0, 0);
 
                           const today = new Date();
-                          today.setHours(0, 0, 0, 0); // normalisasi jam hari ini
+                          today.setHours(0, 0, 0, 0);
 
-                          const isUnavailable =
-                            ticketDate.getTime() <= today.getTime();
+                          const isPastDate = ticketDate < today;
+                          const availability = getAvailabilityByDate(
+                            ticket.date
+                          );
+                          const remainingTickets =
+                            availability?.remainingTickets || 0;
+                          const isSoldOut = remainingTickets <= 0;
+                          const isUnavailable = isPastDate || isSoldOut;
 
                           return (
                             <label
                               key={index}
-                              className={`flex items-center gap-2 p-3 border rounded-lg transition-colors cursor-pointer ${
+                              className={`flex items-center gap-2 p-3 border rounded-lg ${
                                 isUnavailable
                                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                  : "hover:bg-muted/50"
+                                  : "hover:bg-muted/50 cursor-pointer"
                               }`}
                             >
                               <input
@@ -560,14 +611,26 @@ export default function TourDetailPage() {
                                 }
                                 className="accent-primary"
                               />
-                              <span className="text-sm font-medium">
-                                {formatDate(ticket.date)}{" "}
-                                {isUnavailable && (
-                                  <span className="text-red-500 ml-1">
-                                    (tidak tersedia)
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {formatDate(ticket.date)}
+                                  {!isUnavailable && (
+                                    <span className="ml-2 text-xs font-normal text-green-600">
+                                      ({remainingTickets} tersedia dari{" "}
+                                      {data?.data.maxPersonCapacity})
+                                    </span>
+                                  )}
+                                </span>
+                                {isPastDate ? (
+                                  <span className="text-xs text-red-500">
+                                    (tanggal sudah lewat)
                                   </span>
-                                )}
-                              </span>
+                                ) : isSoldOut ? (
+                                  <span className="text-xs text-red-500">
+                                    (sudah habis)
+                                  </span>
+                                ) : null}
+                              </div>
                             </label>
                           );
                         })}
@@ -591,7 +654,7 @@ export default function TourDetailPage() {
 
                   {/* Contact Options */}
                   <div className="space-y-3">
-                    <Button size="lg" className="w-full">
+                    <Button size="lg" className="w-full" onClick={handleOrder}>
                       Pesan Sekarang
                     </Button>
                   </div>

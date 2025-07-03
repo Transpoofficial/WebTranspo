@@ -3,8 +3,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 
 import { orderTypes } from "./data/data";
 import { Order } from "./data/schema";
@@ -23,7 +21,10 @@ export const columns: ColumnDef<Order>[] = [
 
       return (
         <div className="w-[125px] max-w-[125px] flex flex-col gap-y-0.5">
-          <div title={user.fullName} className="text-sm font-medium text-gray-900 line-clamp-1 text-ellipsis">
+          <div
+            title={user.fullName}
+            className="text-sm font-medium text-gray-900 line-clamp-1 text-ellipsis"
+          >
             {user.fullName}
           </div>
           <div className="text-xs text-gray-500">
@@ -70,14 +71,33 @@ export const columns: ColumnDef<Order>[] = [
         }
       }
 
+      const packageOrder = order.packageOrder as {
+        package: { name: string };
+        departureDate: Date;
+      };
+
       return (
         <div className="flex flex-col space-y-1">
           <div className="flex items-center space-x-2">
             {orderType && <Badge variant="outline">{orderType.label}</Badge>}
           </div>
-          <span className="max-w-[300px] truncate text-sm text-gray-600">
-            {routeInfo || "No route info"}
-          </span>
+          {orderType?.value === "TRANSPORT" ? (
+            <span className="max-w-[300px] truncate text-sm text-gray-600">
+              {routeInfo || "No route info"}
+            </span>
+          ) : (
+            <>
+              <div className="max-w-[300px] truncate text-sm text-gray-600">
+                {packageOrder.package.name}
+              </div>
+              <div className="max-w-[300px] truncate text-sm text-gray-600">
+                Tanggal pemberangkatan:{" "}
+                {format(packageOrder.departureDate, "dd MMM yyyy", {
+                  locale: id,
+                })}
+              </div>
+            </>
+          )}
         </div>
       );
     },
@@ -264,39 +284,20 @@ export const columns: ColumnDef<Order>[] = [
       <DataTableColumnHeader column={column} title="Jenis Kendaraan" />
     ),
     cell: ({ row }) => {
-      const VehicleCell = () => {
-        interface VehicleType {
-          name: string;
-        }
+      const order = row.original;
+      const vehicle = order.vehicleType?.name || "-";
 
-        const { data: vehicleTypesResponse } = useQuery({
-          queryKey: ["vehicle-types"],
-          queryFn: async () => {
-            const response = await axios.get("/api/vehicle-types");
-            return response.data;
-          },
-        });
-
-        const order = row.original;
-        let vehicle = "-";
-
-        if (order.vehicleType?.name) {
-          const foundVehicle = vehicleTypesResponse?.data?.find(
-            (type: VehicleType) => type.name === order.vehicleType?.name
-          );
-          vehicle = foundVehicle ? foundVehicle.name : order.vehicleType.name;
-        }
-
-        return (
-          <div className="flex items-center">
-            <Badge variant="outline">{vehicle}</Badge>
-          </div>
-        );
-      };
-
-      return <VehicleCell />;
+      return (
+        <div className="flex items-center">
+          <Badge variant="outline">{vehicle}</Badge>
+        </div>
+      );
     },
     enableSorting: false,
     enableHiding: false,
+    filterFn: (row, id, value) => {
+      const vehicleName = row.original.vehicleType?.name || "";
+      return value.includes(vehicleName);
+    },
   },
 ];

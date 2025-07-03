@@ -33,6 +33,7 @@ interface OrderRequestBody {
   email?: string;
   totalPassengers?: string;
   note?: string;
+  departureDate?: string;
 }
 
 interface Destination {
@@ -499,47 +500,74 @@ const handleTourPackageOrder = async (
   orderId: string,
   body: OrderRequestBody
 ) => {
-  const { packageId, totalPrice } = body;
+  const { packageId, totalPassengers, departureDate } = body;
 
-  if (!packageId) {
+  if (!packageId || !departureDate) {
     throw new Error("Missing required fields for package order");
   }
 
-  // Validate package exists and get pricing
-  const tourPackage = await prisma.tourPackage.findUnique({
+  const tourPackage = await tx.tourPackage.findUnique({
     where: { id: packageId },
+    select: {
+      price: true,
+      is_private: true,
+      minPersonCapacity: true,
+      maxPersonCapacity: true,
+    },
   });
 
   if (!tourPackage) {
     throw new Error("Tour package not found");
   }
 
-  //  Validate package pricing - Convert Decimal to number
-  const frontendPrice = parseFloat(totalPrice || "0");
-  const actualPackagePrice = parseFloat(tourPackage.price.toString()); //  Convert Decimal to number
+  const basePrice = parseFloat(tourPackage.price.toString());
+  let validatedPrice = basePrice;
 
-  if (Math.abs(frontendPrice - actualPackagePrice) > 1000) {
-    // Allow small rounding differences
-    throw new Error(
-      `Package price validation failed. Expected: Rp ${actualPackagePrice.toLocaleString()}, ` +
-        `Received: Rp ${frontendPrice.toLocaleString()}`
-    );
+  if (tourPackage.is_private) {
+    const people = parseInt(totalPassengers || "0");
+
+    if (!people || isNaN(people)) {
+      throw new Error("Jumlah peserta diperlukan untuk private trip");
+    }
+
+    if (people < tourPackage.minPersonCapacity) {
+      throw new Error(
+        `Jumlah peserta kurang dari minimum: ${tourPackage.minPersonCapacity} orang`
+      );
+    }
+
+    if (people > tourPackage.maxPersonCapacity) {
+      throw new Error(
+        `Jumlah peserta melebihi maksimum: ${tourPackage.maxPersonCapacity} orang`
+      );
+    }
+
+    validatedPrice = basePrice * people;
+
+    await tx.packageOrder.create({
+      data: {
+        orderId,
+        packageId,
+        departureDate: new Date(departureDate),
+        people,
+      },
+    });
+  } else {
+    await tx.packageOrder.create({
+      data: {
+        orderId,
+        packageId,
+        departureDate: new Date(departureDate),
+      },
+    });
   }
 
-  // Create package order
-  await tx.packageOrder.create({
-    data: {
-      orderId: orderId,
-      packageId: packageId,
-      departureDate: new Date(), // Default date for now
-    },
-  });
-
   return {
-    validatedPrice: actualPackagePrice, //  Return converted number
+    validatedPrice,
   };
 };
 
+// Update the GET handler in route.ts
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
@@ -556,21 +584,42 @@ export const GET = async (req: NextRequest) => {
 
     // Search parameters
     const search = searchParams.get("search") || "";
-    const orderType = searchParams.get("orderType") || "";
-    const orderStatus = searchParams.get("orderStatus") || "";
-    const vehicleType = searchParams.get("vehicleType") || "";
-    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const orderTypes = searchParams.getAll("orderType");
+    const orderStatuses = searchParams.getAll("orderStatus");
+    const vehicleTypes = searchParams.getAll("vehicleType");
+    const paymentStatuses = searchParams.getAll("paymentStatus");
+    const dateFilter = searchParams.get("dateFilter") || "7";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const isPrivate = searchParams.get("isPrivate");
 
     // Build filter conditions
     const whereConditions: Prisma.OrderWhereInput = {};
 
     // Only filter by userId if user is CUSTOMER
-    // ADMIN and SUPER_ADMIN can see all orders
     if (user?.role === "CUSTOMER") {
       whereConditions.userId = token.id;
     }
 
-    // Search filter - searches across user info, order details
+    // Date filtering
+    if (dateFilter === "custom" && startDate && endDate) {
+      whereConditions.createdAt = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    } else {
+      const days = parseInt(dateFilter);
+      if (!isNaN(days)) {
+        const date = new Date();
+        date.setDate(date.getDate() - days);
+        whereConditions.createdAt = {
+          gte: date,
+          lte: new Date(),
+        };
+      }
+    }
+
+    // Search filter
     if (search) {
       whereConditions.OR = [
         { fullName: { contains: search } },
@@ -583,26 +632,43 @@ export const GET = async (req: NextRequest) => {
     }
 
     // Order type filter
-    if (orderType) {
-      whereConditions.orderType = orderType as OrderType;
+    if (orderTypes.length > 0) {
+      whereConditions.orderType = {
+        in: orderTypes as OrderType[],
+      };
     }
 
     // Order status filter
-    if (orderStatus) {
-      whereConditions.orderStatus = orderStatus as OrderStatus;
+    if (orderStatuses.length > 0) {
+      whereConditions.orderStatus = {
+        in: orderStatuses as OrderStatus[],
+      };
     }
 
     // Vehicle type filter
-    if (vehicleType) {
+    if (vehicleTypes.length > 0) {
       whereConditions.vehicleType = {
-        name: vehicleType,
+        name: {
+          in: vehicleTypes,
+        },
       };
     }
 
     // Payment status filter
-    if (paymentStatus) {
+    if (paymentStatuses.length > 0) {
       whereConditions.payment = {
-        paymentStatus: paymentStatus as PaymentStatus,
+        paymentStatus: {
+          in: paymentStatuses as PaymentStatus[],
+        },
+      };
+    }
+
+    // Tour type filter (only applicable when orderType includes TOUR)
+    if (isPrivate !== null && (orderTypes.includes("TOUR") || orderTypes.length === 0)) {
+      whereConditions.packageOrder = {
+        package: {
+          is_private: isPrivate === "true",
+        },
       };
     }
 
@@ -625,7 +691,11 @@ export const GET = async (req: NextRequest) => {
             destinations: true,
           },
         },
-        packageOrder: true,
+        packageOrder: {
+          include: {
+            package: true,
+          },
+        },
         vehicleType: true,
         payment: true,
       },

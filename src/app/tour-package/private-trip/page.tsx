@@ -129,7 +129,7 @@ export default function PrivateTrip() {
             ) : (
               data?.data.map((pkg) => (
                 <Link key={pkg.id} href={`/tour-package/private-trip/detail/${pkg.id}`}>
-                  <Card className="w-full overflow-hidden bg-white shadow-none cursor-pointer !pt-0">
+                  <Card className="h-full w-full overflow-hidden bg-white shadow-none cursor-pointer !pt-0">
                     {/* Hero Image */}
                     <div className="relative">
                       <Image

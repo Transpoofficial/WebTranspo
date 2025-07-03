@@ -178,7 +178,7 @@ export default function OpenTrip() {
             ) : (
               data?.data.map((pkg) => (
                 <Link key={pkg.id} href={`/tour-package/open-trip/detail/${pkg.id}`}>
-                  <Card className="w-full overflow-hidden bg-white shadow-none cursor-pointer !pt-0">
+                  <Card className="h-full w-full overflow-hidden bg-white shadow-none cursor-pointer !pt-0">
                     {/* Hero Image */}
                     <div className="relative">
                       <Image
