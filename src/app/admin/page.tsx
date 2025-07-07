@@ -20,7 +20,12 @@ interface VehicleType {
 interface Order {
   transportation: Transportation;
   vehicleType: VehicleType;
+  orderType: string;
+  packageOrder: {
+    departureDate: string;
+  }
 }
+
 import {
   Bar,
   BarChart,
@@ -97,9 +102,17 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
     const monthlyOrders = Array(12).fill(0);
 
     ordersData.data.forEach((order: Order) => {
-      const orderDate = new Date(
-        order.transportation.destinations[0].departureDate
-      );
+      let departureDate: string | undefined;
+      
+      if (order.orderType === "TRANSPORT" && order.transportation?.destinations?.[0]?.departureDate) {
+        departureDate = order.transportation.destinations[0].departureDate;
+      } else if (order.orderType === "TOUR" && order.packageOrder?.departureDate) {
+        departureDate = order.packageOrder.departureDate;
+      }
+
+      if (!departureDate) return;
+
+      const orderDate = new Date(departureDate);
       if (orderDate.getFullYear() === currentYear) {
         monthlyOrders[orderDate.getMonth()]++;
       }
@@ -129,8 +142,10 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
     let total = 0;
 
     ordersData.data.forEach((order: Order) => {
-      const vehicleType = order.vehicleType.name.toLowerCase();
-      vehicleCounts[vehicleType] = (vehicleCounts[vehicleType] || 0) + 1;
+      const vehicleTypeName = order.vehicleType?.name?.toLowerCase();
+      if (!vehicleTypeName) return; // skip jika tidak ada vehicle type
+
+      vehicleCounts[vehicleTypeName] = (vehicleCounts[vehicleTypeName] || 0) + 1;
       total++;
     });
 

@@ -142,6 +142,7 @@ model PackageOrder {
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
   departureDate           DateTime
+  people                  Int?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
