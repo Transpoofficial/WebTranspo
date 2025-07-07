@@ -513,12 +513,13 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     // ✅ Final sanitization of note before saving
     const finalNote = sanitizeNote(note);
 
-    // ✅ Use consistent price calculation from utils
+    // ✅ NEW: Use updated price calculation with per-trip mechanism
+    // Note: totalDistance parameter is no longer used in new calculation
     const priceResult = calculateTotalPrice(
       vehicleName,
-      totalDistance / 1000, // Convert to km
+      0, // This parameter is now ignored in favor of individual trip distances
       orderData.userData.totalVehicles || 1,
-      updatedTrip
+      updatedTrip // Each trip contains its own distance for calculation
     );
 
     // Update orderData
