@@ -112,10 +112,7 @@ export function validateDistance(distanceKm: number): boolean {
 }
 
 // ✅ Enhanced price calculation functions with validation - NEW: Per trip calculation
-export function calculateAngkotPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+export function calculateAngkotPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
@@ -158,10 +155,7 @@ export function calculateAngkotPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiaceCommuterPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+export function calculateHiaceCommuterPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
@@ -190,10 +184,7 @@ export function calculateHiaceCommuterPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiacePremioPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+export function calculateHiacePremioPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
@@ -222,10 +213,7 @@ export function calculateHiacePremioPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateElfPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+export function calculateElfPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Elf: ${distanceKm}km`);
