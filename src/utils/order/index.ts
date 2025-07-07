@@ -111,11 +111,8 @@ export function validateDistance(distanceKm: number): boolean {
   return validation.isValid;
 }
 
-// ✅ Enhanced price calculation functions with validation
-export function calculateAngkotPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ Enhanced price calculation functions with validation - NEW: Per trip calculation
+export function calculateAngkotPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
@@ -129,69 +126,123 @@ export function calculateAngkotPrice(
     );
   }
 
-  // New formula: (150.000 + (4100 × Jarak)) + 20% (updated from 10%)
+  // NEW formula: (150.000 + (4100 × Jarak)) × 1.2 (per trip, not multiplied by vehicle count here)
   const basePrice = 150000 + 4100 * distanceKm;
-  const priceWithTax = basePrice * 1.2; // Add 20% (changed from 10%)
-  const totalPrice = priceWithTax * vehicleCount;
+  const priceWithTax = basePrice * 1.2; // Add 20%
 
-  return Math.round(totalPrice);
+  return Math.round(priceWithTax);
 }
 
-export function calculateHiaceCommuterPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Angkot
+export function calculateAngkotPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Angkot should not be used for very long distances
+  if (distanceKm > 200) {
+    console.warn(
+      `Angkot distance too long: ${distanceKm}km. Consider other vehicles.`
+    );
+  }
+
+  // Formula per trip: (150.000 + (4100 × Jarak)) × 1.2
+  const basePrice = 150000 + 4100 * distanceKm;
+  const priceWithTax = basePrice * 1.2; // Add 20%
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateHiaceCommuterPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
     return 0;
   }
 
-  // New formula: (1.000.000 + (2500 × Jarak)) + 10%
+  // NEW formula: (1.000.000 + (2500 × Jarak)) × 1.1 (per trip, not multiplied by vehicle count here)
   const basePrice = 1000000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
-  const totalPrice = priceWithTax * vehicleCount;
 
-  return Math.round(totalPrice);
+  return Math.round(priceWithTax);
 }
 
-export function calculateHiacePremioPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Hiace Commuter
+export function calculateHiaceCommuterPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Formula per trip: (1.000.000 + (2500 × Jarak)) × 1.1
+  const basePrice = 1000000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateHiacePremioPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
     return 0;
   }
 
-  // Original formula as specified: 1,150,000 + (25,000 × Jarak KM) + PPN 10%
+  // NEW formula: (1,150,000 + (25,000 × Jarak KM)) × 1.1 (per trip, not multiplied by vehicle count here)
   const basePrice = 1150000 + 25000 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10% PPN
-  const totalPrice = priceWithTax * vehicleCount;
 
-  return Math.round(totalPrice);
+  return Math.round(priceWithTax);
 }
 
-export function calculateElfPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Hiace Premio
+export function calculateHiacePremioPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Formula per trip: (1,150,000 + (25,000 × Jarak KM)) × 1.1
+  const basePrice = 1150000 + 25000 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10% PPN
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateElfPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Elf: ${distanceKm}km`);
     return 0;
   }
 
-  // New formula: (1.250.000 + (2500 × Jarak)) + 10%
+  // NEW formula: (1.250.000 + (2500 × Jarak)) × 1.1 (per trip, not multiplied by vehicle count here)
   const basePrice = 1250000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10%
-  const totalPrice = priceWithTax * vehicleCount;
 
-  return Math.round(totalPrice);
+  return Math.round(priceWithTax);
 }
 
-// ✅ Main price calculation function for consistency
+// ✅ NEW: Calculate price for single trip/day for ELF
+export function calculateElfPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Elf: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Formula per trip: (1.250.000 + (2500 × Jarak)) × 1.1
+  const basePrice = 1250000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+
+  return Math.round(priceWithTax);
+}
+
+// ✅ Main price calculation function with NEW per-trip mechanism
 export function calculateTotalPrice(
   vehicleTypeName: string,
   distanceKm: number,
@@ -202,36 +253,94 @@ export function calculateTotalPrice(
   interTripCharges: number;
   elfOutOfMalangCharges: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
 } {
   const vehicleType = vehicleTypeName.toLowerCase();
-  const numberOfDays = trips.length; // Jumlah hari berdasarkan jumlah trips
-  let basePricePerDay = 0;
+  let totalBasePriceAllTrips = 0;
+  const tripBreakdown: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }> = [];
 
-  // Calculate base price per day based on vehicle type
-  if (vehicleType.includes("angkot")) {
-    basePricePerDay = calculateAngkotPrice(distanceKm, vehicleCount);
-  } else if (
-    vehicleType.includes("hiace") &&
-    vehicleType.includes("commuter")
-  ) {
-    basePricePerDay = calculateHiaceCommuterPrice(distanceKm, vehicleCount);
-  } else if (vehicleType.includes("hiace") && vehicleType.includes("premio")) {
-    basePricePerDay = calculateHiacePremioPrice(distanceKm, vehicleCount);
-  } else if (vehicleType.includes("elf")) {
-    basePricePerDay = calculateElfPrice(distanceKm, vehicleCount);
-  } else {
-    // Fallback calculation
-    const defaultRate = 6000;
-    basePricePerDay = Math.round(defaultRate * distanceKm * vehicleCount);
+  // ✅ NEW: Calculate price per trip individually, then sum them up
+  for (const trip of trips) {
+    // Calculate distance for this specific trip
+    let tripDistanceKm = 0;
+
+    // If trip has distance data, use it (convert from meters to km)
+    if (trip.distance && trip.distance > 0) {
+      tripDistanceKm = trip.distance / 1000;
+    } else {
+      // Fallback: calculate from locations if no distance data
+      if (trip.location && trip.location.length >= 2) {
+        let tripDistanceMeters = 0;
+        for (let i = 0; i < trip.location.length - 1; i++) {
+          const currentLoc = trip.location[i];
+          const nextLoc = trip.location[i + 1];
+
+          if (
+            currentLoc.lat !== null &&
+            currentLoc.lng !== null &&
+            nextLoc.lat !== null &&
+            nextLoc.lng !== null
+          ) {
+            const segmentDistance = calculateDistance(
+              currentLoc.lat,
+              currentLoc.lng,
+              nextLoc.lat,
+              nextLoc.lng
+            );
+            tripDistanceMeters += segmentDistance * 1000; // Convert km to meters
+          }
+        }
+        tripDistanceKm = tripDistanceMeters / 1000; // Convert back to km
+      }
+    }
+
+    // Calculate price for this trip based on vehicle type
+    let tripPrice = 0;
+    if (vehicleType.includes("angkot")) {
+      tripPrice = calculateAngkotPricePerTrip(tripDistanceKm);
+    } else if (
+      vehicleType.includes("hiace") &&
+      vehicleType.includes("commuter")
+    ) {
+      tripPrice = calculateHiaceCommuterPricePerTrip(tripDistanceKm);
+    } else if (
+      vehicleType.includes("hiace") &&
+      vehicleType.includes("premio")
+    ) {
+      tripPrice = calculateHiacePremioPricePerTrip(tripDistanceKm);
+    } else if (vehicleType.includes("elf")) {
+      tripPrice = calculateElfPricePerTrip(tripDistanceKm);
+    } else {
+      // Fallback calculation per trip
+      const defaultRate = 6000;
+      tripPrice = Math.round(defaultRate * tripDistanceKm);
+    }
+
+    totalBasePriceAllTrips += tripPrice;
+
+    // Add to breakdown for detailed display
+    tripBreakdown.push({
+      date: trip.date.toISOString().split("T")[0],
+      distance: tripDistanceKm,
+      pricePerTrip: tripPrice,
+    });
   }
 
-  // ✅ NEW: Calculate total base price = base price per day × number of days
-  const totalBasePrice = basePricePerDay * numberOfDays;
+  // ✅ NEW: Multiply total of all trips by vehicle count
+  const totalBasePrice = totalBasePriceAllTrips * vehicleCount;
 
-  // Calculate inter-trip charges
+  // Calculate inter-trip charges (NOT multiplied by vehicle count)
   const interTripCharges = calculateInterTripCharges(trips);
 
-  // ✅ NEW: Calculate ELF out-of-Malang charges
+  // ✅ Calculate ELF out-of-Malang charges (NOT multiplied by vehicle count)
   const elfChargeData = calculateElfOutOfMalangCharges(
     trips.map((trip) => ({
       date: trip.date.toISOString().split("T")[0], // Convert Date to string
@@ -253,5 +362,6 @@ export function calculateTotalPrice(
     interTripCharges: Math.round(interTripCharges),
     elfOutOfMalangCharges: Math.round(elfOutOfMalangCharges),
     totalPrice: Math.round(totalPrice),
+    tripBreakdown,
   };
 }

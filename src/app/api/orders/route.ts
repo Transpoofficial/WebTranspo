@@ -198,12 +198,13 @@ const validateTransportPricing = async (
   // Convert total distance from meters to kilometers
   const actualTotalDistanceKm = actualTotalDistance / 1000;
 
-  // Calculate price using backend distance (both should be very close now)
+  // ✅ NEW: Use updated calculateTotalPrice with per-trip mechanism
+  // Note: actualTotalDistanceKm is now only used for validation, not calculation
   const priceResult = calculateTotalPrice(
     vehicleType.name,
-    actualTotalDistanceKm,
+    actualTotalDistanceKm, // This parameter is now ignored in favor of individual trip distances
     vehicleCount,
-    tripsForCalculation // This will include inter-trip charges
+    tripsForCalculation // Each trip has its own distance for calculation
   );
 
   // ✅ Enhanced validation with dynamic tolerance based on distance and vehicle type
@@ -664,7 +665,10 @@ export const GET = async (req: NextRequest) => {
     }
 
     // Tour type filter (only applicable when orderType includes TOUR)
-    if (isPrivate !== null && (orderTypes.includes("TOUR") || orderTypes.length === 0)) {
+    if (
+      isPrivate !== null &&
+      (orderTypes.includes("TOUR") || orderTypes.length === 0)
+    ) {
       whereConditions.packageOrder = {
         package: {
           is_private: isPrivate === "true",

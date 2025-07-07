@@ -50,6 +50,11 @@ interface PriceCalculationResponse {
   interTripCharges: number;
   elfOutOfMalangCharges?: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
   breakdown: {
     tripDistances: Array<{
       date: string;
@@ -521,12 +526,31 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                     Rincian Biaya
                   </h4>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
+                    {/* NEW: Show detailed per-trip breakdown */}
+                    {calculatedPrice.tripBreakdown &&
+                      calculatedPrice.tripBreakdown.length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium text-blue-700 mb-1">
+                            Biaya Per Trip/Hari:
+                          </div>
+                          {calculatedPrice.tripBreakdown.map((trip, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between text-xs text-blue-600 ml-2"
+                            >
+                              <span>
+                                Hari {idx + 1} ({trip.distance.toFixed(1)} km):
+                              </span>
+                              <span>{formatRupiah(trip.pricePerTrip)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    <div className="flex justify-between border-t border-blue-300 pt-1">
                       <span>
-                        Biaya Dasar (
-                        {calculatedPrice.totalDistanceKm.toFixed(1)} km ×{" "}
-                        {calculatedPrice.vehicleCount} armada ×{" "}
-                        {Object.values(tripsByDate).length} hari):
+                        Subtotal (Total semua trip ×{" "}
+                        {calculatedPrice.vehicleCount} armada):
                       </span>
                       <span>{formatRupiah(calculatedPrice.basePrice)}</span>
                     </div>
