@@ -20,8 +20,8 @@ const PROTECTED_ROUTES: string[] = [
   "/api/users/*",
   "/api/vehicle-types",
   "/api/vehicle-types/*",
-  "/api/articles",
-  "/api/articles/*",
+  // "/api/articles",
+  // "/api/articles/*",
   "/api/dashboard",
   "/api/dashboard/*",
 ];
