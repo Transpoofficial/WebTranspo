@@ -22,12 +22,9 @@ import axios from "axios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import TourPackageUpdateDialog from "./tour-package-update-dialog";
-<<<<<<< HEAD
-=======
 import Pagination from "./pagination";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
 
 interface TourPackage {
   id: string;
@@ -42,10 +39,6 @@ interface TourPackage {
   excludes: Array<{ text: string }>;
   itineraries: Array<{ text?: string; opsional?: string }>;
   requirements: Array<{ text: string }>;
-<<<<<<< HEAD
-
-=======
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
   tickets: Array<{ date: string }> | null;
   is_private: boolean;
   createdAt: string;
@@ -56,14 +49,11 @@ const TourPackageTable = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUpdateDialog, setOpenUpdateDialog] = useState<string | null>(null);
   const queryClient = useQueryClient();
-<<<<<<< HEAD
-=======
   const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
   const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [isPrivate, setIsPrivate] = useState<string>("all");
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
 
   const handleDropdownToggle = (id: string) => {
     setOpenDropdown((prev) => (prev === id ? null : id));
@@ -71,13 +61,6 @@ const TourPackageTable = () => {
 
   const { data, isLoading, error } = useQuery<{
     data: TourPackage[];
-<<<<<<< HEAD
-  }>({
-    queryKey: ["tour-packages"],
-    queryFn: async () => {
-      const response = await axios.get("/api/tour-packages");
-      return response.data;
-=======
     pagination: {
       total: number;
       skip: number;
@@ -95,7 +78,6 @@ const TourPackageTable = () => {
 
       const res = await axios.get(`/api/tour-packages?${params.toString()}`);
       return res.data;
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
     },
   });
 
@@ -125,15 +107,9 @@ const TourPackageTable = () => {
   };
 
   const formatPrice = (price: string) => {
-<<<<<<< HEAD
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-=======
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
       minimumFractionDigits: 0,
     }).format(Number(price));
   };
@@ -143,10 +119,6 @@ const TourPackageTable = () => {
     return null;
   }
 
-<<<<<<< HEAD
-  return (
-    <>
-=======
   const handleLongPressStart = (id: string) => {
     longPressTimer.current = setTimeout(() => {
       setOpenDropdown((prev) => (prev === id ? null : id));
@@ -190,7 +162,6 @@ const TourPackageTable = () => {
         </Select>
       </div>
 
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
       <Table>
         <TableHeader>
           <TableRow>
@@ -241,26 +212,19 @@ const TourPackageTable = () => {
                   <ContextMenu>
                     <ContextMenuTrigger asChild>
                       <TableRow
-<<<<<<< HEAD
-=======
                         onMouseDown={() => handleLongPressStart(row.id)}
                         onMouseUp={handleLongPressEnd}
                         onMouseLeave={handleLongPressEnd}
                         onTouchStart={() => handleLongPressStart(row.id)}
                         onTouchEnd={handleLongPressEnd}
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
                         className="transition duration-200 active:scale-99 cursor-pointer"
                       >
                         <TableCell className="font-medium">
                           {index + 1}
                         </TableCell>
-<<<<<<< HEAD
-                        <TableCell className="font-medium">{row.name}</TableCell>
-=======
                         <TableCell className="font-medium">
                           {row.name}
                         </TableCell>
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
                         <TableCell>{formatPrice(row.price)}</TableCell>
                         <TableCell>{row.meetingPoint}</TableCell>
                         <TableCell>
@@ -340,15 +304,6 @@ const TourPackageTable = () => {
                       </div>
                     </DrawerContent>
                   </Drawer>
-<<<<<<< HEAD
-
-                  <TourPackageUpdateDialog
-                    openUpdateDialog={openUpdateDialog}
-                    setOpenUpdateDialog={setOpenUpdateDialog}
-                    tourPackageId={openUpdateDialog}
-                  />
-=======
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
                 </React.Fragment>
               );
             })
@@ -361,8 +316,6 @@ const TourPackageTable = () => {
           )}
         </TableBody>
       </Table>
-<<<<<<< HEAD
-=======
 
       {data?.pagination && (
         <Pagination
@@ -382,13 +335,8 @@ const TourPackageTable = () => {
         setOpenUpdateDialog={setOpenUpdateDialog}
         tourPackageId={openUpdateDialog}
       />
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
     </>
   );
 };
 
-<<<<<<< HEAD
 export default TourPackageTable;
-=======
-export default TourPackageTable;
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52

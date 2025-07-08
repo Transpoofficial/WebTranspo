@@ -9,13 +9,6 @@ export const GET = async (req: NextRequest) => {
     const { skip, limit } = getPaginationParams(req.url);
     const { query } = parse(req.url!, true);
 
-<<<<<<< HEAD
-    const totalCount = await prisma.tourPackage.count();
-
-    const packages = await prisma.tourPackage.findMany({
-      skip,
-      take: limit,
-=======
     const search = (query.search as string) || "";
     const date = query.date as string | undefined;
     const is_private_raw = query.is_private as string | undefined;
@@ -35,7 +28,6 @@ export const GET = async (req: NextRequest) => {
           },
         }),
       },
->>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
       orderBy: {
         createdAt: "desc",
       },
