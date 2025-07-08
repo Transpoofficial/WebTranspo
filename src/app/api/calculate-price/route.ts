@@ -34,7 +34,13 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
   breakdown: {
     tripDistances: Array<{
       date: string;
@@ -173,15 +179,17 @@ export async function POST(req: NextRequest) {
         return {
           date: new Date(tripDateString),
           location: validLocations,
-          distance: tripDistance,
+          distance: tripDistance * 1000, // Convert to meters for consistency with Trip interface
         };
       })
     );
 
-    // Use the same calculateTotalPrice function as the orders endpoint
+    // ✅ NEW: Use the updated calculateTotalPrice function with per-trip mechanism
+    // Note: totalDistanceKm parameter is no longer used in the new calculation,
+    // but kept for backward compatibility
     const priceResult = calculateTotalPrice(
       vehicleType.name,
-      totalDistanceKm,
+      totalDistanceKm, // This parameter is now ignored in favor of individual trip distances
       vehicleCount,
       processedTrips
     );
@@ -246,7 +254,9 @@ export async function POST(req: NextRequest) {
       vehicleCount,
       basePrice: priceResult.basePrice,
       interTripCharges: priceResult.interTripCharges,
+      elfOutOfMalangCharges: priceResult.elfOutOfMalangCharges || 0,
       totalPrice: priceResult.totalPrice,
+      tripBreakdown: priceResult.tripBreakdown,
       breakdown: {
         tripDistances,
         interTripDetails,

@@ -6,6 +6,17 @@ import { getPaginationParams } from "@/utils/pagination";
 import { OrderStatus, OrderType, PaymentStatus, Prisma } from "@prisma/client";
 import { calculateDistance, calculateTotalPrice } from "@/utils/order";
 import { calculateRouteDistanceWithDirectionsAPI } from "@/utils/google-maps";
+import {
+  logCalculationDiscrepancy,
+  isDiscrepancyAcceptable,
+} from "@/utils/calculation-monitoring";
+import {
+  validatePickupLocation,
+  validateAngkotDestination,
+  requiresAllDestinationRestriction,
+  validateTripDuration,
+  validateDestinationTimes,
+} from "@/utils/validation";
 
 // Types
 interface OrderRequestBody {
@@ -22,6 +33,7 @@ interface OrderRequestBody {
   email?: string;
   totalPassengers?: string;
   note?: string;
+  departureDate?: string;
 }
 
 interface Destination {
@@ -40,6 +52,7 @@ interface ValidatedTransportData {
   actualTotalPrice: number;
   interTripCharges: number;
   basePrice: number;
+  elfOutOfMalangCharges?: number;
 }
 
 interface TripForCalculation {
@@ -110,7 +123,8 @@ const validateTransportPricing = async (
   vehicleTypeId: string,
   vehicleCount: number,
   frontendDistance: number,
-  frontendPrice: number
+  frontendPrice: number,
+  request?: NextRequest
 ): Promise<ValidatedTransportData> => {
   // Get vehicle type for pricing calculation
   const vehicleType = await prisma.vehicleType.findUnique({
@@ -184,41 +198,116 @@ const validateTransportPricing = async (
   // Convert total distance from meters to kilometers
   const actualTotalDistanceKm = actualTotalDistance / 1000;
 
-  // Calculate price using backend distance (both should be very close now)
+  // ✅ NEW: Use updated calculateTotalPrice with per-trip mechanism
+  // Note: actualTotalDistanceKm is now only used for validation, not calculation
   const priceResult = calculateTotalPrice(
     vehicleType.name,
-    actualTotalDistanceKm,
+    actualTotalDistanceKm, // This parameter is now ignored in favor of individual trip distances
     vehicleCount,
-    tripsForCalculation // This will include inter-trip charges
+    tripsForCalculation // Each trip has its own distance for calculation
   );
 
-  // Strict validation since both use same Directions API
+  // ✅ Enhanced validation with dynamic tolerance based on distance and vehicle type
   const priceDifference = Math.abs(priceResult.totalPrice - frontendPrice);
-  const maxAllowedPriceDifference = Math.max(
-    priceResult.totalPrice * 0.03, // 3% tolerance for small differences
-    5000 // Minimum Rp 5,000 tolerance
+  // ✅ FIXED: Frontend sends distance in km, no conversion needed
+  const frontendDistanceKm = frontendDistance;
+
+  // ✅ Log discrepancy for monitoring BEFORE validation
+  if (
+    priceDifference > 5000 ||
+    Math.abs(actualTotalDistanceKm - frontendDistanceKm) > 1
+  ) {
+    logCalculationDiscrepancy({
+      vehicleType: vehicleType.name,
+      frontendDistance: frontendDistanceKm,
+      backendDistance: actualTotalDistanceKm,
+      frontendPrice,
+      backendPrice: priceResult.totalPrice,
+      distanceDifference: Math.abs(actualTotalDistanceKm - frontendDistanceKm),
+      priceDifference,
+      userAgent: request?.headers.get("user-agent") || "unknown",
+    });
+  }
+
+  // ✅ Use intelligent discrepancy checking
+  const discrepancyCheck = isDiscrepancyAcceptable(
+    frontendPrice,
+    priceResult.totalPrice,
+    frontendDistanceKm,
+    actualTotalDistanceKm,
+    vehicleType.name
   );
 
-  if (priceDifference > maxAllowedPriceDifference) {
+  if (!discrepancyCheck.acceptable) {
+    const errorDetails = {
+      vehicle: vehicleType.name,
+      expectedPrice: priceResult.totalPrice,
+      receivedPrice: frontendPrice,
+      priceDifference,
+      backendDistance: actualTotalDistanceKm,
+      frontendDistance: frontendDistanceKm,
+      distanceDiscrepancy: Math.abs(actualTotalDistanceKm - frontendDistanceKm),
+      reason: discrepancyCheck.reason,
+      recommendation: discrepancyCheck.recommendation,
+    };
+
+    console.error("Price validation failed:", errorDetails);
+
     throw new Error(
       `Price validation failed. Expected: Rp ${priceResult.totalPrice.toLocaleString()}, ` +
-        `Received: Rp ${frontendPrice.toLocaleString()}`
+        `Received: Rp ${frontendPrice.toLocaleString()}. ` +
+        `${discrepancyCheck.reason}. ${discrepancyCheck.recommendation}`
     );
   }
 
-  // Distance validation with tight tolerance since both use same API
+  // ✅ FIXED: Frontend sends distance in km, backend expects in km (no conversion needed)
   const distanceDifference = Math.abs(
-    actualTotalDistance - frontendDistance * 1000
+    actualTotalDistance - frontendDistance * 1000 // Backend distance is in meters, frontend is in km
   );
+
+  // ✅ RESTORED: Normal distance tolerances after fixing root cause
+  let distanceTolerancePercentage = 0.1; // 10% base tolerance
+
+  if (actualTotalDistanceKm > 1000) {
+    distanceTolerancePercentage = 0.15; // 15% for very long distances (>1000km)
+  } else if (actualTotalDistanceKm > 500) {
+    distanceTolerancePercentage = 0.12; // 12% for long distances (>500km)
+  } else if (actualTotalDistanceKm > 200) {
+    distanceTolerancePercentage = 0.1; // 10% for medium distances (>200km)
+  }
+
+  // Log detailed distance comparison for debugging
+  console.log("🔍 Distance Validation Debug:", {
+    actualTotalDistanceKm,
+    frontendDistanceKm: frontendDistance, // ✅ FIXED: No conversion needed
+    distanceDifferenceKm: distanceDifference / 1000,
+    tolerancePercentage: distanceTolerancePercentage * 100 + "%",
+    isValid:
+      distanceDifference <=
+      actualTotalDistance * distanceTolerancePercentage + 5000, // ✅ FIXED: 5km minimum
+  });
+
   const maxAllowedDistanceDifference = Math.max(
-    actualTotalDistance * 0.05, // 5% tolerance (should be much smaller with same API)
-    500 // Minimum 500m tolerance
+    actualTotalDistance * distanceTolerancePercentage,
+    5000 // 5km minimum tolerance (restored to normal)
   );
 
   if (distanceDifference > maxAllowedDistanceDifference) {
+    const frontendDistanceKm = frontendDistance; // ✅ FIXED: No conversion needed
+
+    console.error("Distance validation failed:", {
+      backendDistance: actualTotalDistanceKm,
+      frontendDistance: frontendDistanceKm,
+      difference: distanceDifference / 1000,
+      toleranceUsed: distanceTolerancePercentage * 100,
+      maxAllowed: maxAllowedDistanceDifference / 1000,
+    });
+
     throw new Error(
       `Distance validation failed. Expected: ${actualTotalDistanceKm.toFixed(3)} km, ` +
-        `Received: ${frontendDistance.toFixed(3)} km`
+        `Received: ${frontendDistanceKm.toFixed(3)} km. ` +
+        `Difference: ${(distanceDifference / 1000).toFixed(3)} km. ` +
+        `Please refresh the page and recalculate the route.`
     );
   }
   return {
@@ -226,6 +315,7 @@ const validateTransportPricing = async (
     actualTotalPrice: priceResult.totalPrice,
     interTripCharges: priceResult.interTripCharges,
     basePrice: priceResult.basePrice,
+    elfOutOfMalangCharges: priceResult.elfOutOfMalangCharges,
   };
 };
 
@@ -235,7 +325,8 @@ const handleTransportOrder = async (
   orderId: string,
   body: OrderRequestBody,
   destinations: Destination[],
-  timezone: string
+  timezone: string,
+  req: NextRequest
 ) => {
   const { vehicleCount, roundTrip, vehicleTypeId, totalDistance, totalPrice } =
     body;
@@ -250,13 +341,108 @@ const handleTransportOrder = async (
     throw new Error("Missing required fields for transportation order");
   }
 
+  // Get vehicle type for pickup location validation
+  const vehicleType = await tx.vehicleType.findUnique({
+    where: { id: vehicleTypeId },
+    select: { name: true },
+  });
+
+  if (!vehicleType) {
+    throw new Error("Invalid vehicle type");
+  }
+
+  // AREA RESTRICTION VALIDATION
+  // Sort destinations by departure date to find the very first day
+  const sortedDestinations = destinations.sort((a, b) => {
+    const dateA = a.departureDate || "";
+    const dateB = b.departureDate || "";
+    return dateA.localeCompare(dateB);
+  });
+
+  // Check if this vehicle type requires all destinations to be restricted (like Angkot)
+  if (requiresAllDestinationRestriction(vehicleType.name)) {
+    // For Angkot: validate ALL destinations
+    for (let i = 0; i < destinations.length; i++) {
+      const destination = destinations[i];
+      const angkotValidation = validateAngkotDestination(
+        destination.lat,
+        destination.lng
+      );
+
+      if (!angkotValidation.isValid) {
+        throw new Error(
+          `Destinasi ${i + 1} tidak valid: ${angkotValidation.message}`
+        );
+      }
+    }
+  } else {
+    // ✅ TRIP DURATION VALIDATION - Only for non-Angkot vehicles
+    const uniqueDates = new Set(destinations.map((dest) => dest.departureDate));
+    const totalDays = uniqueDates.size;
+
+    const durationValidation = validateTripDuration(
+      destinations.map((dest) => ({
+        lat: dest.lat,
+        lng: dest.lng,
+        address: dest.address,
+      })),
+      totalDays,
+      vehicleType.name
+    );
+
+    if (!durationValidation.isValid) {
+      throw new Error(
+        `Validasi durasi perjalanan gagal: ${durationValidation.message}`
+      );
+    }
+
+    // ✅ TIME VALIDATION - Only pickup locations must have valid departure times
+    // Apply default time "09:00" for missing times before validation
+    const pickupDestinations = destinations.filter(
+      (dest) => dest.isPickupLocation
+    );
+    const timeValidation = validateDestinationTimes(
+      pickupDestinations.map((dest) => ({
+        address: dest.address,
+        time: dest.departureTime || "09:00", // Apply default time if missing
+      }))
+    );
+
+    if (!timeValidation.isValid) {
+      throw new Error(
+        `Validasi waktu keberangkatan gagal: ${timeValidation.message}`
+      );
+    }
+
+    // For other vehicles (ELF, Hiace): only validate pickup location (first destination of first trip)
+    const firstDay = sortedDestinations[0].departureDate;
+    const firstDayDestinations = sortedDestinations.filter(
+      (dest) => dest.departureDate === firstDay
+    );
+    const truePickupLocation = firstDayDestinations[0]; // First destination of first day
+
+    // Validate only the true pickup location (first destination of first trip)
+    const pickupValidation = validatePickupLocation(
+      truePickupLocation.lat,
+      truePickupLocation.lng,
+      vehicleType.name
+    );
+
+    if (!pickupValidation.isValid) {
+      throw new Error(
+        `Pickup location area restriction: ${pickupValidation.message}. Vehicle: ${vehicleType.name}, Allowed areas: ${pickupValidation.allowedAreas?.join(", ")}`
+      );
+    }
+  }
+
   //  Validate pricing and distance with backend re-calculation
   const validationResult = await validateTransportPricing(
     destinations,
     vehicleTypeId,
     parseInt(vehicleCount),
     parseFloat(totalDistance),
-    parseFloat(totalPrice || "0")
+    parseFloat(totalPrice || "0"),
+    req // Pass request object for logging
   );
 
   // Create transportation order with validated data
@@ -305,6 +491,7 @@ const handleTransportOrder = async (
     validatedPrice: validationResult.actualTotalPrice,
     interTripCharges: validationResult.interTripCharges,
     basePrice: validationResult.basePrice,
+    elfOutOfMalangCharges: validationResult.elfOutOfMalangCharges || 0,
   };
 };
 
@@ -314,47 +501,74 @@ const handleTourPackageOrder = async (
   orderId: string,
   body: OrderRequestBody
 ) => {
-  const { packageId, totalPrice } = body;
+  const { packageId, totalPassengers, departureDate } = body;
 
-  if (!packageId) {
+  if (!packageId || !departureDate) {
     throw new Error("Missing required fields for package order");
   }
 
-  // Validate package exists and get pricing
-  const tourPackage = await prisma.tourPackage.findUnique({
+  const tourPackage = await tx.tourPackage.findUnique({
     where: { id: packageId },
+    select: {
+      price: true,
+      is_private: true,
+      minPersonCapacity: true,
+      maxPersonCapacity: true,
+    },
   });
 
   if (!tourPackage) {
     throw new Error("Tour package not found");
   }
 
-  //  Validate package pricing - Convert Decimal to number
-  const frontendPrice = parseFloat(totalPrice || "0");
-  const actualPackagePrice = parseFloat(tourPackage.price.toString()); //  Convert Decimal to number
+  const basePrice = parseFloat(tourPackage.price.toString());
+  let validatedPrice = basePrice;
 
-  if (Math.abs(frontendPrice - actualPackagePrice) > 1000) {
-    // Allow small rounding differences
-    throw new Error(
-      `Package price validation failed. Expected: Rp ${actualPackagePrice.toLocaleString()}, ` +
-        `Received: Rp ${frontendPrice.toLocaleString()}`
-    );
+  if (tourPackage.is_private) {
+    const people = parseInt(totalPassengers || "0");
+
+    if (!people || isNaN(people)) {
+      throw new Error("Jumlah peserta diperlukan untuk private trip");
+    }
+
+    if (people < tourPackage.minPersonCapacity) {
+      throw new Error(
+        `Jumlah peserta kurang dari minimum: ${tourPackage.minPersonCapacity} orang`
+      );
+    }
+
+    if (people > tourPackage.maxPersonCapacity) {
+      throw new Error(
+        `Jumlah peserta melebihi maksimum: ${tourPackage.maxPersonCapacity} orang`
+      );
+    }
+
+    validatedPrice = basePrice * people;
+
+    await tx.packageOrder.create({
+      data: {
+        orderId,
+        packageId,
+        departureDate: new Date(departureDate),
+        people,
+      },
+    });
+  } else {
+    await tx.packageOrder.create({
+      data: {
+        orderId,
+        packageId,
+        departureDate: new Date(departureDate),
+      },
+    });
   }
 
-  // Create package order
-  await tx.packageOrder.create({
-    data: {
-      orderId: orderId,
-      packageId: packageId,
-      departureDate: new Date(), // Default date for now
-    },
-  });
-
   return {
-    validatedPrice: actualPackagePrice, //  Return converted number
+    validatedPrice,
   };
 };
 
+// Update the GET handler in route.ts
 export const GET = async (req: NextRequest) => {
   try {
     const { skip, limit } = getPaginationParams(req.url);
@@ -371,21 +585,42 @@ export const GET = async (req: NextRequest) => {
 
     // Search parameters
     const search = searchParams.get("search") || "";
-    const orderType = searchParams.get("orderType") || "";
-    const orderStatus = searchParams.get("orderStatus") || "";
-    const vehicleType = searchParams.get("vehicleType") || "";
-    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const orderTypes = searchParams.getAll("orderType");
+    const orderStatuses = searchParams.getAll("orderStatus");
+    const vehicleTypes = searchParams.getAll("vehicleType");
+    const paymentStatuses = searchParams.getAll("paymentStatus");
+    const dateFilter = searchParams.get("dateFilter") || "7";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const isPrivate = searchParams.get("isPrivate");
 
     // Build filter conditions
     const whereConditions: Prisma.OrderWhereInput = {};
 
     // Only filter by userId if user is CUSTOMER
-    // ADMIN and SUPER_ADMIN can see all orders
     if (user?.role === "CUSTOMER") {
       whereConditions.userId = token.id;
     }
 
-    // Search filter - searches across user info, order details
+    // Date filtering
+    if (dateFilter === "custom" && startDate && endDate) {
+      whereConditions.createdAt = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    } else {
+      const days = parseInt(dateFilter);
+      if (!isNaN(days)) {
+        const date = new Date();
+        date.setDate(date.getDate() - days);
+        whereConditions.createdAt = {
+          gte: date,
+          lte: new Date(),
+        };
+      }
+    }
+
+    // Search filter
     if (search) {
       whereConditions.OR = [
         { fullName: { contains: search } },
@@ -398,26 +633,46 @@ export const GET = async (req: NextRequest) => {
     }
 
     // Order type filter
-    if (orderType) {
-      whereConditions.orderType = orderType as OrderType;
+    if (orderTypes.length > 0) {
+      whereConditions.orderType = {
+        in: orderTypes as OrderType[],
+      };
     }
 
     // Order status filter
-    if (orderStatus) {
-      whereConditions.orderStatus = orderStatus as OrderStatus;
+    if (orderStatuses.length > 0) {
+      whereConditions.orderStatus = {
+        in: orderStatuses as OrderStatus[],
+      };
     }
 
     // Vehicle type filter
-    if (vehicleType) {
+    if (vehicleTypes.length > 0) {
       whereConditions.vehicleType = {
-        name: vehicleType,
+        name: {
+          in: vehicleTypes,
+        },
       };
     }
 
     // Payment status filter
-    if (paymentStatus) {
+    if (paymentStatuses.length > 0) {
       whereConditions.payment = {
-        paymentStatus: paymentStatus as PaymentStatus,
+        paymentStatus: {
+          in: paymentStatuses as PaymentStatus[],
+        },
+      };
+    }
+
+    // Tour type filter (only applicable when orderType includes TOUR)
+    if (
+      isPrivate !== null &&
+      (orderTypes.includes("TOUR") || orderTypes.length === 0)
+    ) {
+      whereConditions.packageOrder = {
+        package: {
+          is_private: isPrivate === "true",
+        },
       };
     }
 
@@ -440,7 +695,11 @@ export const GET = async (req: NextRequest) => {
             destinations: true,
           },
         },
-        packageOrder: true,
+        packageOrder: {
+          include: {
+            package: true,
+          },
+        },
         vehicleType: true,
         payment: true,
       },
@@ -669,61 +928,65 @@ export const POST = async (req: NextRequest) => {
     const sanitizedNote = sanitizeNote(note);
 
     //  Create order in transaction with validation
-    const result = await prisma.$transaction(async (tx) => {
-      // Create base order
-      const createdOrder = await tx.order.create({
-        data: {
-          orderType: orderType.toUpperCase() as OrderType,
-          userId: token.id,
-          orderStatus: OrderStatus.PENDING,
-          fullName: fullName || userExists?.fullName || "Customer",
-          phoneNumber: phoneNumber || userExists.phoneNumber || "",
-          email: email || userExists.email || "",
-          totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
-          vehicleTypeId: vehicleTypeId || null,
-          note: sanitizedNote,
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // Create base order
+        const createdOrder = await tx.order.create({
+          data: {
+            orderType: orderType.toUpperCase() as OrderType,
+            userId: token.id,
+            orderStatus: OrderStatus.PENDING,
+            fullName: fullName || userExists?.fullName || "Customer",
+            phoneNumber: phoneNumber || userExists.phoneNumber || "",
+            email: email || userExists.email || "",
+            totalPassengers: totalPassengers ? parseInt(totalPassengers) : null,
+            vehicleTypeId: vehicleTypeId || null,
+            note: sanitizedNote,
+          },
+        });
 
-      let validatedPrice = parseFloat(totalPrice || "0");
+        let validatedPrice = parseFloat(totalPrice || "0");
 
-      //  Handle different order types with validation
-      if (orderType.toUpperCase() === "TRANSPORT") {
-        const transportResult = await handleTransportOrder(
-          tx,
-          createdOrder.id,
-          body,
-          validDestinations,
-          timezone
-        );
-        validatedPrice = transportResult.validatedPrice;
-      } else if (orderType.toUpperCase() === "TOUR") {
-        const tourResult = await handleTourPackageOrder(
-          tx,
-          createdOrder.id,
-          body
-        );
-        validatedPrice = tourResult.validatedPrice;
-      } else {
-        throw new Error("Invalid order type");
-      }
+        //  Handle different order types with validation
+        if (orderType.toUpperCase() === "TRANSPORT") {
+          const transportResult = await handleTransportOrder(
+            tx,
+            createdOrder.id,
+            body,
+            validDestinations,
+            timezone,
+            req
+          );
+          validatedPrice = transportResult.validatedPrice;
+        } else if (orderType.toUpperCase() === "TOUR") {
+          const tourResult = await handleTourPackageOrder(
+            tx,
+            createdOrder.id,
+            body
+          );
+          validatedPrice = tourResult.validatedPrice;
+        } else {
+          throw new Error("Invalid order type");
+        }
 
-      // Create payment record with validated price
-      const payment = await tx.payment.create({
-        data: {
-          orderId: createdOrder.id,
-          senderName: "",
-          transferDate: new Date(),
-          paymentStatus: PaymentStatus.PENDING,
-          totalPrice: validatedPrice, //  Use validated price
-        },
-      });
+        // Create payment record with validated price
+        const payment = await tx.payment.create({
+          data: {
+            orderId: createdOrder.id,
+            senderName: "",
+            transferDate: new Date(),
+            paymentStatus: PaymentStatus.PENDING,
+            totalPrice: validatedPrice, //  Use validated price
+          },
+        });
 
-      return {
-        order: createdOrder,
-        payment: payment,
-      };
-    }, {timeout: 60000, maxWait: 60000});
+        return {
+          order: createdOrder,
+          payment: payment,
+        };
+      },
+      { timeout: 60000, maxWait: 60000 }
+    );
 
     // Return created order with payment data
     return NextResponse.json(

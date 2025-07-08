@@ -3,7 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { removeFiles, uploadFiles } from "@/utils/supabase";
 import { PhotoUrl } from "@/../types/tourPackage";
 import { ResultUploadFiles } from "@/../types/supabase";
+import { OrderStatus } from "@prisma/client";
 
+<<<<<<< HEAD
+=======
+type TicketItem = {
+  date: string;
+};
+
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
 // GET: Get tour package by id, return all fields as in schema.prisma
 export const GET = async (
   req: NextRequest,
@@ -11,23 +19,95 @@ export const GET = async (
 ) => {
   try {
     const { id } = await params;
+
     if (!id) {
       return NextResponse.json(
         { message: "Missing required fields", data: null },
         { status: 400 }
       );
     }
+
+    // Ambil data paket wisata (tanpa include tickets karena bukan relasi)
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id },
     });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
     if (!tourPackage) {
       return NextResponse.json(
         { message: "Tour package not found", data: null },
         { status: 404 }
       );
     }
+<<<<<<< HEAD
     return NextResponse.json(
       { message: "Tour package retrieved successfully", data: tourPackage },
+=======
+
+    const maxCapacity = tourPackage.maxPersonCapacity;
+
+    // Ambil semua packageOrder yang berhubungan dan status order aktif
+    const packageOrders = await prisma.packageOrder.findMany({
+      where: {
+        packageId: id,
+         order: {
+          orderStatus: {
+            in: [OrderStatus.CONFIRMED],
+          },
+        },  
+      },
+      select: {
+        departureDate: true,
+        people: true,
+      },
+    });
+
+    // Hitung total orang (atau order jika people null) untuk setiap tanggal keberangkatan
+    const totalPeoplePerDate: Record<string, number> = {};
+
+    for (const order of packageOrders) {
+      const date = order.departureDate.toISOString().slice(0, 10);
+      const count = order.people ?? 1; // default 1 jika null
+      totalPeoplePerDate[date] = (totalPeoplePerDate[date] || 0) + count;
+    }
+
+    // Proses tiket (JSON array) untuk hitung sisa kapasitas
+    const ticketAvailability = Array.isArray(tourPackage.tickets)
+  ? tourPackage.tickets
+      .filter((ticket): ticket is TicketItem => {
+        if (
+          typeof ticket === "object" &&
+          ticket !== null &&
+          "date" in ticket
+        ) {
+          const t = ticket as Record<string, unknown>;
+          return typeof t.date === "string";
+        }
+        return false;
+      })
+      .map((ticket) => {
+        const date = ticket.date;
+        const totalBooked = totalPeoplePerDate[date] || 0;
+        const remainingTickets = Math.max(0, maxCapacity - totalBooked);
+        return {
+          date,
+          totalBooked,
+          remainingTickets,
+        };
+      })
+  : [];
+
+    return NextResponse.json(
+      {
+        message: "Tour package retrieved successfully",
+        data: {
+          ...tourPackage,
+          ticketAvailability,
+        },
+      },
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
       { status: 200 }
     );
   } catch (error) {
@@ -99,12 +179,21 @@ export const PUT = async (
         { status: 400 }
       );
     }
+<<<<<<< HEAD
     if (
       isNaN(parseInt(minPersonCapacity)) ||
       parseInt(minPersonCapacity) < 1
     ) {
       return NextResponse.json(
         { message: "minPersonCapacity must be a valid positive number", data: null },
+=======
+    if (isNaN(parseInt(minPersonCapacity)) || parseInt(minPersonCapacity) < 1) {
+      return NextResponse.json(
+        {
+          message: "minPersonCapacity must be a valid positive number",
+          data: null,
+        },
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
         { status: 400 }
       );
     }
@@ -113,7 +202,15 @@ export const PUT = async (
       parseInt(maxPersonCapacity) < parseInt(minPersonCapacity)
     ) {
       return NextResponse.json(
+<<<<<<< HEAD
         { message: "maxPersonCapacity must be greater than or equal to minPersonCapacity", data: null },
+=======
+        {
+          message:
+            "maxPersonCapacity must be greater than or equal to minPersonCapacity",
+          data: null,
+        },
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
         { status: 400 }
       );
     }
@@ -158,7 +255,11 @@ export const PUT = async (
 
     // Handle new photo uploads
     const files: File[] = [];
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
     // Method 1: Handle photos[index] format
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("photos[")) {
@@ -178,6 +279,7 @@ export const PUT = async (
       }
     }
 
+<<<<<<< HEAD
     console.log("Files to upload:", files.map((f) => `${f.name} (${f.size} bytes, ${f.type})`));
     
     if (files.length > 0) {
@@ -235,6 +337,78 @@ export const PUT = async (
     );
   }
 }
+=======
+    console.log(
+      "Files to upload:",
+      files.map((f) => `${f.name} (${f.size} bytes, ${f.type})`)
+    );
+
+    if (files.length > 0) {
+      // Validate file types and sizes
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      for (const file of files) {
+        console.log(
+          `Validating file: ${file.name}, type: ${file.type}, size: ${file.size}`
+        );
+
+        if (!allowedTypes.includes(file.type)) {
+          return NextResponse.json(
+            {
+              message: `File ${file.name} is not a valid image type. Allowed: ${allowedTypes.join(", ")}`,
+              data: null,
+            },
+            { status: 400 }
+          );
+        }
+        if (file.size > maxSize) {
+          return NextResponse.json(
+            {
+              message: `File ${file.name} exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+              data: null,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      try {
+        const results: ResultUploadFiles = await uploadFiles(
+          process.env.SUPABASE_BUCKET || "",
+          files,
+          "tourPackage"
+        );
+
+        console.log("Upload results:", results);
+
+        if (results.some((result) => result.success === false)) {
+          console.error("Failed to upload files:", results);
+          return NextResponse.json(
+            { message: "One or more file uploads failed", data: null },
+            { status: 500 }
+          );
+        }
+
+        const newPhotoUrl: PhotoUrl = results
+          .filter(
+            (result) => result.success && result.photoUrl?.data?.publicUrl
+          )
+          .map((result) => ({
+            url: result.photoUrl!.data.publicUrl,
+          }));
+
+        updatedPhotoUrl = [...updatedPhotoUrl, ...newPhotoUrl];
+        console.log("Updated photo URLs:", updatedPhotoUrl);
+      } catch (uploadError) {
+        console.error("Error during file upload:", uploadError);
+        return NextResponse.json(
+          { message: "File upload failed due to server error", data: null },
+          { status: 500 }
+        );
+      }
+    }
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
 
     // Update the tour package
     const updated = await prisma.tourPackage.update({

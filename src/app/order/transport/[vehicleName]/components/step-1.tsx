@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,10 +151,13 @@ const Step1 = ({
   });
 
   // Helper function to calculate required vehicles
-  const calculateRequiredVehicles = (passengers: number): number => {
-    if (!vehicleInfo || passengers <= 0) return 1;
-    return Math.ceil(passengers / vehicleInfo.capacity);
-  };
+  const calculateRequiredVehicles = useCallback(
+    (passengers: number): number => {
+      if (!vehicleInfo || passengers <= 0) return 1;
+      return Math.ceil(passengers / vehicleInfo.capacity);
+    },
+    [vehicleInfo]
+  );
 
   // ✅ Update form values when orderData changes (reactive to session data)
   useEffect(() => {

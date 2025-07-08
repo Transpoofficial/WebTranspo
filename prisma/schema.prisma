@@ -73,7 +73,7 @@ model Payment {
   transferDate            DateTime
   proofUrl                String?
   paymentStatus           PaymentStatus
-  totalPrice              Decimal             @db.Decimal(10, 2)
+  totalPrice              Decimal             @db.Decimal(12, 2)
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
   note                    String?             
@@ -142,6 +142,7 @@ model PackageOrder {
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
   departureDate           DateTime
+  people                  Int?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -182,7 +183,7 @@ model Report {
   reportPeriod            ReportPeriod
   startDate               DateTime
   endDate                 DateTime
-  totalIncome             Decimal             @db.Decimal(10, 2)
+  totalIncome             Decimal             @db.Decimal(15, 2)
   totalOrders             Int
   completedOrders         Int                 @default(0)
   canceledOrders          Int                 @default(0)

@@ -26,7 +26,11 @@ const TourPackage = () => {
         Paket Wisata
       </h2>
 
+<<<<<<< HEAD
       <div className="flex justify-end mt-4 mb-1">
+=======
+      <div className="flex justify-start mt-4">
+>>>>>>> 55dcd98725c57daf37c73316c3dc5c9a02c81f52
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="cursor-pointer">Tambah paket wisata</Button>

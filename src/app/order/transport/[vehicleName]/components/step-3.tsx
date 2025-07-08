@@ -7,6 +7,8 @@ import { Clock, MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import { OrderData } from "../page";
 import axios from "axios";
 import { toast } from "sonner";
+import { validateTripDuration } from "@/utils/validation";
+import { useParams } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +48,13 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
   breakdown: {
     tripDistances: Array<{
       date: string;
@@ -64,6 +72,12 @@ interface PriceCalculationResponse {
 const PAYMENT_ID_KEY = "transpo_payment_id";
 
 const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
+  const params = useParams();
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [priceValidationError, setPriceValidationError] = useState<
@@ -218,6 +232,32 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
 
       if (!orderData.trip || orderData.trip.length === 0) {
         toast.error("No trip data found. Please go back and add destinations.");
+        return;
+      }
+
+      // ✅ Final validation: Check trip duration requirements
+      const allDestinations = orderData.trip.flatMap((trip) =>
+        trip.location
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+            address: loc.address,
+          }))
+      );
+
+      const totalDays = orderData.trip.length;
+      const durationValidation = validateTripDuration(
+        allDestinations,
+        totalDays,
+        vehicleName
+      );
+
+      if (!durationValidation.isValid) {
+        toast.error(durationValidation.message);
+        setPriceValidationError(
+          durationValidation.message || "Validasi durasi gagal"
+        );
         return;
       }
 
@@ -486,10 +526,30 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                     Rincian Biaya
                   </h4>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
+                    {/* NEW: Show detailed per-trip breakdown */}
+                    {calculatedPrice.tripBreakdown &&
+                      calculatedPrice.tripBreakdown.length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium text-blue-700 mb-1">
+                            Biaya Per Trip/Hari:
+                          </div>
+                          {calculatedPrice.tripBreakdown.map((trip, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between text-xs text-blue-600 ml-2"
+                            >
+                              <span>
+                                Hari {idx + 1} ({trip.distance.toFixed(1)} km):
+                              </span>
+                              <span>{formatRupiah(trip.pricePerTrip)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    <div className="flex justify-between border-t border-blue-300 pt-1">
                       <span>
-                        Biaya Dasar (
-                        {calculatedPrice.totalDistanceKm.toFixed(1)} km x{" "}
+                        Subtotal (Total semua trip ×{" "}
                         {calculatedPrice.vehicleCount} armada):
                       </span>
                       <span>{formatRupiah(calculatedPrice.basePrice)}</span>
@@ -502,6 +562,17 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                         </span>
                       </div>
                     )}
+                    {calculatedPrice.elfOutOfMalangCharges &&
+                      calculatedPrice.elfOutOfMalangCharges > 0 && (
+                        <div className="flex justify-between">
+                          <span>Biaya ELF Luar Malang:</span>
+                          <span>
+                            {formatRupiah(
+                              calculatedPrice.elfOutOfMalangCharges
+                            )}
+                          </span>
+                        </div>
+                      )}
                     <div className="flex justify-between font-medium pt-2 border-t border-blue-300">
                       <span>Total:</span>
                       <span>{formatRupiah(calculatedPrice.totalPrice)}</span>

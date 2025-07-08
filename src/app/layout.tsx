@@ -152,13 +152,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      {" "}
       <head>
         <TranspoWebsiteSchema />
         <TranspoOrganizationSchema />
         <TranspoLocalBusinessSchema />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="msapplication-config" content="/browserconfig.xml" />{" "}
+        <meta name="msapplication-config" content="/browserconfig.xml" />
         {/* Additional icon links for better compatibility */}
         <link rel="icon" href="/favicon.ico" sizes="16x16" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
