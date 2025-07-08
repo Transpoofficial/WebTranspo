@@ -28,7 +28,6 @@ export const GET = async (
     const tourPackage = await prisma.tourPackage.findUnique({
       where: { id },
     });
-
     if (!tourPackage) {
       return NextResponse.json(
         { message: "Tour package not found", data: null },
@@ -231,7 +230,6 @@ export const PUT = async (
 
     // Handle new photo uploads
     const files: File[] = [];
-
     // Method 1: Handle photos[index] format
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("photos[")) {
