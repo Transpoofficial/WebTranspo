@@ -112,10 +112,7 @@ export function validateDistance(distanceKm: number): boolean {
 }
 
 // ✅ Enhanced price calculation functions with validation - NEW: Per trip calculation
-export function calculateAngkotPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+export function calculateAngkotPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
