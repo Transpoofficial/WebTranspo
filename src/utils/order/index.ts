@@ -158,10 +158,29 @@ export function calculateAngkotPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiaceCommuterPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Angkot
+export function calculateAngkotPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Angkot should not be used for very long distances
+  if (distanceKm > 200) {
+    console.warn(
+      `Angkot distance too long: ${distanceKm}km. Consider other vehicles.`
+    );
+  }
+
+  // Formula per trip: (150.000 + (4100 × Jarak)) × 1.2
+  const basePrice = 150000 + 4100 * distanceKm;
+  const priceWithTax = basePrice * 1.2; // Add 20%
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateHiaceCommuterPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
@@ -190,10 +209,22 @@ export function calculateHiaceCommuterPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiacePremioPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Hiace Commuter
+export function calculateHiaceCommuterPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Formula per trip: (1.000.000 + (2500 × Jarak)) × 1.1
+  const basePrice = 1000000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateHiacePremioPrice(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
@@ -222,10 +253,37 @@ export function calculateHiacePremioPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateElfPrice(
-  distanceKm: number,
-  vehicleCount: number
-): number {
+// ✅ NEW: Calculate price for single trip/day for Hiace Premio
+export function calculateHiacePremioPricePerTrip(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
+    return 0;
+  }
+
+  // Formula per trip: (1,150,000 + (25,000 × Jarak KM)) × 1.1
+  const basePrice = 1150000 + 25000 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10% PPN
+
+  return Math.round(priceWithTax);
+}
+
+export function calculateElfPrice(distanceKm: number): number {
+  // Validate distance
+  if (!validateDistance(distanceKm)) {
+    console.warn(`Invalid distance for Elf: ${distanceKm}km`);
+    return 0;
+  }
+
+  // NEW formula: (1.250.000 + (2500 × Jarak)) × 1.1 (per trip, not multiplied by vehicle count here)
+  const basePrice = 1250000 + 2500 * distanceKm;
+  const priceWithTax = basePrice * 1.1; // Add 10%
+
+  return Math.round(priceWithTax);
+}
+
+// ✅ NEW: Calculate price for single trip/day for ELF
+export function calculateElfPricePerTrip(distanceKm: number): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Elf: ${distanceKm}km`);
