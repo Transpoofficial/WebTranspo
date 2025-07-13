@@ -112,7 +112,10 @@ export function validateDistance(distanceKm: number): boolean {
 }
 
 // ✅ Enhanced price calculation functions with validation - NEW: Per trip calculation
-export function calculateAngkotPrice(distanceKm: number): number {
+export function calculateAngkotPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Angkot: ${distanceKm}km`);
@@ -155,7 +158,10 @@ export function calculateAngkotPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiaceCommuterPrice(distanceKm: number): number {
+export function calculateHiaceCommuterPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Commuter: ${distanceKm}km`);
@@ -184,15 +190,18 @@ export function calculateHiaceCommuterPricePerTrip(distanceKm: number): number {
   return Math.round(priceWithTax);
 }
 
-export function calculateHiacePremioPrice(distanceKm: number): number {
+export function calculateHiacePremioPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Hiace Premio: ${distanceKm}km`);
     return 0;
   }
 
-  // NEW formula: (1,150,000 + (25,000 × Jarak KM)) × 1.1 (per trip, not multiplied by vehicle count here)
-  const basePrice = 1150000 + 25000 * distanceKm;
+  // NEW formula: (1,150,000 + (2500 × Jarak KM)) × 1.1 (per trip, not multiplied by vehicle count here)
+  const basePrice = 1150000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10% PPN
 
   return Math.round(priceWithTax);
@@ -206,14 +215,17 @@ export function calculateHiacePremioPricePerTrip(distanceKm: number): number {
     return 0;
   }
 
-  // Formula per trip: (1,150,000 + (25,000 × Jarak KM)) × 1.1
-  const basePrice = 1150000 + 25000 * distanceKm;
+  // Formula per trip: (1,150,000 + (2500 × Jarak KM)) × 1.1
+  const basePrice = 1150000 + 2500 * distanceKm;
   const priceWithTax = basePrice * 1.1; // Add 10% PPN
 
   return Math.round(priceWithTax);
 }
 
-export function calculateElfPrice(distanceKm: number): number {
+export function calculateElfPrice(
+  distanceKm: number,
+  vehicleCount: number
+): number {
   // Validate distance
   if (!validateDistance(distanceKm)) {
     console.warn(`Invalid distance for Elf: ${distanceKm}km`);
