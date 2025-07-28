@@ -8,9 +8,9 @@ const Elf = () => {
   return (
     <>
       <Card className="bg-[#0897B1]">
-        <CardContent className="flex flex-col md:flex-row items-stretch gap-x-6">
+        <CardContent className="flex flex-col lg:flex-row items-stretch gap-x-6">
           <Image
-            className="min-w-full md:min-w-lg min-h-52 h-52 max-h-52 md:min-h-96 md:h-96 md:max-h-96 object-cover rounded-2xl shadow-lg"
+            className="min-w-full lg:min-w-lg min-h-52 h-52 max-h-52 md:min-h-96 md:h-96 md:max-h-96 object-cover rounded-2xl shadow-lg"
             src="/images/elf/elf_5.jpg"
             alt="elf_5.jpg"
             width={500}

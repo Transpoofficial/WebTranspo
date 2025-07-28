@@ -1,11 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { calculateTotalPrice, calculateDistance } from "@/utils/order";
 import {
-  calculateAngkotPrice,
-  calculateElfPrice,
-  calculateHiaceCommuterPrice,
-  calculateHiacePremioPrice,
-  calculateDistance,
-} from "@/utils/order";
+  calculateRouteDistanceWithDirectionsAPI,
+  calculateInterTripDistance,
+} from "@/utils/google-maps";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types for trip data
@@ -36,7 +34,13 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
   breakdown: {
     tripDistances: Array<{
       date: string;
@@ -69,37 +73,41 @@ const formatDateString = (date: string | Date): string => {
   }
 };
 
-// Calculate route distance using the same logic as backend
-const calculateRouteDistance = (
+// Calculate route distance using Google Maps Directions API (same as frontend)
+const calculateRouteDistance = async (
   locations: Array<{ lat: number; lng: number }>
-): number => {
+): Promise<number> => {
   if (locations.length < 2) return 0;
 
-  let totalDistance = 0;
-  for (let i = 0; i < locations.length - 1; i++) {
-    const distance = calculateDistance(
-      locations[i].lat,
-      locations[i].lng,
-      locations[i + 1].lat,
-      locations[i + 1].lng
+  try {
+    // Use same Directions API as frontend for consistency
+    const result = await calculateRouteDistanceWithDirectionsAPI(locations);
+    return result.distance / 1000; // Convert meters to kilometers
+  } catch (error) {
+    console.error(
+      "Error calculating route distance with Directions API:",
+      error
     );
-    totalDistance += distance;
-  }
 
-  return totalDistance; // Return in kilometers
+    // Fallback to Haversine formula
+    let totalDistance = 0;
+    for (let i = 0; i < locations.length - 1; i++) {
+      const distance = calculateDistance(
+        locations[i].lat,
+        locations[i].lng,
+        locations[i + 1].lat,
+        locations[i + 1].lng
+      );
+      totalDistance += distance;
+    }
+    return totalDistance; // Return in kilometers
+  }
 };
 
 export async function POST(req: NextRequest) {
   try {
     const body: PriceCalculationRequest = await req.json();
     const { vehicleTypeId, vehicleCount = 1, trips = [] } = body;
-
-    console.log("Price calculation request:", {
-      vehicleTypeId,
-      vehicleCount,
-      tripsCount: trips.length,
-      tripDates: trips.map((t) => ({ date: t.date, type: typeof t.date })),
-    });
 
     if (!vehicleTypeId || !trips.length) {
       return NextResponse.json(
@@ -126,77 +134,67 @@ export async function POST(req: NextRequest) {
     // Calculate distance for each trip and total distance
     let totalDistanceKm = 0;
     const tripDistances: Array<{ date: string; distance: number }> = [];
+    const processedTrips = await Promise.all(
+      trips.map(async (trip) => {
+        // Filter valid locations
+        const validLocations = trip.location.filter(
+          (loc) => loc.lat !== null && loc.lng !== null && loc.address
+        );
 
-    const processedTrips = trips.map((trip) => {
-      // Filter valid locations
-      const validLocations = trip.location.filter(
-        (loc) => loc.lat !== null && loc.lng !== null && loc.address
-      );
+        const tripDateString = formatDateString(trip.date);
 
-      const tripDateString = formatDateString(trip.date);
+        if (validLocations.length < 2) {
+          tripDistances.push({
+            date: tripDateString,
+            distance: 0,
+          });
 
-      if (validLocations.length < 2) {
+          return {
+            date: new Date(tripDateString),
+            location: validLocations,
+            distance: 0,
+          };
+        }
+
+        // Use frontend-calculated distance if available (already in meters)
+        let tripDistance = 0;
+        if (trip.distance && trip.distance > 0) {
+          tripDistance = trip.distance / 1000; // Convert meters to kilometers
+        } else {
+          // Fallback: Calculate distance using Google Maps API
+          const locations = validLocations.map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+          }));
+          tripDistance = await calculateRouteDistance(locations);
+        }
+
+        totalDistanceKm += tripDistance;
+
         tripDistances.push({
           date: tripDateString,
-          distance: 0,
+          distance: tripDistance,
         });
 
         return {
-          ...trip,
-          date: tripDateString,
-          distance: 0,
+          date: new Date(tripDateString),
+          location: validLocations,
+          distance: tripDistance * 1000, // Convert to meters for consistency with Trip interface
         };
-      }
+      })
+    );
 
-      // Calculate distance for this trip
-      const locations = validLocations.map((loc) => ({
-        lat: loc.lat!,
-        lng: loc.lng!,
-      }));
+    // ✅ NEW: Use the updated calculateTotalPrice function with per-trip mechanism
+    // Note: totalDistanceKm parameter is no longer used in the new calculation,
+    // but kept for backward compatibility
+    const priceResult = calculateTotalPrice(
+      vehicleType.name,
+      totalDistanceKm, // This parameter is now ignored in favor of individual trip distances
+      vehicleCount,
+      processedTrips
+    );
 
-      const tripDistance = calculateRouteDistance(locations);
-      totalDistanceKm += tripDistance;
-
-      tripDistances.push({
-        date: tripDateString,
-        distance: tripDistance,
-      });
-
-      return {
-        ...trip,
-        date: tripDateString,
-        location: validLocations,
-        distance: tripDistance,
-      };
-    });
-
-    console.log(`Total calculated distance: ${totalDistanceKm.toFixed(2)} km`);
-
-    // Calculate base price based on vehicle type
-    const vehicleTypeName = vehicleType.name.toLowerCase();
-    let basePrice = 0;
-
-    if (vehicleTypeName.includes("angkot")) {
-      basePrice = calculateAngkotPrice(totalDistanceKm, vehicleCount);
-    } else if (
-      vehicleTypeName.includes("hiace") &&
-      vehicleTypeName.includes("commuter")
-    ) {
-      basePrice = calculateHiaceCommuterPrice(totalDistanceKm, vehicleCount);
-    } else if (
-      vehicleTypeName.includes("hiace") &&
-      vehicleTypeName.includes("premio")
-    ) {
-      basePrice = calculateHiacePremioPrice(totalDistanceKm, vehicleCount);
-    } else if (vehicleTypeName.includes("elf")) {
-      basePrice = calculateElfPrice(totalDistanceKm, vehicleCount);
-    } else {
-      // Fallback to a default calculation for unknown vehicle types
-      const defaultRate = 6000;
-      basePrice = defaultRate * totalDistanceKm * vehicleCount;
-    }
-
-    // Calculate inter-trip additional charges with detailed breakdown
+    // Calculate inter-trip additional charges with detailed breakdown for response
     const interTripDetails: Array<{
       from: string;
       to: string;
@@ -204,16 +202,10 @@ export async function POST(req: NextRequest) {
       charge: number;
     }> = [];
 
-    let totalInterTripCharges = 0;
-
     if (processedTrips.length > 1) {
       // Sort trips by date to ensure correct order
       const sortedTrips = processedTrips.sort((a, b) => {
-        const dateA =
-          typeof a.date === "string" ? a.date : formatDateString(a.date);
-        const dateB =
-          typeof b.date === "string" ? b.date : formatDateString(b.date);
-        return dateA.localeCompare(dateB);
+        return a.date.getTime() - b.date.getTime();
       });
 
       for (let i = 0; i < sortedTrips.length - 1; i++) {
@@ -231,7 +223,8 @@ export async function POST(req: NextRequest) {
             firstLocationNext.lat !== null &&
             firstLocationNext.lng !== null
           ) {
-            const distance = calculateDistance(
+            // Use Haversine formula for inter-trip distance (as specified)
+            const distance = calculateInterTripDistance(
               lastLocationCurrent.lat,
               lastLocationCurrent.lng,
               firstLocationNext.lat,
@@ -251,39 +244,19 @@ export async function POST(req: NextRequest) {
               distance: Math.round(distance * 10) / 10,
               charge,
             });
-
-            totalInterTripCharges += charge;
-
-            console.log(`Inter-trip ${i} to ${i + 1}:`, {
-              from: lastLocationCurrent.address?.split(",")[0],
-              to: firstLocationNext.address?.split(",")[0],
-              distance: Math.round(distance * 10) / 10,
-              charge: charge,
-            });
           }
         }
       }
     }
-
-    // Calculate final total price
-    const totalPrice = basePrice + totalInterTripCharges;
-
-    console.log("Price calculation result:", {
-      vehicleType: vehicleType.name,
-      distanceKm: totalDistanceKm.toFixed(2),
-      vehicleCount,
-      basePrice,
-      interTripCharges: totalInterTripCharges,
-      totalPrice,
-    });
-
     const responseData: PriceCalculationResponse = {
       vehicleType: vehicleType.name,
       totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
       vehicleCount,
-      basePrice: Math.round(basePrice),
-      interTripCharges: Math.round(totalInterTripCharges),
-      totalPrice: Math.round(totalPrice),
+      basePrice: priceResult.basePrice,
+      interTripCharges: priceResult.interTripCharges,
+      elfOutOfMalangCharges: priceResult.elfOutOfMalangCharges || 0,
+      totalPrice: priceResult.totalPrice,
+      tripBreakdown: priceResult.tripBreakdown,
       breakdown: {
         tripDistances,
         interTripDetails,

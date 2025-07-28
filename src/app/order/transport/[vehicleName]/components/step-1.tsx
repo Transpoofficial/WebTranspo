@@ -149,6 +149,7 @@ const Step1 = ({
       totalVehicles: 0,
     },
   });
+
   // Helper function to calculate required vehicles
   const calculateRequiredVehicles = useCallback(
     (passengers: number): number => {

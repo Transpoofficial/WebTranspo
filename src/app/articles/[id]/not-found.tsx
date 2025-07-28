@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileX, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileX, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -15,11 +15,12 @@ export default function NotFound() {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600 mb-6">
-            Maaf, artikel yang Anda cari tidak dapat ditemukan. Artikel mungkin telah dihapus atau URL tidak valid.
+            Maaf, artikel yang Anda cari tidak dapat ditemukan. Artikel mungkin
+            telah dihapus atau URL tidak valid.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/articles">
-              <Button>
+              <Button className="bg-transpo-primary hover:bg-transpo-primary/85">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Kembali ke Artikel
               </Button>
@@ -31,5 +32,5 @@ export default function NotFound() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

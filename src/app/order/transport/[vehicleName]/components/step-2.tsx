@@ -1,7 +1,6 @@
 "use client";
 
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,10 +22,15 @@ import {
   calculateTotalPrice,
   Trip as UtilsTrip,
 } from "@/utils/order";
+// ✅ Import trip duration validation
+import {
+  validateTripDuration,
+  validateDestinationTimes,
+} from "@/utils/validation";
 
 interface Step2Props {
   orderData: OrderData;
-  setOrderData: React.Dispatch<React.SetStateAction<any>>;
+  setOrderData: React.Dispatch<React.SetStateAction<OrderData>>;
   onContinue: () => void;
   onBack: () => void;
 }
@@ -46,6 +50,12 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
   const [directions, setDirections] = useState<DirectionInfo[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [note, setNote] = useState(orderData.note || "");
+  const [tripDurationError, setTripDurationError] = useState<string | null>(
+    null
+  );
+  const [timeValidationError, setTimeValidationError] = useState<string | null>(
+    null
+  );
   const initialLoadRef = useRef(true);
   const directionLoadedRef = useRef(false);
   const mapStateRef = useRef<{
@@ -236,14 +246,14 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               lat: null,
               lng: null,
               address: "",
-              time: null,
+              time: "09:00", // Default time for new locations
             },
             {
               id: `loc-${idx}-end-${Date.now() + 1}`,
               lat: null,
               lng: null,
               address: "",
-              time: null,
+              time: "09:00", // Default time for new locations
             },
           ];
         }
@@ -342,8 +352,54 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
           ),
         };
       });
+
+      // ✅ Real-time validation when destinations change
+      const allDestinations = trips.flatMap((trip) =>
+        trip.locations
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+            address: loc.address,
+          }))
+      );
+
+      if (allDestinations.length > 0) {
+        const totalDays = trips.length;
+        const durationValidation = validateTripDuration(
+          allDestinations,
+          totalDays,
+          vehicleName
+        );
+
+        if (!durationValidation.isValid) {
+          setTripDurationError(
+            durationValidation.message || "Validasi durasi gagal"
+          );
+        } else {
+          setTripDurationError(null);
+        }
+      }
+
+      // ✅ Real-time time validation for all destinations
+      const allDestinationsWithTime = trips.flatMap((trip) =>
+        trip.locations
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            address: loc.address,
+            time: loc.time,
+          }))
+      );
+      const timeValidation = validateDestinationTimes(allDestinationsWithTime);
+      if (!timeValidation.isValid) {
+        setTimeValidationError(
+          timeValidation.message || "Format waktu tidak valid"
+        );
+      } else {
+        setTimeValidationError(null);
+      }
     },
-    [trips, setOrderData]
+    [trips, setOrderData, vehicleName]
   );
 
   // Update orderData when continuing
@@ -359,6 +415,64 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     if (invalidTrips.length > 0) {
       toast.error("Setiap perjalanan harus memiliki minimal 2 destinasi");
       return;
+    }
+
+    // ✅ Validate minimum trip duration based on destinations
+    const allDestinations = trips.flatMap((trip) =>
+      trip.locations
+        .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+        .map((loc) => ({
+          lat: loc.lat!,
+          lng: loc.lng!,
+          address: loc.address,
+        }))
+    );
+
+    const totalDays = trips.length;
+    const durationValidation = validateTripDuration(
+      allDestinations,
+      totalDays,
+      vehicleName
+    );
+
+    if (!durationValidation.isValid) {
+      setTripDurationError(
+        durationValidation.message || "Validasi durasi gagal"
+      );
+      toast.error(durationValidation.message);
+      return;
+    } else {
+      setTripDurationError(null);
+    }
+
+    // ✅ Validate that pickup locations (first destination of each trip) have valid departure times
+    const pickupDestinations: Array<{
+      address: string;
+      time: string | null | undefined;
+    }> = [];
+
+    trips.forEach((trip, tripIndex) => {
+      const firstValidLocation = trip.locations.find(
+        (loc) => loc.lat !== null && loc.lng !== null && loc.address
+      );
+      if (firstValidLocation) {
+        const startTime = orderData.trip[tripIndex]?.startTime || "09:00";
+        pickupDestinations.push({
+          address: firstValidLocation.address,
+          time: startTime,
+        });
+      }
+    });
+
+    const timeValidation = validateDestinationTimes(pickupDestinations);
+    if (!timeValidation.isValid) {
+      setTimeValidationError(
+        timeValidation.message || "Format waktu tidak valid"
+      );
+      toast.error(timeValidation.message);
+      return;
+    } else {
+      setTimeValidationError(null);
     }
 
     // Convert trips data back to orderData.trip format
@@ -399,15 +513,14 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
     // ✅ Final sanitization of note before saving
     const finalNote = sanitizeNote(note);
 
-    // ✅ Use consistent price calculation from utils
+    // ✅ NEW: Use updated price calculation with per-trip mechanism
+    // Note: totalDistance parameter is no longer used in new calculation
     const priceResult = calculateTotalPrice(
       vehicleName,
-      totalDistance / 1000, // Convert to km
+      0, // This parameter is now ignored in favor of individual trip distances
       orderData.userData.totalVehicles || 1,
-      updatedTrip
+      updatedTrip // Each trip contains its own distance for calculation
     );
-
-    console.log("💰 Frontend calculated price:", priceResult);
 
     // Update orderData
     setOrderData((prev: OrderData) => ({
@@ -459,7 +572,6 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
             JADWAL PERJALANAN
           </CardTitle>
         </CardHeader>
-
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left panel - Trip list */}
           <div className="md:col-span-1 space-y-4">
@@ -542,6 +654,44 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
               </div>
             )}
 
+            {/* ✅ Trip Duration Validation Error */}
+            {tripDurationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                  <div className="text-sm">
+                    <div className="font-medium text-red-800 mb-2">
+                      Durasi Perjalanan Tidak Mencukupi
+                    </div>
+                    <p className="text-red-700 mb-2">{tripDurationError}</p>
+                    <p className="text-red-600 text-sm">
+                      💡 Silakan kembali ke step sebelumnya untuk menambah
+                      jumlah hari perjalanan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Time Validation Error */}
+            {timeValidationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle className="text-red-500 shrink-0" size={20} />
+                  <div className="text-sm">
+                    <div className="font-medium text-red-800 mb-2">
+                      Waktu Keberangkatan Tidak Valid
+                    </div>
+                    <p className="text-red-700 mb-2">{timeValidationError}</p>
+                    <p className="text-red-600 text-sm">
+                      💡 Pastikan semua destinasi memiliki waktu keberangkatan
+                      dalam format HH:MM (contoh: 09:00).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ✅ Note Input Field */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <Label
@@ -605,17 +755,20 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 <div className="text-sm">
                   <div className="font-medium text-amber-800">
                     Catatan Penting: Batas Tambahan Perjalanan
-                  </div>
-                  <p className="text-amber-700 mt-1">
-                    {vehicleName.toLowerCase() === "angkot" ? (
-                      <>
-                        Angkot hanya tersedia di area Malang Kota dan Kabupaten.
-                        <br />
-                        Jika ingin menambah/mengurangi hari perjalanan:
-                      </>
-                    ) : (
-                      "Jika ingin menambah/mengurangi hari perjalanan:"
-                    )}
+                  </div>{" "}
+                  <div className="text-amber-700 mt-1">
+                    <div>
+                      {vehicleName.toLowerCase() === "angkot" ? (
+                        <>
+                          Angkot hanya tersedia di area Malang Kota dan
+                          Kabupaten.
+                          <br />
+                          Jika ingin menambah/mengurangi hari perjalanan:
+                        </>
+                      ) : (
+                        "Jika ingin menambah/mengurangi hari perjalanan:"
+                      )}
+                    </div>
                     <ul className="list-disc ml-4 mt-1">
                       <li>Klik tombol Kembali</li>
                       <li>Tambah/kurangi tanggal di step sebelumnya</li>
@@ -627,14 +780,14 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                         <li>Area terbatas: Malang Kota dan Kabupaten</li>
                       )}
                     </ul>
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Right panel - Map2 component */}
-          <div className="md:col-span-2 h-[500px] border border-gray-200 rounded-lg overflow-hidden">
+          <div className="md:col-span-2 border border-gray-200 rounded-lg">
             {!initialLoadRef.current && (
               <Map2
                 key={`map-instance-${trips.length}-${activeTabIndex}`}
@@ -647,24 +800,28 @@ const Step2 = ({ orderData, setOrderData, onBack, onContinue }: Step2Props) => {
                 onTripsChange={handleTripsChange}
                 onDirectionsChange={handleDirectionsChange}
                 maxLocationsPerTrip={MAX_DESTINATIONS_PER_TRIP}
-                height="500px"
                 vehicleName={vehicleName} // Pass vehicleName to Map2
               />
             )}
           </div>
         </CardContent>
-        {/* Navigation buttons */}
+        {/* Navigation buttons */}{" "}
         <div className="flex justify-end gap-3 mt-6 mr-4">
           <Button
             onClick={onBack}
-            variant="secondary"
+            variant="outline"
             className="border-gray-300 hover:bg-gray-100 text-gray-700"
           >
             Kembali
           </Button>
           <Button
             onClick={handleContinue}
-            className="bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark"
+            disabled={!!tripDurationError || !!timeValidationError}
+            className={cn(
+              "bg-transpo-primary border-transpo-primary hover:bg-transpo-primary-dark",
+              (tripDurationError || timeValidationError) &&
+                "opacity-50 cursor-not-allowed"
+            )}
           >
             Selanjutnya
           </Button>

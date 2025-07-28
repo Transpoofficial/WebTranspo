@@ -504,6 +504,16 @@ export function DataTable<TData extends Order, TValue>({
       variant: "outline" as const,
     };
 
+    const pkgOrder = order.packageOrder as {
+      package: {
+        is_private: boolean;
+        name: string;
+        photoUrl: { url: string }[];
+      };
+      departureDate: Date;
+      people?: number;
+    };
+
     return (
       <div className="p-4 pt-0 overflow-y-auto">
         <div className="flex items-start gap-x-10 w-full whitespace-nowrap overflow-x-auto">
@@ -565,7 +575,7 @@ export function DataTable<TData extends Order, TValue>({
         <Separator className="my-8" />
 
         {/* Destination for Transport orders */}
-        {order.orderType === "TRANSPORT" && order.transportation && (
+        {order.orderType === "TRANSPORT" && order.transportation ? (
           <div className="flex flex-col gap-y-4">
             <p className="text-xs text-[#6A6A6A]">Destinasi (Transport)</p>
 
@@ -626,7 +636,58 @@ export function DataTable<TData extends Order, TValue>({
                 ))}
             </div>
           </div>
+        ) : (
+          <div className="flex flex-col gap-y-4">
+            <p className="text-xs text-[#6A6A6A]">
+              Paket Wisata (
+              {pkgOrder.package.is_private === true
+                ? "PRIVATE TRIP"
+                : "OPEN TRIP"}
+              )
+            </p>
+
+            <div className="flex items-start gap-x-2 overflow-y-auto divide-y">
+              <div className="overflow-hidden rounded-lg">
+                <Image
+                  src={pkgOrder.package.photoUrl[0].url}
+                  alt={pkgOrder.package.photoUrl[0].url}
+                  width={400}
+                  height={240}
+                  className="h-24 aspect-3/2 w-auto object-cover"
+                />
+              </div>
+
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium leading-none line-clamp-2">
+                  {pkgOrder.package.name}
+                </div>
+
+                {pkgOrder.package.is_private === true ? (
+                  <>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Tanggal keberangkatan:{" "}
+                      {format(pkgOrder.departureDate, "dd MMM yyyy", {
+                        locale: id,
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Jumlah orang: {pkgOrder.people}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Tanggal keberangkatan:{" "}
+                    {format(pkgOrder.departureDate, "dd MMM yyyy", {
+                      locale: id,
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
+
+        <Separator className="my-8" />
 
         {/* Review Section */}
         {order.orderStatus === "COMPLETED" && (

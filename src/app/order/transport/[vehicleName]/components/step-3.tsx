@@ -7,6 +7,8 @@ import { Clock, MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import { OrderData } from "../page";
 import axios from "axios";
 import { toast } from "sonner";
+import { validateTripDuration } from "@/utils/validation";
+import { useParams } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +48,13 @@ interface PriceCalculationResponse {
   vehicleCount: number;
   basePrice: number;
   interTripCharges: number;
+  elfOutOfMalangCharges?: number;
   totalPrice: number;
+  tripBreakdown?: Array<{
+    date: string;
+    distance: number;
+    pricePerTrip: number;
+  }>;
   breakdown: {
     tripDistances: Array<{
       date: string;
@@ -64,6 +72,12 @@ interface PriceCalculationResponse {
 const PAYMENT_ID_KEY = "transpo_payment_id";
 
 const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
+  const params = useParams();
+  const vehicleName = decodeURIComponent(
+    Array.isArray(params.vehicleName)
+      ? params.vehicleName[0]
+      : params.vehicleName || ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [priceValidationError, setPriceValidationError] = useState<
@@ -202,7 +216,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
 
   // Use calculated price if available, otherwise use orderData price
   const displayPrice = calculatedPrice?.totalPrice || orderData.totalPrice || 0;
-
   // Handle creating order with enhanced error handling
   const handleCreateOrder = async () => {
     setPriceValidationError(null);
@@ -219,6 +232,32 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
 
       if (!orderData.trip || orderData.trip.length === 0) {
         toast.error("No trip data found. Please go back and add destinations.");
+        return;
+      }
+
+      // ✅ Final validation: Check trip duration requirements
+      const allDestinations = orderData.trip.flatMap((trip) =>
+        trip.location
+          .filter((loc) => loc.lat !== null && loc.lng !== null && loc.address)
+          .map((loc) => ({
+            lat: loc.lat!,
+            lng: loc.lng!,
+            address: loc.address,
+          }))
+      );
+
+      const totalDays = orderData.trip.length;
+      const durationValidation = validateTripDuration(
+        allDestinations,
+        totalDays,
+        vehicleName
+      );
+
+      if (!durationValidation.isValid) {
+        toast.error(durationValidation.message);
+        setPriceValidationError(
+          durationValidation.message || "Validasi durasi gagal"
+        );
         return;
       }
 
@@ -253,9 +292,7 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
       // Add note if it exists
       if (orderData.note && orderData.note.trim()) {
         formData.append("note", orderData.note.trim());
-      }
-
-      // Add all destinations with their full details
+      } // Add all destinations with their full details
       orderData.trip.forEach((trip, tripIndex) => {
         trip.location.forEach((loc, locIndex) => {
           if (loc.address) {
@@ -275,11 +312,14 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
               tripIndex === 0 && locIndex === 0 ? "true" : "false"
             );
 
+            // Add departure date for ALL destinations in the same trip
+            formData.append(
+              `destinations[${index}].departureDate`,
+              format(trip.date, "yyyy-MM-dd")
+            );
+
+            // Add departure time only for the first destination of each trip
             if (locIndex === 0) {
-              formData.append(
-                `destinations[${index}].departureDate`,
-                format(trip.date, "yyyy-MM-dd")
-              );
               formData.append(
                 `destinations[${index}].departureTime`,
                 trip.startTime || "09:00"
@@ -297,13 +337,10 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
           }
         });
       });
-
       formData.append(
         "timezone",
         Intl.DateTimeFormat().resolvedOptions().timeZone
       );
-
-      console.log("📤 Sending order data to API...");
 
       const response = await axios.post("/api/orders", formData, {
         headers: {
@@ -319,8 +356,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         if (typeof window !== "undefined") {
           localStorage.setItem(PAYMENT_ID_KEY, paymentData.id);
         }
-
-        console.log("✅ Order created successfully:", response.data.data);
         onContinue({
           id: paymentData.id,
           amount: parseFloat(paymentData.totalPrice),
@@ -331,39 +366,47 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
     } catch (error: unknown) {
       console.error("❌ Error creating order:", error);
 
-      const axiosError = error as {
-        response?: { status?: number; data?: { message?: string } };
-        code?: string;
-      };
-      if (axiosError.response?.status === 400) {
-        const errorMessage =
-          axiosError.response?.data?.message || "Bad request";
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as {
+          response?: { status?: number; data?: { message?: string } };
+        };
+        if (axiosError.response?.status === 400) {
+          const errorMessage =
+            axiosError.response?.data?.message || "Bad request";
 
-        if (errorMessage.includes("Price validation failed")) {
-          setPriceValidationError(errorMessage);
+          if (errorMessage.includes("Price validation failed")) {
+            setPriceValidationError(errorMessage);
+            toast.error(
+              "Harga tidak valid. Silakan refresh halaman untuk memperbarui kalkulasi."
+            );
+          } else if (errorMessage.includes("Distance validation failed")) {
+            setPriceValidationError(errorMessage);
+            toast.error(
+              "Jarak tidak valid. Silakan kembali ke step sebelumnya untuk memperbarui rute."
+            );
+          } else if (errorMessage.includes("Missing required fields")) {
+            toast.error(
+              "Data tidak lengkap. Silakan periksa kembali informasi pesanan."
+            );
+          } else {
+            toast.error(errorMessage);
+          }
+        } else if (axiosError.response?.status === 404) {
+          toast.error("Data tidak ditemukan. Silakan login ulang.");
+        } else if (axiosError.response?.status === 500) {
+          toast.error("Terjadi kesalahan server. Silakan coba lagi nanti.");
+        } else {
+          toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
+        }
+      } else if (error && typeof error === "object" && "code" in error) {
+        const networkError = error as { code?: string };
+        if (networkError.code === "NETWORK_ERROR") {
           toast.error(
-            "Harga tidak valid. Silakan refresh halaman untuk memperbarui kalkulasi."
-          );
-        } else if (errorMessage.includes("Distance validation failed")) {
-          setPriceValidationError(errorMessage);
-          toast.error(
-            "Jarak tidak valid. Silakan kembali ke step sebelumnya untuk memperbarui rute."
-          );
-        } else if (errorMessage.includes("Missing required fields")) {
-          toast.error(
-            "Data tidak lengkap. Silakan periksa kembali informasi pesanan."
+            "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
           );
         } else {
-          toast.error(errorMessage);
+          toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
         }
-      } else if (axiosError.response?.status === 404) {
-        toast.error("Data tidak ditemukan. Silakan login ulang.");
-      } else if (axiosError.response?.status === 500) {
-        toast.error("Terjadi kesalahan server. Silakan coba lagi nanti.");
-      } else if (axiosError.code === "NETWORK_ERROR") {
-        toast.error(
-          "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
-        );
       } else {
         toast.error("Terjadi kesalahan tidak terduga. Silakan coba lagi.");
       }
@@ -483,10 +526,30 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                     Rincian Biaya
                   </h4>
                   <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
+                    {/* NEW: Show detailed per-trip breakdown */}
+                    {calculatedPrice.tripBreakdown &&
+                      calculatedPrice.tripBreakdown.length > 0 && (
+                        <div className="mb-2">
+                          <div className="font-medium text-blue-700 mb-1">
+                            Biaya Per Trip/Hari:
+                          </div>
+                          {calculatedPrice.tripBreakdown.map((trip, idx) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between text-xs text-blue-600 ml-2"
+                            >
+                              <span>
+                                Hari {idx + 1} ({trip.distance.toFixed(1)} km):
+                              </span>
+                              <span>{formatRupiah(trip.pricePerTrip)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                    <div className="flex justify-between border-t border-blue-300 pt-1">
                       <span>
-                        Biaya Dasar (
-                        {calculatedPrice.totalDistanceKm.toFixed(1)} km x{" "}
+                        Subtotal (Total semua trip ×{" "}
                         {calculatedPrice.vehicleCount} armada):
                       </span>
                       <span>{formatRupiah(calculatedPrice.basePrice)}</span>
@@ -499,6 +562,17 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                         </span>
                       </div>
                     )}
+                    {calculatedPrice.elfOutOfMalangCharges &&
+                      calculatedPrice.elfOutOfMalangCharges > 0 && (
+                        <div className="flex justify-between">
+                          <span>Biaya ELF Luar Malang:</span>
+                          <span>
+                            {formatRupiah(
+                              calculatedPrice.elfOutOfMalangCharges
+                            )}
+                          </span>
+                        </div>
+                      )}
                     <div className="flex justify-between font-medium pt-2 border-t border-blue-300">
                       <span>Total:</span>
                       <span>{formatRupiah(calculatedPrice.totalPrice)}</span>
@@ -526,7 +600,6 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                 </div>
               )}
             </div>
-
             {/* Journey Details */}
             <div className="space-y-6">
               <h3 className="font-medium text-lg border-b pb-2 text-transpo-primary">
@@ -668,13 +741,12 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Navigation buttons */}
-            <div className="flex justify-between gap-3 mt-8">
+            </div>{" "}
+            {/* Navigation buttons */}{" "}
+            <div className="flex justify-end gap-3 mt-8">
               <Button
                 onClick={onBack}
-                variant="secondary"
+                variant="outline"
                 className="border-gray-300 hover:bg-gray-100 text-gray-700"
                 disabled={isSubmitting}
               >
@@ -698,34 +770,30 @@ const Step3 = ({ orderData, setOrderData, onContinue, onBack }: Step3Props) => {
         onOpenChange={setIsConfirmDialogOpen}
       >
         <AlertDialogContent>
+          {" "}
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemesanan</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Anda akan membuat pesanan transportasi dengan total biaya{" "}
-                <span className="font-semibold text-transpo-primary">
-                  {formatRupiah(displayPrice)}
-                </span>
-                .
-              </p>
-              <p className="text-amber-600 font-medium">
-                ⚠️ Pastikan semua detail perjalanan sudah benar karena pesanan
-                yang telah dibuat tidak dapat diubah.
-              </p>
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200 mt-3">
-                <p className="text-blue-800 text-sm">
-                  <strong>Yang akan terjadi selanjutnya:</strong>
-                </p>{" "}
-                <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
-                  <li>
-                    Pesanan akan dibuat dengan status &ldquo;Pending&rdquo;
-                  </li>
-                  <li>Anda akan diarahkan ke halaman pembayaran</li>
-                  <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
-                </ul>
-              </div>
+            <AlertDialogDescription>
+              Anda akan membuat pesanan transportasi dengan total biaya{" "}
+              {formatRupiah(displayPrice)}.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3">
+            <div className="text-amber-600 font-medium text-sm">
+              ⚠️ Pastikan semua detail perjalanan sudah benar karena pesanan
+              yang telah dibuat tidak dapat diubah.
+            </div>
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <div className="text-blue-800 text-sm">
+                <strong>Yang akan terjadi selanjutnya:</strong>
+              </div>{" "}
+              <ul className="text-blue-700 text-sm mt-1 list-disc list-inside">
+                <li>Pesanan akan dibuat dengan status &quot;Pending&quot;</li>
+                <li>Anda akan diarahkan ke halaman pembayaran</li>
+                <li>Admin akan memverifikasi pesanan setelah pembayaran</li>
+              </ul>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={isSubmitting}

@@ -20,8 +20,8 @@ const PROTECTED_ROUTES: string[] = [
   "/api/users/*",
   "/api/vehicle-types",
   "/api/vehicle-types/*",
-  "/api/articles",
-  "/api/articles/*",
+  // "/api/articles",
+  // "/api/articles/*",
   "/api/dashboard",
   "/api/dashboard/*",
 ];
@@ -120,8 +120,6 @@ function isComingSoonRoute(pathname: string) {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  console.log(`Processing middleware for: ${pathname}`);
-
   // Skip middleware for Next.js internal routes and static assets
   if (
     pathname.startsWith("/_next/") ||
@@ -149,11 +147,6 @@ export async function middleware(req: NextRequest) {
     cookieName: "next-auth.session-token",
   });
 
-  console.log(
-    `Auth token for ${pathname}:`,
-    token ? `User: ${token.email}, Role: ${token.role}` : "No token"
-  );
-
   // ===== ROLE BASED ACCESS CONTROL =====
   // Check role-based access first, regardless of protected status
   if (token) {
@@ -161,11 +154,7 @@ export async function middleware(req: NextRequest) {
 
     // Admin-only routes protection (ADMIN and SUPER_ADMIN can access)
     if (isAdminOnlyRoute(pathname)) {
-      console.log(`Admin-only route detected: ${pathname}`);
       if (!(userRole === "ADMIN" || userRole === "SUPER_ADMIN")) {
-        console.log(
-          `Redirecting non-admin user (${userRole}) from ${pathname} to /dashboard`
-        );
         // If non-admin tries to access admin route, redirect to customer dashboard
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
@@ -173,11 +162,7 @@ export async function middleware(req: NextRequest) {
 
     // Customer-only routes protection (only CUSTOMER can access)
     if (isCustomerOnlyRoute(pathname)) {
-      console.log(`Customer-only route detected: ${pathname}`);
       if (userRole !== "CUSTOMER") {
-        console.log(
-          `Redirecting non-customer user (${userRole}) from ${pathname} to /admin`
-        );
         // If non-customer tries to access customer route, redirect to admin dashboard
         return NextResponse.redirect(new URL("/admin", req.url));
       }
@@ -186,9 +171,6 @@ export async function middleware(req: NextRequest) {
 
   // 3. Handle guest-only routes (redirect authenticated users to appropriate dashboard)
   if (isGuestOnlyRoute(pathname) && token) {
-    console.log(
-      `Guest-only route accessed by authenticated user, redirecting...`
-    );
     // Redirect authenticated users based on their role
     if (token.role === "CUSTOMER") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -201,9 +183,6 @@ export async function middleware(req: NextRequest) {
   if (isProtectedRoute(pathname)) {
     // Check authentication
     if (!token) {
-      console.log(
-        `Protected route accessed without authentication, redirecting to signin...`
-      );
       // Store the original URL to redirect back after login
       const callbackUrl = encodeURIComponent(req.url);
       return NextResponse.redirect(

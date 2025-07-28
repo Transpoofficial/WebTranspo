@@ -44,6 +44,7 @@ import { useRouter } from "next/navigation";
 import HiaceCommuter from "./components/hiace-commuter";
 import HiacePremio from "./components/hiace-premio";
 import Link from "next/link";
+import TourPackages from "./components/tour-packages";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -138,18 +139,18 @@ const Home = () => {
         {/* Carousel */}
         <div className="relative">
           <Image
-            className="w-full h-120 object-cover"
-            src="/images/angkot/angkot_4.jpg"
-            alt="angkot_4.jpg"
-            width={100}
-            height={100}
+            className="w-full min-h-120 h-120 max-h-120 object-cover object-center"
+            src="/images/hero_image.jpg"
+            alt="hero_image.jpg"
+            width={500}
+            height={500}
           />
 
           {/* Backdrop */}
           <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
           <div className="absolute top-1/2 left-1/2 -translate-1/2 w-full container">
-            <div className="flex items-start gap-x-2">
+            <div className="flex items-center md:items-start gap-x-2">
               <Image
                 className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
                 src="/images/logo/logo_3.png"
@@ -180,7 +181,7 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="block md:hidden">
+            <div className="block md:hidden w-full pl-3">
               <h1
                 className={`mt-1 ${hurricane.className} text-white text-3xl font-extrabold uppercase tracking-tight lg:text-5xl`}
               >
@@ -314,7 +315,7 @@ const Home = () => {
 
                   <div className="flex flex-col justify-start max-w-full">
                     <h5 className="text-base md:text-xl font-medium">
-                      Aksesibilas Mudah
+                      Aksesibilitas Mudah
                     </h5>
                     <p className="text-base md:text-xl whitespace-wrap">
                       Layanan berbasis teknologi dengan fitur transparasi harga,
@@ -377,17 +378,17 @@ const Home = () => {
           {/* Tabs */}
           <div className="mt-6 md:mt-12">
             <Tabs defaultValue="angkot" className="w-full">
-              <TabsList className="w-full min-h-max">
+              <TabsList className="w-full min-h-max justify-normal md:justify-center overflow-x-auto">
                 <TabsTrigger
                   value="angkot"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <CarFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Angkot</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="hiace_commuter"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <BusFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">
@@ -396,7 +397,7 @@ const Home = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="hiace_premio"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <BusFront className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">
@@ -405,7 +406,7 @@ const Home = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="elf"
-                  className="flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
@@ -424,6 +425,17 @@ const Home = () => {
                 <Elf />
               </TabsContent>
             </Tabs>
+          </div>
+        </div>
+
+        {/* Tour Packages */}
+        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+            Paket Wisata Malang
+          </h1>
+
+          <div className="mt-6 md:mt-12">
+            <TourPackages />
           </div>
         </div>
 
@@ -451,9 +463,13 @@ const Home = () => {
             <div className="flex justify-center mt-6 md:mt-12 text-red-500">
               Error loading articles
             </div>
+          ) : !articlesData?.data?.length ? (
+            <div className="flex justify-center mt-6 md:mt-12">
+              Tidak ada artikel yang tersedia
+            </div>
           ) : (
             <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
-              {articlesData?.data?.slice(0, 10).map((article: Article) => (
+              {articlesData.data.slice(0, 10).map((article: Article) => (
                 <Card
                   key={article.id}
                   className="min-w-xs max-w-xs md:min-w-md md:max-w-md"
@@ -495,27 +511,25 @@ const Home = () => {
         >
           <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
 
-          <Carousel
-            opts={{
-              align: "center",
-            }}
-            className="w-full mt-3 md:mt-9"
-          >
-            <CarouselContent className="py-3">
-              {isLoadingReviews ? (
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <div className="py-4 px-6 shadow-md rounded-3xl border">
-                    Loading reviews...
-                  </div>
-                </CarouselItem>
-              ) : reviewsError ? (
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                  <div className="py-4 px-6 shadow-md rounded-3xl border">
-                    Error loading reviews
-                  </div>
-                </CarouselItem>
-              ) : (
-                reviewsData?.data.map((review: Review) => (
+          {isLoadingReviews ? (
+            <div className="flex justify-center mt-6 md:mt-12">Loading...</div>
+          ) : reviewsError ? (
+            <div className="flex justify-center mt-6 md:mt-12 text-red-500">
+              Error loading reviews
+            </div>
+          ) : !reviewsData?.data?.length ? (
+            <div className="flex justify-center mt-6 md:mt-12">
+              Tidak ada review yang tersedia
+            </div>
+          ) : (
+            <Carousel
+              opts={{
+                align: "center",
+              }}
+              className="w-full mt-3 md:mt-9"
+            >
+              <CarouselContent className="py-3">
+                {reviewsData.data.map((review: Review) => (
                   <CarouselItem
                     key={review.id}
                     className="md:basis-1/2 lg:basis-1/3"
@@ -546,10 +560,10 @@ const Home = () => {
                       </h6>
                     </div>
                   </CarouselItem>
-                ))
-              )}
-            </CarouselContent>
-          </Carousel>
+                ))}
+              </CarouselContent>
+            </Carousel>
+          )}
         </div>
 
         {/* Contact */}
@@ -616,7 +630,13 @@ const Home = () => {
         </div>
       </main>
 
-      <Footer />
+      <Footer
+        scrollToAdvantage={scrollToAdvantage}
+        scrollToHowToOrder={scrollToHowToOrder}
+        scrollToService={scrollToService}
+        scrollToArticle={scrollToArticle}
+        scrollToReview={scrollToReview}
+      />
     </>
   );
 };
