@@ -470,35 +470,39 @@ const Home = () => {
           ) : (
             <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
               {articlesData.data.slice(0, 10).map((article: Article) => (
-                <Card
-                  key={article.id}
-                  className="min-w-xs max-w-xs md:min-w-md md:max-w-md"
-                >
-                  <CardContent>
-                    <Image
-                      className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                      src={article.mainImgUrl || "/images/angkot/angkot_2.png"}
-                      alt={article.title}
-                      width={500}
-                      height={500}
-                    />
-                    <div className="mt-2 text-lg font-semibold line-clamp-2">
-                      {article.title}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      By {article.author.fullName}
-                    </p>
-                  </CardContent>
-                  <CardFooter>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(article.createdAt).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </CardFooter>
-                </Card>
+                <Link key={article.id} href={`/articles/${article.id}`}>
+                  <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
+                    <CardContent>
+                      <Image
+                        className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                        src={
+                          article.mainImgUrl || "/images/angkot/angkot_2.png"
+                        }
+                        alt={article.title}
+                        width={500}
+                        height={500}
+                      />
+                      <div className="mt-2 text-lg font-semibold line-clamp-2">
+                        {article.title}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        By {article.author.fullName}
+                      </p>
+                    </CardContent>
+                    <CardFooter>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(article.createdAt).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          }
+                        )}
+                      </p>
+                    </CardFooter>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}
