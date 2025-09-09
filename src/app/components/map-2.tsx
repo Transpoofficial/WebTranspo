@@ -1060,8 +1060,8 @@ const Map2: React.FC<Map2Props> = ({
   if (!isLoaded) return <p>Loading Google Maps...</p>;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="h-[400px] w-full">
+    <div className="flex flex-col lg:flex-row-reverse h-full">
+      <div className="h-[400px] lg:h-full w-full">
         <GoogleMap
           options={mapOptions}
           zoom={11}
@@ -1116,7 +1116,7 @@ const Map2: React.FC<Map2Props> = ({
         </GoogleMap>
       </div>
 
-      <div className="flex-1 bg-white rounded-xl shadow-lg flex flex-col mt-4 max-h-96 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-lg flex flex-col mt-4 max-h-96 lg:max-h-228 overflow-y-auto">
         <div className="pt-4 px-6 flex-shrink-0">
           <div className="text-lg font-semibold">Inisiasi perjalanan</div>
           <p className="text-xs text-muted-foreground">
