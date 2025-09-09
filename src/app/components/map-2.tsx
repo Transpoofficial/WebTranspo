@@ -54,6 +54,7 @@ import {
   validateAngkotDestination,
   requiresAllDestinationRestriction,
 } from "@/utils/validation";
+import { Separator } from "@/components/ui/separator";
 
 export interface Location {
   id: string;
@@ -258,7 +259,7 @@ const SortableLocationItem = ({
       {/* Location input row */}
       <div className="flex items-center w-full">
         <div
-          className={`invisible group-hover:visible ${
+          className={`${
             isDragging ? "cursor-grabbing" : "cursor-grab"
           }`}
           {...attributes}
@@ -1200,27 +1201,17 @@ const Map2: React.FC<Map2Props> = ({
                       >
                         {trip.locations.map((location, locationIndex) => (
                           <React.Fragment key={location.id}>
-                            <div className="flex items-center w-full group mb-4">
-                              {" "}
-                              {/* Increased margin-bottom */}
-                              {locationIndex === 0 ? (
-                                <MapPin
-                                  color="#DC362E"
-                                  className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
-                                />
-                              ) : locationIndex ===
-                                trip.locations.length - 1 ? (
-                                <Flag
-                                  color="#DC362E"
-                                  className="min-w-4 min-h-4 w-4 h-4 mr-1 self-start mt-2" // Added self-start alignment
-                                />
-                              ) : (
-                                <span className="min-w-4 min-h-4 w-4 h-4 text-[10px] text-center font-medium border border-black rounded-full mr-1 self-start mt-2">
-                                  {" "}
-                                  {/* Added self-start alignment */}
-                                  {locationIndex}
-                                </span>
-                              )}
+                            <div className="flex items-center w-full group">
+                              {/* Location Icon */}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 -960 960 960"
+                                fill="#2ca6bc"
+                                className="min-w-5 min-h-5 w-5 h-5 mr-1 self-start mt-2"
+                              >
+                                <path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 400Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Z" />
+                              </svg>
+
                               <SortableLocationItem
                                 key={location.id}
                                 location={location}
@@ -1250,6 +1241,7 @@ const Map2: React.FC<Map2Props> = ({
                                   ] = el;
                                 }}
                               />
+
                               {trip.locations.length > 2 && (
                                 <button
                                   title="Hapus lokasi"
@@ -1267,12 +1259,7 @@ const Map2: React.FC<Map2Props> = ({
                             </div>
 
                             {locationIndex !== trip.locations.length - 1 && (
-                              <div className="mr-auto mb-2">
-                                <EllipsisVertical
-                                  strokeWidth={1}
-                                  className="min-w-4 min-h-4 w-4 h-4"
-                                />
-                              </div>
+                              <Separator className="my-4" />
                             )}
                           </React.Fragment>
                         ))}
@@ -1283,33 +1270,30 @@ const Map2: React.FC<Map2Props> = ({
               );
             })}
           </Accordion>
-        </div>
 
-        <div className="p-4 bg-white border-t flex-shrink-0">
-          {!onTripsChange ? (
-            <Button
-              onClick={handleAddTrip}
-              variant="outline"
-              className="w-full"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Tambah perjalanan
-            </Button>
-          ) : (
-            <Button
-              disabled={
-                !!maxLocationsPerTrip &&
-                trips[activeTrip]?.locations.length >= maxLocationsPerTrip
-              }
-              size="sm"
-              variant="outline"
-              onClick={() => handleAddLocation(activeTrip)}
-              className="w-full"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Tambah destinasi
-            </Button>
-          )}
+          <div className="mt-4 px-4">
+            {!onTripsChange ? (
+              <Button
+                onClick={handleAddTrip}
+                className="text-transpo-primary bg-white hover:bg-gray-100 shadow"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Tambah perjalanan
+              </Button>
+            ) : (
+              <Button
+                disabled={
+                  !!maxLocationsPerTrip &&
+                  trips[activeTrip]?.locations.length >= maxLocationsPerTrip
+                }
+                onClick={() => handleAddLocation(activeTrip)}
+                className="text-transpo-primary bg-white hover:bg-gray-100 shadow"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Tambah destinasi
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
