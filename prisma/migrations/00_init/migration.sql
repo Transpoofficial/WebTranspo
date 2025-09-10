@@ -131,6 +131,7 @@ CREATE TABLE `PackageOrder` (
     `orderId` VARCHAR(191) NOT NULL,
     `packageId` VARCHAR(191) NOT NULL,
     `departureDate` DATETIME(3) NOT NULL,
+    `people` INTEGER NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
