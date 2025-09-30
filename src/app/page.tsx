@@ -45,6 +45,7 @@ import HiaceCommuter from "./components/hiace-commuter";
 import HiacePremio from "./components/hiace-premio";
 import Link from "next/link";
 import TourPackages from "./components/tour-packages";
+import Pedicab from "./components/pedicab";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -411,6 +412,20 @@ const Home = () => {
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
+                <TabsTrigger
+                  value="pedicab"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <Image
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAACKklEQVR4nNVUMWsUQRQeBQUFlds3F42JIoLk9r09UqSI6B/QxCLZ94aIjYKgYmGXaGNECy3yKyKoCIqFURCTQqOFtY2VnQbFFImFEdTIzM5e9vZuSU7PAwfewjxmvu+973uzSnViAclLTbKaD5tvC4Em/tkRAqWubW4L4H9DACivEjn5gya+pdBsbS8B8Xy9b3yzZQJoAGk0v0x8JO3kHxHER5M8L7RMkC5AeVADHzi3pYzmDJA8BeTPGeKL6k8JdlRGIDHTAX1s6ArlfNHdDZsMYTySAX0bEMea5NGGCep15vmGcyhT3sw3vYfNNkca8YWEgO/9FcFONAEQf9PIP0ohU5oPkE9n7nzVxHM6MsMtS6TJnHVAKM/WOuKrmuRXwX/sRpMOeNFOhW23qxofrJeHp7OTUkZzzIIDyYpGfpeQm0lAc0UTf3f7MB5SJRrb16wKO9O7+8YO5N9DEPJgUpQ8d2cjvpT3AciMe5xZW/0dPwWPg37TYwOQZ5KK+HaNAPm9zZXQ7PddL9r9ruqpEkRxJfuSy2j2+P2SrWzBVdZvelIw39Vqs+geOLHdd7DscpXRbqXUJkB5nb5w6Du5t0ZgP46gOtq7HgGQvMj4NpfkzHh+IAD58ppEKA+9fjOWxAaQPPESTRdOVWSGPekKkEzYql048NRkPq50GB/SJF/WM1k1WXYUi6QE4uu1g4mxct/KBSifgORufkwLOwnjISuF98TGrKu8U+s3XFdsIgnZF5gAAAAASUVORK5CYII="
+                    alt="pedicab_icon"
+                    width={24}
+                    height={24}
+                    style={{ width: 24, height: 24 }}
+                    unoptimized
+                  />
+                  <span className="font-bold uppercase text-base">Becak</span>
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="angkot">
                 <Transportation />
@@ -423,6 +438,9 @@ const Home = () => {
               </TabsContent>
               <TabsContent value="elf">
                 <Elf />
+              </TabsContent>
+              <TabsContent value="pedicab">
+                <Pedicab />
               </TabsContent>
             </Tabs>
           </div>
