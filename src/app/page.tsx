@@ -45,6 +45,7 @@ import HiaceCommuter from "./components/hiace-commuter";
 import HiacePremio from "./components/hiace-premio";
 import Link from "next/link";
 import TourPackages from "./components/tour-packages";
+import Pedicab from "./components/pedicab";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -411,6 +412,20 @@ const Home = () => {
                   <Bus className="!w-8 !h-8" />
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
+                <TabsTrigger
+                  value="pedicab"
+                  className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
+                >
+                  <Image
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAADj0lEQVR4nO2Z30tUQRTHP25tQaK+RD8IH4sKyoLKEuot0n6oWNJbUW8VFfUXBIn9pEQifC2Rood+UBIS9NgPIigSf0Fqa0VEBZqhrbUbE7NxOc29d/a2e72SXxhYds7MnO+dM+d8516YRnSwBXgDpC1bP1BJhNCfhfOZliBCSAYgMMQUJjAQtRBKCgfjTDEkpwlMMpLTBLLDNlF3RoEnwCFgFhEnUAC888hwz4GFUd+Btz5p+lm2PoRNoAp47UPiQBgEKi1liJ92WgTcFWMehUEgkUPtVCrsh8MgMJRHAiNhEKjSuuhftVMp0C7GdIRBQOKOmEfNu0bYzAX2A9eBl/pJS8IpoGIyCMwDPoi5eoA5wAKgBRjz2a0UcDzbhXOZRrdrJ5zzPQA+W4TaIFAdZNFc14GWLA532tGOBl0w1wQKgV4PRx8DB4Hz4v+bUSGgsNfg+Edgh8Nmtej/BMRyQcCroqrU6YfZQJfBuSXCLgZ8EXZl+SSQ1kLMD4fFmAlgk4vtbWF7ZLIJxAzvmC572B8zrDGq028bsMsmpG0JqIq61WeuzQZn5ntcbPos1lU2NWEd4lYx1xWXS80pQ73waik9JpZPAgWGSqx2ROJMwDqhWqMNgac6a6jt7wSagGUWBJaKeVT1nSFsqi2efAewUZ8d6VvKVK1tzsBP4ILP7uwRY+4b0qu8AA0B+wzEM6GyynCH7nP6MVOnOdstbPcgcVLYnhD9u0X/uHbQrx6UGUTgzkzn6QBxeNaFwDVhVy/6b4j+Zo96IHVRs+hXyYLFhqevKmgtUKyb+t0tbJJ6rMRDYVcu+gdF/zqPenBLjC0X/cqn3zEtnS8xOFZiIKEyicQLYaMu607IMCjx0EUqmzlRZLozvxJ/qqfthtoAoaYWdeKr6C909Klz8N7Rp3bLiWITAXmdU0ZukE/ApqkE4YSU2GsNlXnARTRuMIXQcB4JKD0k0SZsLmKPS2LsVXSRykcIJfSHQ4l6YTcGrLBwXqXa72JsnekQd3sc4h7LVOqFuEG8JYCVPs7Ld6m9mVqk5MEPA4laHTJF+rd0fsJwObFFjUFKjOs8v96xboUOG/nkU/rFwR80BTic5/g3KFWZDtga5GRxLZ5sJ7iXgzuzSpmNAeR0g1a8fyGud0KGk0nMBfqC4oJqywtNrwwbNyzXTnZqKf3NIaeVVM4H4lqYtWolMKJbl06VdVPxmx3/BX4BxfY2lg7SD2UAAAAASUVORK5CYII="
+                    alt="pedicab_icon"
+                    width={32}
+                    height={32}
+                    style={{ width: 32, height: 32 }}
+                    unoptimized
+                  />
+                  <span className="font-bold uppercase text-base">Becak</span>
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="angkot">
                 <Transportation />
@@ -423,6 +438,9 @@ const Home = () => {
               </TabsContent>
               <TabsContent value="elf">
                 <Elf />
+              </TabsContent>
+              <TabsContent value="pedicab">
+                <Pedicab />
               </TabsContent>
             </Tabs>
           </div>

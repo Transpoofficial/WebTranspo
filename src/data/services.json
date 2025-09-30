@@ -82,6 +82,28 @@
         "Kapasitas Masih Terbatas",
         "Tidak Cocok untuk Perjalanan Sangat Besar"
       ]
+    },
+    {
+      "name": "Becak",
+      "description": "A service for renting Elf Giga vans for larger groups with more space.",
+      "information": [
+        "Muat hingga 2–3 orang, cocok untuk perjalanan singkat di area perkotaan.",
+        "Harga sewa ekonomis, sangat ramah di kantong.",
+        "Ideal untuk menikmati suasana kota, wisata kuliner, atau berkeliling kampung.",
+        "Kendaraan tradisional ini ramah lingkungan dan bebas polusi.",
+        "Fleksibel untuk melewati jalan sempit dan area padat yang sulit dijangkau kendaraan besar.",
+        "Cocok untuk perjalanan santai, santai sambil menikmati pemandangan sekitar."
+      ],
+      "pros": [
+        "Ramah lingkungan & bebas polusi",
+        "Sewa ekonomis",
+        "Santai & nikmati pemandangan"
+      ],
+      "cons": [
+        "Harga Lebih Mahal",
+        "Kapasitas Masih Terbatas",
+        "Tidak Cocok untuk Perjalanan Sangat Besar"
+      ]
     }
   ]
 }
