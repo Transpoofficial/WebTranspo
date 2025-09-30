@@ -417,11 +417,11 @@ const Home = () => {
                   className="grow flex-col min-h-max data-[state=active]:text-[#0897B1]"
                 >
                   <Image
-                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAACKklEQVR4nNVUMWsUQRQeBQUFlds3F42JIoLk9r09UqSI6B/QxCLZ94aIjYKgYmGXaGNECy3yKyKoCIqFURCTQqOFtY2VnQbFFImFEdTIzM5e9vZuSU7PAwfewjxmvu+973uzSnViAclLTbKaD5tvC4Em/tkRAqWubW4L4H9DACivEjn5gya+pdBsbS8B8Xy9b3yzZQJoAGk0v0x8JO3kHxHER5M8L7RMkC5AeVADHzi3pYzmDJA8BeTPGeKL6k8JdlRGIDHTAX1s6ArlfNHdDZsMYTySAX0bEMea5NGGCep15vmGcyhT3sw3vYfNNkca8YWEgO/9FcFONAEQf9PIP0ohU5oPkE9n7nzVxHM6MsMtS6TJnHVAKM/WOuKrmuRXwX/sRpMOeNFOhW23qxofrJeHp7OTUkZzzIIDyYpGfpeQm0lAc0UTf3f7MB5SJRrb16wKO9O7+8YO5N9DEPJgUpQ8d2cjvpT3AciMe5xZW/0dPwWPg37TYwOQZ5KK+HaNAPm9zZXQ7PddL9r9ruqpEkRxJfuSy2j2+P2SrWzBVdZvelIw39Vqs+geOLHdd7DscpXRbqXUJkB5nb5w6Du5t0ZgP46gOtq7HgGQvMj4NpfkzHh+IAD58ppEKA+9fjOWxAaQPPESTRdOVWSGPekKkEzYql048NRkPq50GB/SJF/WM1k1WXYUi6QE4uu1g4mxct/KBSifgORufkwLOwnjISuF98TGrKu8U+s3XFdsIgnZF5gAAAAASUVORK5CYII="
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAADj0lEQVR4nO2Z30tUQRTHP25tQaK+RD8IH4sKyoLKEuot0n6oWNJbUW8VFfUXBIn9pEQifC2Rood+UBIS9NgPIigSf0Fqa0VEBZqhrbUbE7NxOc29d/a2e72SXxhYds7MnO+dM+d8516YRnSwBXgDpC1bP1BJhNCfhfOZliBCSAYgMMQUJjAQtRBKCgfjTDEkpwlMMpLTBLLDNlF3RoEnwCFgFhEnUAC888hwz4GFUd+Btz5p+lm2PoRNoAp47UPiQBgEKi1liJ92WgTcFWMehUEgkUPtVCrsh8MgMJRHAiNhEKjSuuhftVMp0C7GdIRBQOKOmEfNu0bYzAX2A9eBl/pJS8IpoGIyCMwDPoi5eoA5wAKgBRjz2a0UcDzbhXOZRrdrJ5zzPQA+W4TaIFAdZNFc14GWLA532tGOBl0w1wQKgV4PRx8DB4Hz4v+bUSGgsNfg+Edgh8Nmtej/BMRyQcCroqrU6YfZQJfBuSXCLgZ8EXZl+SSQ1kLMD4fFmAlgk4vtbWF7ZLIJxAzvmC572B8zrDGq028bsMsmpG0JqIq61WeuzQZn5ntcbPos1lU2NWEd4lYx1xWXS80pQ73waik9JpZPAgWGSqx2ROJMwDqhWqMNgac6a6jt7wSagGUWBJaKeVT1nSFsqi2efAewUZ8d6VvKVK1tzsBP4ILP7uwRY+4b0qu8AA0B+wzEM6GyynCH7nP6MVOnOdstbPcgcVLYnhD9u0X/uHbQrx6UGUTgzkzn6QBxeNaFwDVhVy/6b4j+Zo96IHVRs+hXyYLFhqevKmgtUKyb+t0tbJJ6rMRDYVcu+gdF/zqPenBLjC0X/cqn3zEtnS8xOFZiIKEyicQLYaMu607IMCjx0EUqmzlRZLozvxJ/qqfthtoAoaYWdeKr6C909Klz8N7Rp3bLiWITAXmdU0ZukE/ApqkE4YSU2GsNlXnARTRuMIXQcB4JKD0k0SZsLmKPS2LsVXSRykcIJfSHQ4l6YTcGrLBwXqXa72JsnekQd3sc4h7LVOqFuEG8JYCVPs7Ld6m9mVqk5MEPA4laHTJF+rd0fsJwObFFjUFKjOs8v96xboUOG/nkU/rFwR80BTic5/g3KFWZDtga5GRxLZ5sJ7iXgzuzSpmNAeR0g1a8fyGud0KGk0nMBfqC4oJqywtNrwwbNyzXTnZqKf3NIaeVVM4H4lqYtWolMKJbl06VdVPxmx3/BX4BxfY2lg7SD2UAAAAASUVORK5CYII="
                     alt="pedicab_icon"
-                    width={24}
-                    height={24}
-                    style={{ width: 24, height: 24 }}
+                    width={32}
+                    height={32}
+                    style={{ width: 32, height: 32 }}
                     unoptimized
                   />
                   <span className="font-bold uppercase text-base">Becak</span>
