@@ -589,7 +589,7 @@ export const GET = async (req: NextRequest) => {
     const orderStatuses = searchParams.getAll("orderStatus");
     const vehicleTypes = searchParams.getAll("vehicleType");
     const paymentStatuses = searchParams.getAll("paymentStatus");
-    const dateFilter = searchParams.get("dateFilter") || "7";
+    const dateFilter = searchParams.get("dateFilter");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const isPrivate = searchParams.get("isPrivate");
@@ -602,6 +602,8 @@ export const GET = async (req: NextRequest) => {
       whereConditions.userId = token.id;
     }
 
+    let days: number | null = null;
+
     // Date filtering
     if (dateFilter === "custom" && startDate && endDate) {
       whereConditions.createdAt = {
@@ -609,14 +611,17 @@ export const GET = async (req: NextRequest) => {
         lte: new Date(endDate),
       };
     } else {
-      const days = parseInt(dateFilter);
-      if (!isNaN(days)) {
+      if (dateFilter !== null) {
+        days = parseInt(dateFilter, 10);
+
+        if (!isNaN(days)) {
         const date = new Date();
         date.setDate(date.getDate() - days);
         whereConditions.createdAt = {
           gte: date,
           lte: new Date(),
         };
+      }
       }
     }
 
