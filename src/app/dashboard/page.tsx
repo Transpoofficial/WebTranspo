@@ -166,8 +166,6 @@ const DashboardPage = () => {
       case "Elf (Elf Giga)":
       case "Elf Giga":
         return "bg-teal-500";
-      case "Becak":
-        return "bg-blue-500";
       default:
         return "bg-gray-500";
     }
@@ -183,8 +181,6 @@ const DashboardPage = () => {
       case "Elf (Elf Giga)":
       case "Elf Giga":
         return "text-teal-500";
-      case "Becak":
-        return "text-blue-500";
       default:
         return "text-gray-500";
     }
@@ -202,8 +198,6 @@ const DashboardPage = () => {
       case "Elf (Elf Giga)":
       case "Elf Giga":
         return "/images/elf/elf_5.jpg";
-      case "Becak":
-        return "/images/becak/becak.jpg";
       default:
         return "/images/angkot/angkot_1.jpeg";
     }
@@ -352,23 +346,12 @@ const DashboardPage = () => {
                       ))}
                     </div>
 
-                    {service.name === "Becak" ? (
-                      <Link href="/maintenance">
-                        <Button
-                          size="lg"
-                          className={`py-2 px-4 text-xl w-full md:w-min bg-white hover:bg-gray-100 shadow-lg ${getServiceTextColor(service.name)}`}
-                        >
-                          Pesan Sekarang
-                        </Button>
-                      </Link>
-                    ) : (
-                      <OrderButton
-                        textColor={getServiceTextColor(service.name)}
-                        isDashboard
-                        content={service.name}
-                        type="TRANSPORT"
-                      />
-                    )}
+                    <OrderButton
+                      textColor={getServiceTextColor(service.name)}
+                      isDashboard
+                      content={service.name}
+                      type="TRANSPORT"
+                    />
                   </div>
                 </div>
               </div>
