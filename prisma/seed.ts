@@ -4,7 +4,10 @@ import * as bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashedPassword = await bcrypt.hash("password123", 10);
+  const hashedPassword = await bcrypt.hash(
+    process.env.ACCOUNT_DEFAULT_PASSWORD || "password123",
+    10
+  );
 
   const users = [
     {
@@ -42,6 +45,53 @@ async function main() {
         phoneNumber: user.phoneNumber,
       },
     });
+  }
+  // Seed vehicle types with capacity
+  const vehicleTypes = [
+    {
+      name: "Angkot",
+      capacity: 12,
+      pricePerKm: 4100,
+    },
+    {
+      name: "Hiace Commuter",
+      capacity: 15,
+      pricePerKm: 2500,
+    },
+    {
+      name: "Hiace Premio",
+      capacity: 14,
+      pricePerKm: 25000,
+    },
+    {
+      name: "Elf",
+      capacity: 19,
+      pricePerKm: 2500,
+    },
+  ];
+
+  for (const vehicleType of vehicleTypes) {
+    const existing = await prisma.vehicleType.findFirst({
+      where: { name: vehicleType.name },
+    });
+
+    if (existing) {
+      await prisma.vehicleType.update({
+        where: { id: existing.id },
+        data: {
+          capacity: vehicleType.capacity,
+          pricePerKm: vehicleType.pricePerKm,
+        },
+      });
+    } else {
+      await prisma.vehicleType.create({
+        data: {
+          name: vehicleType.name,
+          capacity: vehicleType.capacity,
+          pricePerKm: vehicleType.pricePerKm,
+        },
+      });
+    }
   }
 
   console.log("Seeding completed!");

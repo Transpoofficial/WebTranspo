@@ -25,6 +25,9 @@ model User {
   approvedPayments        Payment[]           @relation("ApprovedPayments")
   approvedRefunds         RefundRequest[]     @relation("ApprovedRefunds")
   articles                Article[]           @relation("AuthorArticles")
+  // Reset password fields
+  resetPasswordToken      String?
+  resetPasswordExpiry     DateTime?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt @default(now())
 }
@@ -32,7 +35,7 @@ model User {
 model Article {
   id                      String              @id @default(cuid())
   title                   String
-  content                 String
+  content                 String              @db.Text
   authorId                String
   author                  User                @relation("AuthorArticles",fields: [authorId], references: [id])
   mainImgUrl              String
@@ -48,8 +51,15 @@ model Order {
   orderType               OrderType
   orderStatus             OrderStatus
   payment                 Payment?
+  fullName                String
+  phoneNumber             String?
+  email                   String?
+  totalPassengers         Int?
+  note                    String?
   transportation          TransportationOrder?
   packageOrder            PackageOrder?
+  vehicleTypeId           String?            
+  vehicleType             VehicleType?        @relation(fields: [vehicleTypeId], references: [id]) 
   review                  Review?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
@@ -63,12 +73,13 @@ model Payment {
   transferDate            DateTime
   proofUrl                String?
   paymentStatus           PaymentStatus
-  totalPrice              Decimal             @db.Decimal(10, 2)
+  totalPrice              Decimal             @db.Decimal(12, 2)
   approvedByAdminId       String?
   approvedByAdmin         User?               @relation("ApprovedPayments", fields: [approvedByAdminId], references: [id])
+  note                    String?             
   refundRequest           RefundRequest?
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 }
 
 model RefundRequest {
@@ -88,13 +99,10 @@ model TransportationOrder {
   id                      String              @id @default(cuid())
   orderId                 String              @unique
   order                   Order               @relation(fields: [orderId], references: [id])
-  departureDate           DateTime
-  pickupLocation          String
-  destination             String
+  // Removed departureDate, pickupLocation, destination fields
   vehicleCount            Int
   roundTrip               Boolean
   totalDistance           Float
-  vehicles                Vehicle[]           // One-to-many relation to Vehicle
   destinations            DestinationTransportation[] // One-to-many relation to DestinationTransportation
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
@@ -104,7 +112,14 @@ model DestinationTransportation {
   id                      String              @id @default(cuid())
   transportationOrderId   String
   transportationOrder     TransportationOrder @relation(fields: [transportationOrderId], references: [id])
-  destinationName         String              // this column can be change to destinationId/locationId if the google maps API is available
+  // Enhanced location data
+  lat                     Float?              // Added lat field
+  lng                     Float?              // Added lng field
+  address                 String              // Added explicit address field 
+  arrivalTime             String?             // Existing field
+  isPickupLocation        Boolean             @default(false) // To identify the pickup point
+  sequence                Int                 @default(0)     // To maintain order
+  departureDate           DateTime?           // Added from TransportationOrder
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -115,6 +130,7 @@ model Review {
   order                   Order               @relation(fields: [orderId], references: [id])
   rating                  Int
   content                 String
+  isShow                  Boolean             @default(false)
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
@@ -126,46 +142,39 @@ model PackageOrder {
   packageId               String
   package                 TourPackage         @relation(fields: [packageId], references: [id])
   departureDate           DateTime
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
-}
-
-model Vehicle {
-  id                      String              @id @default(cuid())
-  vehicleTypeId           String
-  vehicleType             VehicleType         @relation(fields: [vehicleTypeId], references: [id])
-  seatCount               Int
-  ratePerKm               Decimal             @db.Decimal(10, 2)
-  additionalDetails       String?
-  transportationOrderId   String?             // Foreign key to TransportationOrder (nullable)
-  transportationOrder     TransportationOrder? @relation(fields: [transportationOrderId], references: [id])
-  tours                   TourPackage[]
+  people                  Int?
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
 
 model VehicleType {
   id                      String              @id @default(cuid())
-  name                    String
-  vehicles                Vehicle[]
+  capacity                Int
+  pricePerKm              Decimal             @db.Decimal(10, 2)
+  name                    String              @unique
+  orders                  Order[]            
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 }
 
-model TourPackage {
-  id                      String              @id @default(cuid())
-  vehicleId               String              
-  vehicle                 Vehicle             @relation(fields: [vehicleId], references: [id])
-  name                    String
-  destination             String
-  durationDays            Int
+model TourPackage { 
+  id                      String              @id @default(cuid()) 
+  photoUrl                Json 
+  name                    String 
   price                   Decimal             @db.Decimal(10, 2)
-  advantages              Json
-  services                Json
-  photoUrl                Json
-  packageOrders           PackageOrder[]
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
+  description             String              @db.Text
+  meetingPoint            String
+  minPersonCapacity       Int 
+  maxPersonCapacity       Int 
+  includes                Json 
+  excludes                Json 
+  itineraries             Json 
+  requirements            Json 
+  tickets                 Json? 
+  is_private              Boolean 
+  packageOrders           PackageOrder[] 
+  createdAt               DateTime            @default(now()) 
+  updatedAt               DateTime            @updatedAt 
 }
 
 model Report {
@@ -173,7 +182,7 @@ model Report {
   reportPeriod            ReportPeriod
   startDate               DateTime
   endDate                 DateTime
-  totalIncome             Decimal             @db.Decimal(10, 2)
+  totalIncome             Decimal             @db.Decimal(15, 2)
   totalOrders             Int
   completedOrders         Int                 @default(0)
   canceledOrders          Int                 @default(0)

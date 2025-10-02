@@ -90,9 +90,10 @@ export const PUT = async (
     let results: ResultUploadFiles = [];
     if (replacePhoto) {
       // Delete the existing image from Supabase if it exists
-      const removeResult = await removeFiles("testing", [
-        existingArticle.mainImgUrl,
-      ]);
+      const removeResult = await removeFiles(
+        process.env.SUPABASE_BUCKET || "",
+        [existingArticle.mainImgUrl]
+      );
       if (removeResult.some((result) => result.success === false)) {
         return NextResponse.json(
           { message: "Failed to delete existing image", data: [] },
@@ -100,7 +101,11 @@ export const PUT = async (
         );
       }
       // Upload the new image to Supabase
-      results = await uploadFiles("testing", [mainImgUrl], "articles");
+      results = await uploadFiles(
+        process.env.SUPABASE_BUCKET || "",
+        [mainImgUrl],
+        "articles"
+      );
       if (results.some((result) => result.success === false)) {
         return NextResponse.json(
           { message: "One or more file uploads failed", data: [] },
@@ -162,7 +167,10 @@ export const DELETE = async (
     // Delete the photo from Supabase storage if it exists
     if (existingArticle?.mainImgUrl) {
       const oldPhotoUrl = existingArticle.mainImgUrl as string;
-      const removeResults = await removeFiles("testing", [oldPhotoUrl]);
+      const removeResults = await removeFiles(
+        process.env.SUPABASE_BUCKET || "",
+        [oldPhotoUrl]
+      );
       if (removeResults.some((result) => result.success === false)) {
         return NextResponse.json(
           { message: "One or more file deletions failed", data: [] },

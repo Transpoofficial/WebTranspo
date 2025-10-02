@@ -1,5 +1,9 @@
 import { checkAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  sendPaymentApprovalWithInvoice,
+  sendPaymentRejectionEmail,
+} from "@/lib/payment-approval";
 import { NextRequest, NextResponse } from "next/server";
 
 export const PUT = async (
@@ -20,12 +24,23 @@ export const PUT = async (
     }
     const body = await req.json();
     let { status } = body;
+    const { note } = body;
+
     if (!status) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
       );
     }
+
+    // Check if note is required for REJECTED status
+    if (status.toUpperCase() === "REJECTED" && !note) {
+      return NextResponse.json(
+        { message: "Note is required for rejected status", data: [] },
+        { status: 400 }
+      );
+    }
+
     status = status.toUpperCase();
     if (
       status !== "PENDING" &&
@@ -41,8 +56,35 @@ export const PUT = async (
       where: { id: id },
       data: {
         paymentStatus: status,
+        note: note || null, // Set note to null if not provided
       },
-    });
+    }); // Send email with invoice if payment is approved
+    if (status === "APPROVED") {
+      try {
+        await sendPaymentApprovalWithInvoice(id);
+      } catch (emailError) {
+        console.error(
+          `Failed to send approval email for payment ${id}:`,
+          emailError
+        );
+        // Don't fail the status update if email fails
+        // The payment status should still be updated successfully
+      }
+    }
+
+    // Send rejection email if payment is rejected
+    if (status === "REJECTED" && note) {
+      try {
+        await sendPaymentRejectionEmail(id, note);
+      } catch (emailError) {
+        console.error(
+          `Failed to send rejection email for payment ${id}:`,
+          emailError
+        );
+        // Don't fail the status update if email fails
+      }
+    }
+
     return NextResponse.json(
       {
         message: "Payment status updated successfully",
@@ -51,7 +93,7 @@ export const PUT = async (
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return NextResponse.json(
       {
         message: "Internal Server Error",

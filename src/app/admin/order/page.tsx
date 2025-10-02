@@ -1,167 +1,249 @@
 "use client";
 
-import React from "react";
-import OrderTable from "./components/order-table";
-import { Button } from "@/components/ui/button";
-import { ListFilter } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Menubar,
-  MenubarContent,
-  MenubarLabel,
-  MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import axios from "axios";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const Order = () => {
+import { columns } from "./components/columns";
+import { DataTable } from "./components/data-table";
+import { Order } from "./data/schema";
+import { useDebounce } from "@/hooks/use-debounce";
 
-  // Table data
-  const data = [
-    {
-      id: "INV001",
-      name: "Fathan Alfariel Adhyaksa",
-      orderType: "transport",
-      vehicle: "HIACE",
-      destinations: [
-        { dest: "Malang", dateTime: "Senin, 5 May 2025 20:15 WIB" },
-        { dest: "Surabaya", dateTime: "Senin, 5 May 2025 20:15 WIB" },
-        { dest: "Madura", dateTime: "Rabu, 7 May 2025 08:00 WIB" },
-      ],
-      paymentStatus: "approved",
-      payment: { total: 50000, paid: 25000 },
-      status: "pending",
-      createdAt: "Rabu, 6 Mei 2025",
+interface OrderResponse {
+  message: string;
+  data: Order[];
+  pagination: {
+    total: number;
+    skip: number;
+    limit: number;
+    hasMore: boolean;
+  };
+}
+
+interface SearchFilters {
+  search: string;
+  orderType: string;
+  orderStatus: string;
+  vehicleType: string;
+  paymentStatus: string;
+}
+
+// Fetch orders function with search and filters
+const fetchOrders = async (
+  skip: number,
+  limit: number,
+  filters: SearchFilters
+): Promise<OrderResponse> => {
+  const params = new URLSearchParams({
+    skip: skip.toString(),
+    limit: limit.toString(),
+  });
+
+  // Add search and filter parameters
+  if (filters.search) params.append("search", filters.search);
+  if (filters.orderType) params.append("orderType", filters.orderType);
+  if (filters.orderStatus) params.append("orderStatus", filters.orderStatus);
+  if (filters.vehicleType) params.append("vehicleType", filters.vehicleType);
+  if (filters.paymentStatus)
+    params.append("paymentStatus", filters.paymentStatus);
+
+  const response = await axios.get(`/api/orders?${params.toString()}`, {
+    headers: {
+      "Content-Type": "application/json",
     },
-    {
-      id: "INV002",
-      name: "Fathan Alfariel Adhyaksa",
-      orderType: "tour",
-      vehicle: "",
-      destinations: [],
-      paymentStatus: "pending",
-      payment: { total: 100000, paid: 100000 },
-      status: "pending",
-      createdAt: "Rabu, 6 Mei 2025",
-    },
-  ];
-
-  return (
-    <>
-      <h2 className="text-3xl font-bold tracking-tight first:mt-0">Pesanan</h2>
-
-      <div className="mt-4">
-        <p className="flex items-center gap-x-2 text-sm font-medium">
-          <ListFilter size={16} />
-          Filter
-        </p>
-
-        <Menubar className="whitespace-nowrap overflow-x-auto overflow-y-hidden mt-2">
-          {/* Filter by name */}
-          <MenubarMenu>
-            <MenubarTrigger>Nama</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Nama</MenubarLabel>
-              <MenubarSeparator />
-
-              <Input type="text" />
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by order type */}
-          <MenubarMenu>
-            <MenubarTrigger>Tipe pesanan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Tipe pesanan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="transport">
-                <MenubarRadioItem value="transport">Transport</MenubarRadioItem>
-                <MenubarRadioItem value="tour">Tour</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by vehicle */}
-          <MenubarMenu>
-            <MenubarTrigger>Kendaraan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Kendaraan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="angkot">
-                <MenubarRadioItem value="angkot">Angkot</MenubarRadioItem>
-                <MenubarRadioItem value="elf">Elf</MenubarRadioItem>
-                <MenubarRadioItem value="hiace">HIACE</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by payment status */}
-          <MenubarMenu>
-            <MenubarTrigger>Status pembayaran</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Status pembayaran</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="pending">
-                <MenubarRadioItem value="pending">Pending</MenubarRadioItem>
-                <MenubarRadioItem value="approved">Approved</MenubarRadioItem>
-                <MenubarRadioItem value="rejected">Rejected</MenubarRadioItem>
-                <MenubarRadioItem value="refunded">Refunded</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* Filter by order status */}
-          <MenubarMenu>
-            <MenubarTrigger>Status pesanan</MenubarTrigger>
-            <MenubarContent>
-              <MenubarLabel>Status pesanan</MenubarLabel>
-              <MenubarSeparator />
-
-              <MenubarRadioGroup value="pending">
-                <MenubarRadioItem value="pending">Pending</MenubarRadioItem>
-                <MenubarRadioItem value="confirmed">Confirmed</MenubarRadioItem>
-                <MenubarRadioItem value="canceled">Canceled</MenubarRadioItem>
-                <MenubarRadioItem value="completed">Completed</MenubarRadioItem>
-                <MenubarRadioItem value="refunded">Refunded</MenubarRadioItem>
-              </MenubarRadioGroup>
-
-              <MenubarSeparator />
-              <div className="flex justify-end">
-                <Button>Terapkan</Button>
-              </div>
-            </MenubarContent>
-          </MenubarMenu>
-        </Menubar>
-
-        <OrderTable data={data} />
-      </div>
-    </>
-  );
+  });
+  return response.data;
 };
 
-export default Order;
+// Component that uses useSearchParams
+function OrderPageContent() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get initial filters from URL
+  const initialFilters = {
+    search: searchParams.get("search") || "",
+    orderType: searchParams.get("orderType") || "",
+    orderStatus: searchParams.get("orderStatus") || "",
+    vehicleType: searchParams.get("vehicleType") || "",
+    paymentStatus: searchParams.get("paymentStatus") || "",
+  };
+
+  // State management
+  const [skip, setSkip] = useState(parseInt(searchParams.get("skip") || "0"));
+  const [limit, setLimit] = useState(
+    parseInt(searchParams.get("limit") || "10")
+  );
+  const [searchInput, setSearchInput] = useState(initialFilters.search);
+  const [filters, setFilters] = useState(initialFilters);
+
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Update URL with filters - modified to remove empty params
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (filters.orderType) params.set("orderType", filters.orderType);
+    if (filters.orderStatus) params.set("orderStatus", filters.orderStatus);
+    if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
+    if (filters.paymentStatus)
+      params.set("paymentStatus", filters.paymentStatus);
+    if (skip > 0) params.set("skip", skip.toString());
+    if (limit !== 10) params.set("limit", limit.toString());
+
+    // Use replaceState instead of push to avoid adding to browser history
+    router.replace(`?${params.toString()}`);
+  }, [debouncedSearch, filters, skip, limit, router]);
+
+  // Query to fetch orders
+  const {
+    data: orderResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["orders", skip, limit, debouncedSearch, filters],
+    queryFn: () =>
+      fetchOrders(skip, limit, { ...filters, search: debouncedSearch }),
+    enabled: !!session?.user,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  // Define resetPagination before using it
+  const resetPagination = useCallback(() => {
+    setSkip(0);
+  }, []);
+
+  // Update search function - immediate UI update
+  const updateSearch = useCallback(
+    (search: string) => {
+      setSearchInput(search);
+      resetPagination();
+    },
+    [resetPagination]
+  );
+
+  // Update filters function - modified to handle empty values
+  const updateFilters = useCallback(
+    (newFilters: Partial<typeof filters>) => {
+      setFilters((prev) => {
+        const updated = { ...prev };
+        // For each new filter value, either set it or delete it if empty
+        Object.entries(newFilters).forEach(([key, value]) => {
+          if (value === "") {
+            delete updated[key as keyof typeof filters];
+          } else {
+            updated[key as keyof typeof filters] = value;
+          }
+        });
+        return updated;
+      });
+      resetPagination();
+    },
+    [resetPagination]
+  );
+
+  // Update pagination
+  const updatePagination = useCallback((newSkip: number, newLimit?: number) => {
+    setSkip(newSkip);
+    if (newLimit !== undefined) {
+      setLimit(newLimit);
+    }
+  }, []);
+
+  // Enhanced pagination data
+  const paginationData = useMemo(() => {
+    if (!orderResponse?.pagination) return null;
+
+    return {
+      ...orderResponse.pagination,
+      pageIndex: Math.floor(skip / limit),
+      pageSize: limit,
+      pageCount: Math.ceil(orderResponse.pagination.total / limit),
+    };
+  }, [orderResponse, skip, limit]);
+
+  if (status === "loading") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">
+            Loading session...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-muted-foreground">
+            Please log in to view orders.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-24 flex items-center justify-center w-full">
+        <div className="border-y-2 border-black w-6 h-6 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex-1 flex-col space-y-4">
+        <div className="flex items-center justify-center h-24">
+          <div className="text-sm text-red-600">
+            Error loading orders:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="ml-2 text-blue-600 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full space-y-4">
+      <h1 className="text-2xl font-bold tracking-tight">Pesanan</h1>
+
+      <DataTable
+        data={orderResponse?.data || []}
+        columns={columns}
+        pagination={paginationData}
+        searchInput={searchInput}
+        filters={filters}
+        onSearchChange={updateSearch}
+        onFiltersChange={updateFilters}
+        onPaginationChange={updatePagination}
+        isLoading={isLoading}
+      />
+    </div>
+  );
+}
+
+// Main exported component with Suspense wrapper
+export default function OrderPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <OrderPageContent />
+    </Suspense>
+  );
+}

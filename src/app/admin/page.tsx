@@ -1,15 +1,29 @@
-<<<<<<< HEAD
-import React from 'react'
+"use client";
 
-const page = () => {
-  return (
-    <div>Hai</div>
-  )
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
+interface Destination {
+  departureDate: string;
 }
 
-export default page
-=======
-"use client";
+interface Transportation {
+  destinations: Destination[];
+}
+
+interface VehicleType {
+  name: string;
+  id: string;
+}
+
+interface Order {
+  transportation: Transportation;
+  vehicleType: VehicleType;
+  orderType: string;
+  packageOrder: {
+    departureDate: string;
+  }
+}
 
 import {
   Bar,
@@ -36,190 +50,232 @@ import {
 } from "@/components/ui/chart";
 import DashboardTable from "./components/table";
 
-const barChartData = [
-  { month: "January", orders: 186 },
-  { month: "February", orders: 305 },
-  { month: "March", orders: 237 },
-  { month: "April", orders: 73 },
-  { month: "May", orders: 209 },
-  { month: "June", orders: 214 },
-];
-
 const barChartConfig = {
   orders: {
     label: "Pesanan",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(222.2 47.4% 11.2%)", // darker blue
   },
 } satisfies ChartConfig;
 
-const pieChartData = [
-  { vehicle: "angkot", visitors: 50, fill: "var(--color-angkot)" },
-  { vehicle: "elf", visitors: 15, fill: "var(--color-elf)" },
-  { vehicle: "hiace", visitors: 20, fill: "var(--color-hiace)" },
-  { vehicle: "paketwisata", visitors: 15, fill: "var(--color-paketwisata)" },
+const chartColors = [
+  '#FF7F50', // coral
+  '#32CD32', // lime green
+  '#4169E1', // royal blue
+  '#9370DB', // medium purple
+  '#FF69B4', // hot pink
 ];
-const pieChartConfig = {
-  visitors: {
-    label: "Visitors",
-  },
-  angkot: {
-    label: "Angkot",
-    color: "hsl(var(--chart-1))",
-  },
-  elf: {
-    label: "Elf",
-    color: "hsl(var(--chart-2))",
-  },
-  hiace: {
-    label: "HIACE",
-    color: "hsl(var(--chart-3))",
-  },
-  paketwisata: {
-    label: "Paket Wisata",
-    color: "hsl(var(--chart-4))",
-  },
-} satisfies ChartConfig;
+const generatePieChartConfig = (vehicleTypes: VehicleType[]) => {
+  return vehicleTypes.reduce((config: ChartConfig, type: VehicleType, index: number) => {
+    config[type.name.toLowerCase()] = {
+      label: type.name,
+      color: chartColors[index % chartColors.length],
+    };
+    return config;
+  }, {} as ChartConfig);
+};
 
 const Dashboard = () => {
+  // Get current year
+const currentYear = new Date().getFullYear();
+
+const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ["orders"],
+    queryFn: async () => {
+      const { data } = await axios.get("/api/orders");
+      return data;
+    },
+  });
+
+  const { data: vehicleTypesData, isLoading: vehicleTypesLoading } = useQuery({
+    queryKey: ["vehicleTypes"],
+    queryFn: async () => {
+      const { data } = await axios.get("/api/vehicle-types");
+      return data;
+    },
+  });
+
+  // Calculate monthly orders for current year
+  const calculateMonthlyOrders = () => {
+    if (!ordersData?.data) return [];
+
+    const monthlyOrders = Array(12).fill(0);
+
+    ordersData.data.forEach((order: Order) => {
+      let departureDate: string | undefined;
+      
+      if (order.orderType === "TRANSPORT" && order.transportation?.destinations?.[0]?.departureDate) {
+        departureDate = order.transportation.destinations[0].departureDate;
+      } else if (order.orderType === "TOUR" && order.packageOrder?.departureDate) {
+        departureDate = order.packageOrder.departureDate;
+      }
+
+      if (!departureDate) return;
+
+      const orderDate = new Date(departureDate);
+      if (orderDate.getFullYear() === currentYear) {
+        monthlyOrders[orderDate.getMonth()]++;
+      }
+    });
+
+    return [
+      { month: "January", orders: monthlyOrders[0] },
+      { month: "February", orders: monthlyOrders[1] },
+      { month: "March", orders: monthlyOrders[2] },
+      { month: "April", orders: monthlyOrders[3] },
+      { month: "May", orders: monthlyOrders[4] },
+      { month: "June", orders: monthlyOrders[5] },
+      { month: "July", orders: monthlyOrders[6] },
+      { month: "August", orders: monthlyOrders[7] },
+      { month: "September", orders: monthlyOrders[8] },
+      { month: "October", orders: monthlyOrders[9] },
+      { month: "November", orders: monthlyOrders[10] },
+      { month: "December", orders: monthlyOrders[11] },
+    ];
+  };
+
+  // Calculate vehicle usage percentages
+  const calculateVehicleStats = () => {
+    if (!ordersData?.data || !vehicleTypesData?.data) return [];
+
+    const vehicleCounts: { [key: string]: number } = {};
+    let total = 0;
+
+    ordersData.data.forEach((order: Order) => {
+      const vehicleTypeName = order.vehicleType?.name?.toLowerCase();
+      if (!vehicleTypeName) return; // skip jika tidak ada vehicle type
+
+      vehicleCounts[vehicleTypeName] = (vehicleCounts[vehicleTypeName] || 0) + 1;
+      total++;
+    });
+
+    return vehicleTypesData.data.map((type: VehicleType, index: number) => ({
+      vehicle: type.name.toLowerCase(),
+      count: vehicleCounts[type.name.toLowerCase()] || 0,
+      percentage: Math.round(((vehicleCounts[type.name.toLowerCase()] || 0) / total) * 100),
+      fill: chartColors[index % chartColors.length], // Use chartColors directly
+    }));
+  };
+
+  // Custom tooltip content
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { vehicle: string; percentage: number; count: number } }> }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background p-2 rounded-lg border shadow-sm">
+          <p className="text-sm font-medium">{`${payload[0].payload.vehicle}`}</p>
+          <p className="text-sm">{`${payload[0].payload.percentage}% (${payload[0].payload.count} orders)`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (ordersLoading || vehicleTypesLoading) return <div>Loading...</div>;
+
+  const barChartData = calculateMonthlyOrders();
+  const pieChartData = calculateVehicleStats();
+  const pieChartConfig = generatePieChartConfig(vehicleTypesData?.data || []);
+
   return (
     <>
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 md:col-span-8">
-          <Card className="rounded-3xl">
-            <CardHeader className="flex justify-between items-start gap-0">
-              <CardTitle>Daftar pemesanan terbaru</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DashboardTable />
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
-          {/* Total bookings this year */}
-          <Card className="rounded-3xl">
-            <CardHeader>
-              <CardTitle>Pemesanan</CardTitle>
-              <CardDescription>January - June 2025</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={barChartConfig}>
-                <BarChart
-                  accessibilityLayer
-                  data={barChartData}
-                  margin={{
-                    top: 20,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Bar dataKey="orders" fill="var(--color-orders)" radius={8}>
-                    <LabelList
-                      position="top"
-                      offset={12}
-                      className="fill-foreground"
-                      fontSize={12}
-                    />
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          {/* Top Vehicle */}
-          <Card className="rounded-3xl">
-            <CardHeader>
-              <CardTitle>Kendaraan Teratas</CardTitle>
-              <CardDescription>
-                Jenis kendaraan yang sering dipesan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={pieChartConfig}
-                className="mx-auto aspect-square max-h-[250px] [&_.recharts-text]:fill-background"
+      <div className="flex flex-col lg:flex-row items-stretch gap-4">
+        {/* Total bookings this year */}
+        <Card className="w-full rounded-3xl">
+          <CardHeader>
+            <CardTitle>Pemesanan</CardTitle>
+            <CardDescription>Tahun {currentYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={barChartConfig}>
+              <BarChart
+                accessibilityLayer
+                data={barChartData}
+                margin={{
+                  top: 20,
+                }}
               >
-                <PieChart>
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent nameKey="visitors" hideLabel />
-                    }
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Bar dataKey="orders" fill="hsl(222.2 47.4% 11.2%)" radius={8}>
+                  <LabelList
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
                   />
-                  <Pie data={pieChartData} dataKey="visitors">
-                    <LabelList
-                      dataKey="vehicle"
-                      className="fill-background"
-                      stroke="none"
-                      fontSize={14}
-                      formatter={(value: keyof typeof pieChartData) => {
-                        const visitorsData = pieChartData.find(
-                          (obj) => obj.vehicle === value
-                        );
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
 
-                        return `${visitorsData?.visitors}%`;
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </CardContent>
-            <CardFooter className="flex items-center">
-              <div className="w-full flex flex-col gap-y-1.5">
-                {/* Angkot */}
-                <div className="inline-flex items-center gap-x-1.5">
+        {/* Top Vehicle */}
+        <Card className="w-full rounded-3xl">
+          <CardHeader>
+            <CardTitle>Kendaraan Teratas</CardTitle>
+            <CardDescription>
+              Jenis kendaraan yang sering dipesan
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={pieChartConfig}
+              className="mx-auto aspect-square max-h-[250px] [&_.recharts-text]:fill-background"
+            >
+              <PieChart>
+                <ChartTooltip content={<CustomTooltip />} />
+                <Pie
+                  data={pieChartData}
+                  dataKey="percentage"
+                  nameKey="vehicle"
+                >
+                  <LabelList
+                    dataKey="percentage"
+                    position="inside"
+                    className="fill-background"
+                    stroke="none"
+                    fontSize={14}
+                    formatter={(value: number) => value > 0 ? `${value}%` : ''}
+                  />
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+          <CardFooter className="flex items-center">
+            <div className="w-full grid grid-cols-2 gap-1.5">
+              {vehicleTypesData?.data.map((type: VehicleType, index: number) => (
+                <div key={type.name} className="inline-flex items-center gap-x-1.5">
                   <div
                     className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
-                    style={{ backgroundColor: `hsl(var(--chart-1))` }}
+                    style={{ backgroundColor: chartColors[index % chartColors.length] }}
                   ></div>
-                  <span className="text-xs">Angkot</span>
+                  <span className="text-xs">{type.name}</span>
                 </div>
-
-                {/* Elf */}
-                <div className="inline-flex items-center gap-x-1.5">
-                  <div
-                    className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
-                    style={{ backgroundColor: `hsl(var(--chart-2))` }}
-                  ></div>
-                  <span className="text-xs">Elf</span>
-                </div>
-              </div>
-
-              <div className="w-full flex flex-col gap-y-1.5">
-                {/* HIACE */}
-                <div className="inline-flex items-center gap-x-1.5">
-                  <div
-                    className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
-                    style={{ backgroundColor: `hsl(var(--chart-3))` }}
-                  ></div>
-                  <span className="text-xs">HIACE</span>
-                </div>
-
-                {/* Paket Wisata */}
-                <div className="inline-flex items-center gap-x-1.5">
-                  <div
-                    className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
-                    style={{ backgroundColor: `hsl(var(--chart-4))` }}
-                  ></div>
-                  <span className="text-xs">Paket Wisata</span>
-                </div>
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
+              ))}
+            </div>
+          </CardFooter>
+        </Card>
       </div>
+
+      <Card className="rounded-3xl mt-4">
+        <CardHeader className="flex justify-between items-start gap-0">
+          <CardTitle>Daftar pemesanan terbaru</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DashboardTable />
+        </CardContent>
+      </Card>
     </>
   );
 };
 
 export default Dashboard;
->>>>>>> 9f36405cac0055fe29bd07eebcd754b55fa9ddae

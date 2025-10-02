@@ -1,0 +1,87 @@
+{
+  "title": "Services",
+  "description": "A collection of services that can be used to enhance the functionality of the application.",
+  "services": [
+    {
+      "name": "Angkot",
+      "description": "A service for managing angkot (public minibus) routes and schedules.",
+      "information": [
+        "Muat hingga 10 orang, cocok untuk rombongan kecil.",
+        "Harga sewa ekonomis, mulai dari Rp100.000 per hari.",
+        "Ideal untuk city tour Malang-Batu atau antar-jemput kegiatan kampus.",
+        "Dilengkapi musik dan jendela besar untuk pengalaman perjalanan terbuka.",
+        "Fleksibel dalam penjemputan dan penurunan di banyak titik.",
+        "Praktis untuk perjalanan singkat dalam kota tanpa perlu kendaraan besar."
+      ],
+      "pros": ["Kapasitas Ideal", "Harga Terjangkau", "Fleksibel & Praktis"],
+      "cons": [
+        "Kapasitas Terbatas",
+        "Tidak Cocok untuk Perjalanan Jauh",
+        "Kenyamanan Terbatas"
+      ]
+    },
+    {
+      "name": "Hiace Commuter",
+      "description": "A service for renting Hiace Commuter vans for larger groups.",
+      "information": [
+        "Muat hingga 15 orang, cocok untuk rombongan menengah.",
+        "Harga sewa ekonomis untuk ukuran mobil besar, mulai 999.000 per hari.",
+        "Ideal untuk perjalanan ke luar kota dan provinsi.",
+        "Dilengkapi musik, mic untuk karaoke seru-seruan, AC yang dingin, dan free air mineral.",
+        "Fleksibel dan nyaman untuk mengunjungi banyak destinasi sekaligus dengan jarak yang jauh.",
+        "Cocok untuk perjalanan jauh dalam waktu yang lama."
+      ],
+      "pros": [
+        "Kapasitas Besar",
+        "Nyaman untuk Perjalanan Jauh",
+        "Fleksibel & Praktis"
+      ],
+      "cons": [
+        "Harga Lebih Mahal",
+        "Kapasitas Masih Terbatas",
+        "Tidak Cocok untuk Perjalanan Sangat Besar"
+      ]
+    },
+    {
+      "name": "Hiace Premio",
+      "description": "A premium service for renting Hiace Premio vans with luxury features.",
+      "information": [
+        "Muat hingga 14 orang dengan kenyamanan ekstra.",
+        "Harga sewa ekonomis untuk ukuran mobil besar, mulai 1.100.000 per hari.",
+        "Ideal untuk perjalanan ke luar kota dan provinsi.",
+        "Dilengkapi musik, mic untuk karaoke seru-seruan, AC yang dingin, dan free air mineral.",
+        "Interior armada mewah dan bikin nyaman.",
+        "Fleksibel dan nyaman untuk mengunjungi banyak destinasi sekaligus dengan jarak yang jauh.",
+        "Cocok untuk perjalanan jauh dalam waktu yang lama."
+      ],
+      "pros": ["Kenyamanan Premium", "Fitur Mewah", "Cocok untuk Acara Formal"],
+      "cons": [
+        "Harga Sangat Mahal",
+        "Kapasitas Masih Terbatas",
+        "Tidak Cocok untuk Perjalanan Santai"
+      ]
+    },
+    {
+      "name": "Elf (Elf Giga)",
+      "description": "A service for renting Elf Giga vans for larger groups with more space.",
+      "information": [
+        "Muat hingga 19 orang, cocok untuk rombongan besar.",
+        "Harga sewa ekonomis untuk ukuran mobil besar, mulai dari 1.200.000 per hari.",
+        "Ideal untuk perjalanan ke luar kota dan provinsi.",
+        "Dilengkapi musik, mic untuk karaoke seru-seruan, AC yang dingin, dan free air mineral.",
+        "Fleksibel dan nyaman untuk mengunjungi banyak destinasi sekaligus dengan jarak yang jauh.",
+        "Cocok untuk perjalanan jauh dalam waktu yang lama."
+      ],
+      "pros": [
+        "Kapasitas Sangat Besar",
+        "Nyaman untuk Perjalanan Jauh",
+        "Ruang Kaki Luas"
+      ],
+      "cons": [
+        "Harga Lebih Mahal",
+        "Kapasitas Masih Terbatas",
+        "Tidak Cocok untuk Perjalanan Sangat Besar"
+      ]
+    }
+  ]
+}

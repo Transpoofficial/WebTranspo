@@ -38,8 +38,8 @@ export const PUT = async (
     await checkAuth(req);
     const { id } = await params;
     const body = await req.json();
-    const { name } = body;
-    if (!name) {
+    const { name, capacity, pricePerKm } = body;
+    if (!name || !capacity || !pricePerKm) {
       return NextResponse.json(
         { message: "Missing required fields", data: [] },
         { status: 400 }
@@ -66,7 +66,7 @@ export const PUT = async (
     }
     const updatedVehicleType = await prisma.vehicleType.update({
       where: { id: id },
-      data: { name },
+      data: { name, capacity: parseInt(capacity), pricePerKm },
     });
     return NextResponse.json(
       {
@@ -89,7 +89,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    await checkAuth(req);
+    // await checkAuth(req);
     const { id } = await params;
     const vehicleType = await prisma.vehicleType.findUnique({
       where: { id: id },
