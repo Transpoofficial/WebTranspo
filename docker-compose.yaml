@@ -2,6 +2,8 @@ services:
     web:
         build: .
         container_name: "web_app"
+
+        restart: always
         expose:
             - "3000"
         environment:
@@ -13,6 +15,7 @@ services:
     nginx:
         image: nginx:stable-alpine
         container_name: "nginx_proxy"
+        restart: always
         depends_on:
             - web
         ports:
@@ -20,24 +23,22 @@ services:
             - "443:443"
         volumes:
             - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-            - certbot-etc:/etc/letsencrypt
-            - certbot-var:/var/lib/letsencrypt
+            - ./data/certbot/www:/var/lib/letsencrypt
+            - ./data/certbot/conf:/etc/letsencrypt
         networks:
             - webnet
     certbot:
         image: certbot/certbot
         container_name: "certbot"
         volumes:
-            - certbot-etc:/etc/letsencrypt
-            - certbot-var:/var/lib/letsencrypt
+            - ./data/certbot/www:/var/lib/letsencrypt
+            - ./data/certbot/conf:/etc/letsencrypt
         entrypoint: >
-            sh -c "trap exit TERM; while :; do
-            certbot renew --webroot -w /var/lib/letsencrypt;
-            sleep 12h & wait $${!}; done"
-
-volumes:
-    certbot-etc:
-    certbot-var:
+            sh -c "trap exit TERM;
+            while :; do
+              certbot renew --webroot -w /var/lib/letsencrypt;
+              sleep 12h & wait $${!}; 
+            done"
 
 networks:
     webnet:
