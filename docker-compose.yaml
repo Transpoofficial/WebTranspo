@@ -40,9 +40,5 @@ services:
               sleep 12h & wait $${!}; 
             done"
 
-volumes:
-    certbot-etc:
-    certbot-var:
-
 networks:
     webnet:
