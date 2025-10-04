@@ -2,6 +2,7 @@ services:
     web:
         build: .
         container_name: "web_app"
+
         restart: always
         expose:
             - "3000"
