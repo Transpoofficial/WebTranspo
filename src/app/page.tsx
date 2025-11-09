@@ -47,10 +47,10 @@ import Link from "next/link";
 import TourPackages from "./components/tour-packages";
 import TrustedBy from "./components/trusted-by";
 import Achievement from "./components/achievement";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 // Animation variants
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -58,7 +58,7 @@ const fadeIn = {
   }
 };
 
-const slideUp = {
+const slideUp: Variants = {
   hidden: { opacity: 0, y: 50 },
   visible: {
     opacity: 1,
@@ -67,7 +67,7 @@ const slideUp = {
   }
 };
 
-const slideDown = {
+const slideDown: Variants = {
   hidden: { opacity: 0, y: -50 },
   visible: {
     opacity: 1,
@@ -76,7 +76,7 @@ const slideDown = {
   }
 };
 
-const slideLeft = {
+const slideLeft: Variants = {
   hidden: { opacity: 0, x: -50 },
   visible: {
     opacity: 1,
@@ -85,7 +85,7 @@ const slideLeft = {
   }
 };
 
-const slideRight = {
+const slideRight: Variants = {
   hidden: { opacity: 0, x: 50 },
   visible: {
     opacity: 1,
@@ -94,7 +94,7 @@ const slideRight = {
   }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -105,7 +105,7 @@ const staggerContainer = {
   }
 };
 
-const scaleIn = {
+const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: {
     opacity: 1,
@@ -114,7 +114,7 @@ const scaleIn = {
   }
 };
 
-const tabContentVariants = {
+const tabContentVariants: Variants = {
   hidden: {
     opacity: 0,
     y: 30

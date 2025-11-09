@@ -51,7 +51,6 @@ const Achievement = () => {
               height={500}
               className="min-w-36 w-36 max-w-36 min-h-36 h-36 max-h-36 object-contain"
             />
-
             <p className="text-sm md:text-base text-center text-black font-medium">{achieve.name}</p>
           </div>
         ))}
