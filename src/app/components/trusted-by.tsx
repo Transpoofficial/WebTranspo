@@ -1,64 +1,59 @@
+"use client";
+
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
+interface TrustedBy {
+  id: string;
+  name: string;
+  logoUrl: string;
+  displayOrder: number;
+  isActive: boolean;
+}
 
 const TrustedBy = () => {
-  const trustedByLogos = [
-    {
-      name: "Universitas Negeri Malang",
-      path: "/images/trusted_by/um.png",
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["trusted-by"],
+    queryFn: async () => {
+      const response = await axios.get("/api/trusted-by");
+      return response.data;
     },
-    {
-      name: "Universitas Brawijaya",
-      path: "/images/trusted_by/ub.jpeg",
-    },
-    {
-      name: "Universitas Muhammadiyah Malang",
-      path: "/images/trusted_by/umm.png",
-    },
-    {
-      name: "Sekolah Tinggi Ilmu Ekonomi Malangkucecwara",
-      path: "/images/trusted_by/stie_malang.png",
-    },
-    {
-      name: "Institut Teknologi & Bisnis Asia",
-      path: "/images/trusted_by/institut_asia.png",
-    },
-    {
-      name: "Institut Teknologi Nasional Malang",
-      path: "/images/trusted_by/itn.png",
-    },
-    {
-      name: "Universitas Islam Negeri Maulana Malik Ibrahim Malang",
-      path: "/images/trusted_by/UIN_MAULANA_MALIK_IBRAHIM.jpg",
-    },
-    {
-      name: "Universitas Gajayana Malang",
-      path: "/images/trusted_by/gajayana.png",
-    },
-    {
-      name: "Unisma",
-      path: "/images/trusted_by/unisma.png",
-    },
-    {
-      name: "Unmer",
-      path: "/images/trusted_by/unmer.png",
-    },
-    {
-      name: "Smoore",
-      path: "/images/trusted_by/smoore.webp",
-    },
-    {
-      name: "WSE",
-      path: "/images/trusted_by/wse.png",
-    },
-  ];
+  });
+
+  if (isLoading) {
+    return (
+      <div className="w-full text-center py-8">
+        <p>Loading trusted partners...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full text-center py-8">
+        <p>Failed to load trusted partners</p>
+      </div>
+    );
+  }
+
+  const trustedByList: TrustedBy[] = data?.data || [];
+
+  if (trustedByList.length === 0) {
+    return (
+      <div className="w-full text-center py-8">
+        <p>No trusted partners available</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full relative flex overflow-x-hidden">
       <div className="animate-marquee flex whitespace-nowrap flex-shrink-0">
-        {trustedByLogos.map((trusted, index) => (
+        {trustedByList.map((trusted) => (
           <Image
-            key={index}
-            src={trusted.path}
+            key={trusted.id}
+            src={trusted.logoUrl}
             alt={trusted.name}
             width={500}
             height={500}
@@ -67,10 +62,10 @@ const TrustedBy = () => {
         ))}
       </div>
       <div className="animate-marquee flex whitespace-nowrap flex-shrink-0">
-        {trustedByLogos.map((trusted, index) => (
+        {trustedByList.map((trusted) => (
           <Image
-            key={index}
-            src={trusted.path}
+            key={`duplicate-${trusted.id}`}
+            src={trusted.logoUrl}
             alt={trusted.name}
             width={500}
             height={500}

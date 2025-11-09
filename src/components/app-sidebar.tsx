@@ -10,6 +10,8 @@ import {
   Newspaper,
   TreePalm,
   User,
+  Award,
+  Shield,
 } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -84,6 +86,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Artikel",
         url: "/admin/article",
         icon: Newspaper,
+      },
+      {
+        title: "Prestasi",
+        url: "/admin/achievement",
+        icon: Award,
+      },
+      {
+        title: "Trusted By",
+        url: "/admin/trusted-by",
+        icon: Shield,
       },
       {
         title: "Laporan",
