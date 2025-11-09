@@ -45,6 +45,8 @@ import HiaceCommuter from "./components/hiace-commuter";
 import HiacePremio from "./components/hiace-premio";
 import Link from "next/link";
 import TourPackages from "./components/tour-packages";
+import TrustedBy from "./components/trusted-by";
+import Achievement from "./components/achievement";
 
 const hurricane = Hurricane({
   weight: "400",
@@ -444,17 +446,20 @@ const Home = () => {
           ref={articleRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
         >
-          <div className="flex justify-between items-center">
+          <div className="relative">
             <h1 className="text-3xl md:text-4xl text-center font-bold">
               Artikel
             </h1>
-            <Button
-              variant="link"
-              onClick={() => router.push("/articles")}
-              className="text-[#0897B1] hover:text-[#0897B1]/80"
-            >
-              Lihat Semua
-            </Button>
+
+            <div className="absolute top-1/2 -translate-y-1/2 right-0">
+              <Button
+                variant="link"
+                onClick={() => router.push("/articles")}
+                className="text-[#0897B1] hover:text-[#0897B1]/80"
+              >
+                Lihat Semua
+              </Button>
+            </div>
           </div>
 
           {isLoadingArticles ? (
@@ -506,6 +511,28 @@ const Home = () => {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Trusted By */}
+        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+            Telah dipercaya oleh
+          </h1>
+
+          <div className="mt-6 md:mt-12">
+            <TrustedBy />
+          </div>
+        </div>
+
+        {/* Achievement */}
+        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+            Prestasi
+          </h1>
+
+          <div className="mt-6 md:mt-12">
+            <Achievement />
+          </div>
         </div>
 
         {/* Review */}
