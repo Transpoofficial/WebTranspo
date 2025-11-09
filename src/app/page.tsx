@@ -37,7 +37,7 @@ import { Hurricane } from "next/font/google";
 import Transportation from "./components/transportation";
 import Elf from "./components/elf";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -47,8 +47,95 @@ import Link from "next/link";
 import TourPackages from "./components/tour-packages";
 import TrustedBy from "./components/trusted-by";
 import Achievement from "./components/achievement";
+import { motion, AnimatePresence } from "framer-motion";
 
-const hurricane = Hurricane({
+// Animation variants
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const slideUp = {
+  hidden: { opacity: 0, y: 50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const slideDown = {
+  hidden: { opacity: 0, y: -50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const slideLeft = {
+  hidden: { opacity: 0, x: -50 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const slideRight = {
+  hidden: { opacity: 0, x: 50 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const tabContentVariants = {
+  hidden: {
+    opacity: 0,
+    y: 30
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: {
+      duration: 0.3,
+      ease: "easeIn"
+    }
+  }
+}; const hurricane = Hurricane({
   weight: "400",
   subsets: ["latin"],
 });
@@ -76,6 +163,7 @@ interface Review {
 
 const Home = () => {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("angkot");
 
   const {
     data: articlesData,
@@ -139,7 +227,12 @@ const Home = () => {
 
       <main>
         {/* Carousel */}
-        <div className="relative">
+        <motion.div
+          className="relative"
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+        >
           <Image
             className="w-full min-h-120 h-120 max-h-120 object-cover object-center"
             src="/images/hero_image.jpg"
@@ -152,38 +245,57 @@ const Home = () => {
           <div className="absolute top-0 left-0 w-full h-full bg-black/[.5]"></div>
 
           <div className="absolute top-1/2 left-1/2 -translate-1/2 w-full container">
-            <div className="flex items-center md:items-start gap-x-2">
-              <Image
-                className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
-                src="/images/logo/logo_3.png"
-                alt="logo_3.png"
-                width={100}
-                height={100}
-              />
+            <motion.div
+              className="flex items-center md:items-start gap-x-2"
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+            >
+              <motion.div variants={scaleIn}>
+                <Image
+                  className="min-w-24 w-24 md:min-w-50 md:w-50 h-full object-cover"
+                  src="/images/logo/logo_3.png"
+                  alt="logo_3.png"
+                  width={100}
+                  height={100}
+                />
+              </motion.div>
 
               <div className="md:pt-3">
-                <h1 className="text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl">
+                <motion.h1
+                  className="text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl"
+                  variants={slideRight}
+                >
                   TRANSPO
-                </h1>
+                </motion.h1>
 
                 <div className="hidden md:block">
-                  <h1
+                  <motion.h1
                     className={`mt-1 ${hurricane.className} text-white text-4xl font-extrabold uppercase tracking-tight lg:text-7xl`}
+                    variants={slideRight}
                   >
                     Dari Malang Raya untuk Indonesia
-                  </h1>
+                  </motion.h1>
 
-                  <h4 className="text-white text-xl md:text-2xl font-semibold tracking-tight mt-2">
+                  <motion.h4
+                    className="text-white text-xl md:text-2xl font-semibold tracking-tight mt-2"
+                    variants={slideRight}
+                  >
                     Transpo adalah startup inovatif yang menyediakan layanan
                     transportasi publik berbasis teknologi untuk mempermudah
                     mobilisasi wisatawan dan masyarakat dengan solusi
                     terjangkau, aman, dan nyaman.
-                  </h4>
+                  </motion.h4>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="block md:hidden w-full pl-3">
+            <motion.div
+              className="block md:hidden w-full pl-3"
+              initial="hidden"
+              animate="visible"
+              variants={slideUp}
+            >
               <h1
                 className={`mt-1 ${hurricane.className} text-white text-3xl font-extrabold uppercase tracking-tight lg:text-5xl`}
               >
@@ -196,21 +308,34 @@ const Home = () => {
                 mobilisasi wisatawan dan masyarakat dengan solusi terjangkau,
                 aman, dan nyaman.
               </h4>
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* How to Order */}
-        <div
+        <motion.div
           ref={howToOrderRef}
           className="container flex flex-col items-center mt-10 md:mt-24 px-4 md:px-10 mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={slideUp}
         >
-          <h1 className="text-3xl md:text-4xl font-bold">
+          <motion.h1
+            className="text-3xl md:text-4xl font-bold"
+            variants={slideDown}
+          >
             Cara Pesan <span className="text-[#0897B1]">Transpo</span>
-          </h1>
+          </motion.h1>
 
-          <ul className="mt-6 md:mt-12 flex items-start overflow-x-auto w-full">
-            <li className="flex flex-col items-center gap-y-6">
+          <motion.ul
+            className="mt-6 md:mt-12 flex items-start overflow-x-auto overflow-y-hidden w-full"
+            variants={staggerContainer}
+          >
+            <motion.li
+              className="flex flex-col items-center gap-y-6"
+              variants={slideUp}
+            >
               <h2 className="text-lg md:text-3xl font-bold">1</h2>
 
               <LogIn color="#0897B1" className="w-8 h-8 md:w-14 md:h-14" />
@@ -218,13 +343,16 @@ const Home = () => {
               <h2 className="text-base md:text-2xl font-bold text-center">
                 Login/Register
               </h2>
-            </li>
+            </motion.li>
 
             <li className="my-auto min-w-16 w-16 md:w-full">
               <Separator />
             </li>
 
-            <li className="flex flex-col items-center gap-y-6">
+            <motion.li
+              className="flex flex-col items-center gap-y-6"
+              variants={slideUp}
+            >
               <h2 className="text-lg md:text-3xl font-bold">2</h2>
 
               <ListChecks color="#0897B1" className="w-8 h-8 md:w-14 md:h-14" />
@@ -232,13 +360,16 @@ const Home = () => {
               <h2 className="text-base md:text-2xl font-bold text-center">
                 Pilih Layanan
               </h2>
-            </li>
+            </motion.li>
 
             <li className="my-auto min-w-16 w-16 md:w-full">
               <Separator />
             </li>
 
-            <li className="flex flex-col items-center gap-y-6">
+            <motion.li
+              className="flex flex-col items-center gap-y-6"
+              variants={slideUp}
+            >
               <h2 className="text-lg md:text-3xl font-bold">3</h2>
 
               <Keyboard color="#0897B1" className="w-8 h-8 md:w-14 md:h-14" />
@@ -246,13 +377,16 @@ const Home = () => {
               <h2 className="text-base md:text-2xl font-bold text-center">
                 Masukkan Informasi
               </h2>
-            </li>
+            </motion.li>
 
             <li className="my-auto min-w-16 w-16 md:w-full">
               <Separator />
             </li>
 
-            <li className="flex flex-col items-center gap-y-6">
+            <motion.li
+              className="flex flex-col items-center gap-y-6"
+              variants={slideUp}
+            >
               <h2 className="text-lg md:text-3xl font-bold">4</h2>
 
               <CreditCard color="#0897B1" className="w-8 h-8 md:w-14 md:h-14" />
@@ -260,13 +394,16 @@ const Home = () => {
               <h2 className="text-base md:text-2xl font-bold text-center">
                 Pilih Metode Pembayaran
               </h2>
-            </li>
+            </motion.li>
 
             <li className="my-auto min-w-16 w-16 md:w-full">
               <Separator />
             </li>
 
-            <li className="flex flex-col items-center gap-y-6">
+            <motion.li
+              className="flex flex-col items-center gap-y-6"
+              variants={slideUp}
+            >
               <h2 className="text-lg md:text-3xl font-bold">5</h2>
 
               <BanknoteArrowUp
@@ -277,21 +414,31 @@ const Home = () => {
               <h2 className="text-base md:text-2xl font-bold text-center">
                 Bayar
               </h2>
-            </li>
-          </ul>
-        </div>
+            </motion.li>
+          </motion.ul>
+        </motion.div>
 
         {/* Advantages */}
-        <div
+        <motion.div
           ref={advantageRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeIn}
         >
-          <h1 className="block md:hidden text-3xl md:text-4xl text-center md:text-left font-bold">
+          <motion.h1
+            className="block md:hidden text-3xl md:text-4xl text-center md:text-left font-bold"
+            variants={slideDown}
+          >
             Kelebihan
-          </h1>
+          </motion.h1>
 
           <div className="grid grid-cols-12 gap-x-0 md:gap-x-12 mt-6 md:mt-0">
-            <div className="col-span-12 md:col-span-5">
+            <motion.div
+              className="col-span-12 md:col-span-5"
+              variants={slideLeft}
+            >
               <Image
                 className="w-full h-full md:min-h-96 md:h-96 object-cover rounded-3xl"
                 src="/images/angkot/angkot_5.png"
@@ -299,15 +446,24 @@ const Home = () => {
                 width={500}
                 height={500}
               />
-            </div>
+            </motion.div>
 
-            <div className="col-span-12 md:col-span-7 mt-6 md:mt-0">
+            <motion.div
+              className="col-span-12 md:col-span-7 mt-6 md:mt-0"
+              variants={slideRight}
+            >
               <h1 className="hidden md:block text-3xl md:text-4xl text-center md:text-left font-bold">
                 Kelebihan
               </h1>
 
-              <ul className="md:mt-6 flex flex-col gap-y-3">
-                <li className="flex items-start gap-x-4">
+              <motion.ul
+                className="md:mt-6 flex flex-col gap-y-3"
+                variants={staggerContainer}
+              >
+                <motion.li
+                  className="flex items-start gap-x-4"
+                  variants={slideUp}
+                >
                   <div className="w-auto">
                     <MapPinned
                       color="#0897B1"
@@ -324,9 +480,12 @@ const Home = () => {
                       titik jemput, strategis dan kemudahan pemesanan.
                     </p>
                   </div>
-                </li>
+                </motion.li>
 
-                <li className="flex items-center gap-x-4">
+                <motion.li
+                  className="flex items-center gap-x-4"
+                  variants={slideUp}
+                >
                   <div className="w-auto">
                     <Handshake
                       color="#0897B1"
@@ -343,9 +502,12 @@ const Home = () => {
                       pemberdayaan ekonomi.
                     </p>
                   </div>
-                </li>
+                </motion.li>
 
-                <li className="flex items-center gap-x-4">
+                <motion.li
+                  className="flex items-center gap-x-4"
+                  variants={slideUp}
+                >
                   <div className="w-auto">
                     <UsersRound
                       color="#0897B1"
@@ -362,24 +524,34 @@ const Home = () => {
                       acara khusus.
                     </p>
                   </div>
-                </li>
-              </ul>
-            </div>
+                </motion.li>
+              </motion.ul>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Choose Transportation*/}
-        <div
+        <motion.div
           ref={serviceRef}
           className="container mt-10 md:mt-24 px-4 md:px-10 mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={fadeIn}
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-center">
+          <motion.h1
+            className="text-3xl md:text-4xl font-bold text-center"
+            variants={slideDown}
+          >
             Pilih layanan sesuai kebutuhanmu
-          </h1>
+          </motion.h1>
 
           {/* Tabs */}
-          <div className="mt-6 md:mt-12">
-            <Tabs defaultValue="angkot" className="w-full">
+          <motion.div
+            className="mt-6 md:mt-12"
+            variants={slideUp}
+          >
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full min-h-max justify-normal md:justify-center overflow-x-auto">
                 <TabsTrigger
                   value="angkot"
@@ -414,39 +586,92 @@ const Home = () => {
                   <span className="font-bold uppercase text-base">Elf</span>
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="angkot">
-                <Transportation />
-              </TabsContent>
-              <TabsContent value="hiace_commuter">
-                <HiaceCommuter />
-              </TabsContent>
-              <TabsContent value="hiace_premio">
-                <HiacePremio />
-              </TabsContent>
-              <TabsContent value="elf">
-                <Elf />
-              </TabsContent>
+
+              <AnimatePresence mode="wait">
+                <TabsContent value="angkot" key="angkot">
+                  <motion.div
+                    variants={tabContentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <Transportation />
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="hiace_commuter" key="hiace_commuter">
+                  <motion.div
+                    variants={tabContentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <HiaceCommuter />
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="hiace_premio" key="hiace_premio">
+                  <motion.div
+                    variants={tabContentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <HiacePremio />
+                  </motion.div>
+                </TabsContent>
+
+                <TabsContent value="elf" key="elf">
+                  <motion.div
+                    variants={tabContentVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                  >
+                    <Elf />
+                  </motion.div>
+                </TabsContent>
+              </AnimatePresence>
             </Tabs>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Tour Packages */}
-        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+        <motion.div
+          className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={slideUp}
+        >
+          <motion.h1
+            className="text-3xl md:text-4xl font-bold text-center px-4"
+            variants={slideDown}
+          >
             Paket Wisata Malang
-          </h1>
+          </motion.h1>
 
-          <div className="mt-6 md:mt-12">
+          <motion.div
+            className="mt-6 md:mt-12"
+            variants={fadeIn}
+          >
             <TourPackages />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Articles */}
-        <div
+        <motion.div
           ref={articleRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeIn}
         >
-          <div className="relative">
+          <motion.div
+            className="relative"
+            variants={slideDown}
+          >
             <h1 className="text-3xl md:text-4xl text-center font-bold">
               Artikel
             </h1>
@@ -460,7 +685,7 @@ const Home = () => {
                 Lihat Semua
               </Button>
             </div>
-          </div>
+          </motion.div>
 
           {isLoadingArticles ? (
             <div className="flex justify-center mt-6 md:mt-12">Loading...</div>
@@ -473,74 +698,116 @@ const Home = () => {
               Tidak ada artikel yang tersedia
             </div>
           ) : (
-            <div className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12">
-              {articlesData.data.slice(0, 10).map((article: Article) => (
-                <Link key={article.id} href={`/articles/${article.id}`}>
-                  <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
-                    <CardContent>
-                      <Image
-                        className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
-                        src={
-                          article.mainImgUrl || "/images/angkot/angkot_2.png"
-                        }
-                        alt={article.title}
-                        width={500}
-                        height={500}
-                      />
-                      <div className="mt-2 text-lg font-semibold line-clamp-2">
-                        {article.title}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        By {article.author.fullName}
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(article.createdAt).toLocaleDateString(
-                          "id-ID",
-                          {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
+            <motion.div
+              className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12"
+              variants={staggerContainer}
+            >
+              {articlesData.data.slice(0, 10).map((article: Article, index: number) => (
+                <motion.div
+                  key={article.id}
+                  variants={scaleIn}
+                  custom={index}
+                >
+                  <Link href={`/articles/${article.id}`}>
+                    <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
+                      <CardContent>
+                        <Image
+                          className="object-cover rounded-xl min-h-36 h-36 max-h-36 md:min-h-52 md:h-52 md:max-h-52"
+                          src={
+                            article.mainImgUrl || "/images/angkot/angkot_2.png"
                           }
-                        )}
-                      </p>
-                    </CardFooter>
-                  </Card>
-                </Link>
+                          alt={article.title}
+                          width={500}
+                          height={500}
+                        />
+                        <div className="mt-2 text-lg font-semibold line-clamp-2">
+                          {article.title}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          By {article.author.fullName}
+                        </p>
+                      </CardContent>
+                      <CardFooter>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(article.createdAt).toLocaleDateString(
+                            "id-ID",
+                            {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          )}
+                        </p>
+                      </CardFooter>
+                    </Card>
+                  </Link>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Trusted By */}
-        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+        <motion.div
+          className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={slideUp}
+        >
+          <motion.h1
+            className="text-3xl md:text-4xl font-bold text-center px-4"
+            variants={slideDown}
+          >
             Telah dipercaya oleh
-          </h1>
+          </motion.h1>
 
-          <div className="mt-6 md:mt-12">
+          <motion.div
+            className="mt-6 md:mt-12"
+            variants={fadeIn}
+          >
             <TrustedBy />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Achievement */}
-        <div className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-center px-4">
+        <motion.div
+          className="container mt-10 md:mt-24 px-0 md:px-6 mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={slideUp}
+        >
+          <motion.h1
+            className="text-3xl md:text-4xl font-bold text-center px-4"
+            variants={slideDown}
+          >
             Prestasi
-          </h1>
+          </motion.h1>
 
-          <div className="mt-6 md:mt-12">
+          <motion.div
+            className="mt-6 md:mt-12"
+            variants={fadeIn}
+          >
             <Achievement />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Review */}
-        <div
+        <motion.div
           ref={reviewRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={fadeIn}
         >
-          <h1 className="text-center text-3xl md:text-4xl font-bold">Review</h1>
+          <motion.h1
+            className="text-center text-3xl md:text-4xl font-bold"
+            variants={slideDown}
+          >
+            Review
+          </motion.h1>
 
           {isLoadingReviews ? (
             <div className="flex justify-center mt-6 md:mt-12">Loading...</div>
@@ -553,53 +820,64 @@ const Home = () => {
               Tidak ada review yang tersedia
             </div>
           ) : (
-            <Carousel
-              opts={{
-                align: "center",
-              }}
-              className="w-full mt-3 md:mt-9"
-            >
-              <CarouselContent className="py-3">
-                {reviewsData.data.map((review: Review) => (
-                  <CarouselItem
-                    key={review.id}
-                    className="md:basis-1/2 lg:basis-1/3"
-                  >
-                    <div className="py-4 px-6 shadow-md rounded-3xl border">
-                      <Quote size={20} />
-                      <div className="flex gap-0.5 mt-2">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                          <Star
-                            key={index}
-                            size={16}
-                            className={
-                              index < review.rating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
-                            }
-                          />
-                        ))}
+            <motion.div variants={slideUp}>
+              <Carousel
+                opts={{
+                  align: "center",
+                }}
+                className="w-full mt-3 md:mt-9"
+              >
+                <CarouselContent className="py-3">
+                  {reviewsData.data.map((review: Review) => (
+                    <CarouselItem
+                      key={review.id}
+                      className="md:basis-1/2 lg:basis-1/3"
+                    >
+                      <div className="py-4 px-6 shadow-md rounded-3xl border">
+                        <Quote size={20} />
+                        <div className="flex gap-0.5 mt-2">
+                          {Array.from({ length: 5 }).map((_, index) => (
+                            <Star
+                              key={index}
+                              size={16}
+                              className={
+                                index < review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <p
+                          title={review.content}
+                          className="text-xs md:text-sm mt-2 mb-3 line-clamp-3 text-ellipsis"
+                        >
+                          {review.content}
+                        </p>
+                        <h6 className="text-sm md:text-base font-bold underline">
+                          {review.order.user.fullName}
+                        </h6>
                       </div>
-                      <p
-                        title={review.content}
-                        className="text-xs md:text-sm mt-2 mb-3 line-clamp-3 text-ellipsis"
-                      >
-                        {review.content}
-                      </p>
-                      <h6 className="text-sm md:text-base font-bold underline">
-                        {review.order.user.fullName}
-                      </h6>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Contact */}
-        <div className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12">
-          <div className="col-span-12 md:col-span-6">
+        <motion.div
+          className="container mx-auto my-10 md:my-24 px-4 md:px-10 grid grid-cols-12 gap-x-0 md:gap-x-12"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={staggerContainer}
+        >
+          <motion.div
+            className="col-span-12 md:col-span-6"
+            variants={slideLeft}
+          >
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-lg md:text-xl">
@@ -640,9 +918,12 @@ const Home = () => {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </div>
+          </motion.div>
 
-          <div className="col-span-12 md:col-span-6 mt-4 md:mt-0">
+          <motion.div
+            className="col-span-12 md:col-span-6 mt-4 md:mt-0"
+            variants={slideRight}
+          >
             <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6">
               Frequently Asked Question
             </h1>
@@ -657,8 +938,8 @@ const Home = () => {
                 Admin
               </Button>
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </main>
 
       <Footer
