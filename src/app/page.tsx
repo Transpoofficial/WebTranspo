@@ -13,8 +13,8 @@ import {
   LogIn,
   MapPinned,
   Phone,
-  Quote,
-  Star,
+  // Quote,
+  // Star,
   UsersRound,
 } from "lucide-react";
 import {
@@ -24,11 +24,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
+// import {
+//   Carousel,
+//   CarouselContent,
+//   CarouselItem,
+// } from "@/components/ui/carousel";
 import Footer from "@/components/footer";
 import Image from "next/image";
 import Header from "../components/header";
@@ -150,16 +150,16 @@ interface Article {
   };
 }
 
-interface Review {
-  id: string;
-  rating: number;
-  content: string;
-  order: {
-    user: {
-      fullName: string;
-    };
-  };
-}
+// interface Review {
+//   id: string;
+//   rating: number;
+//   content: string;
+//   order: {
+//     user: {
+//       fullName: string;
+//     };
+//   };
+// }
 
 const Home = () => {
   const router = useRouter();
@@ -177,17 +177,17 @@ const Home = () => {
     },
   });
 
-  const {
-    data: reviewsData,
-    isLoading: isLoadingReviews,
-    error: reviewsError,
-  } = useQuery({
-    queryKey: ["reviews"],
-    queryFn: async () => {
-      const { data } = await axios.get("/api/reviews");
-      return data;
-    },
-  });
+  // const {
+  //   data: reviewsData,
+  //   isLoading: isLoadingReviews,
+  //   error: reviewsError,
+  // } = useQuery({
+  //   queryKey: ["reviews"],
+  //   queryFn: async () => {
+  //     const { data } = await axios.get("/api/reviews");
+  //     return data;
+  //   },
+  // });
 
   const advantageRef = useRef<HTMLDivElement | null>(null);
   const howToOrderRef = useRef<HTMLDivElement | null>(null);
@@ -794,7 +794,7 @@ const Home = () => {
         </motion.div>
 
         {/* Review */}
-        <motion.div
+        {/* <motion.div
           ref={reviewRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
           initial="hidden"
@@ -864,7 +864,7 @@ const Home = () => {
               </Carousel>
             </motion.div>
           )}
-        </motion.div>
+        </motion.div> */}
 
         {/* Contact */}
         <motion.div
