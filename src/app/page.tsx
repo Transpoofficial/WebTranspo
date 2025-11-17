@@ -660,16 +660,15 @@ const Home = () => {
         </motion.div>
 
         {/* Articles */}
-        <motion.div
+        <div
           ref={articleRef}
           className="container mx-auto mt-10 md:mt-24 px-4 md:px-10"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={fadeIn}
         >
           <motion.div
             className="relative"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
             variants={slideDown}
           >
             <h1 className="text-3xl md:text-4xl text-center font-bold">
@@ -698,15 +697,15 @@ const Home = () => {
               Tidak ada artikel yang tersedia
             </div>
           ) : (
-            <motion.div
-              className="flex items-center overflow-y-auto gap-x-4 mt-6 md:mt-12"
-              variants={staggerContainer}
-            >
+            <div className="flex items-center overflow-x-auto gap-x-4 mt-6 md:mt-12">
               {articlesData.data.slice(0, 10).map((article: Article, index: number) => (
                 <motion.div
                   key={article.id}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.3 }}
                   variants={scaleIn}
-                  custom={index}
+                  transition={{ delay: index * 0.1 }}
                 >
                   <Link href={`/articles/${article.id}`}>
                     <Card className="min-w-xs max-w-xs md:min-w-md md:max-w-md">
@@ -743,9 +742,9 @@ const Home = () => {
                   </Link>
                 </motion.div>
               ))}
-            </motion.div>
+            </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Trusted By */}
         <motion.div
