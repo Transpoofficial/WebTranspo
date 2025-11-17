@@ -593,6 +593,7 @@ export const GET = async (req: NextRequest) => {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const isPrivate = searchParams.get("isPrivate");
+    const noPagination = searchParams.get("noPagination") === "true";
 
     // Build filter conditions
     const whereConditions: Prisma.OrderWhereInput = {};
@@ -688,8 +689,8 @@ export const GET = async (req: NextRequest) => {
 
     const orders = await prisma.order.findMany({
       where: whereConditions,
-      skip,
-      take: limit,
+      skip: noPagination ? undefined : skip,
+      take: noPagination ? undefined : limit,
       orderBy: {
         createdAt: "desc",
       },
@@ -711,16 +712,21 @@ export const GET = async (req: NextRequest) => {
     });
 
     return NextResponse.json(
-      {
-        message: "Order retrieved successfully",
-        data: orders,
-        pagination: {
-          total: totalCount,
-          skip,
-          limit,
-          hasMore: skip + orders.length < totalCount,
-        },
-      },
+      noPagination
+        ? {
+            message: "Orders retrieved successfully",
+            data: orders,
+          }
+        : {
+            message: "Orders retrieved successfully",
+            data: orders,
+            pagination: {
+              total: totalCount,
+              skip,
+              limit,
+              hasMore: skip + orders.length < totalCount,
+            },
+          },
       { status: 200 }
     );
   } catch (error) {

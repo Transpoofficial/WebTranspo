@@ -22,7 +22,7 @@ interface Order {
   orderType: string;
   packageOrder: {
     departureDate: string;
-  }
+  };
 }
 
 import {
@@ -58,30 +58,33 @@ const barChartConfig = {
 } satisfies ChartConfig;
 
 const chartColors = [
-  '#FF7F50', // coral
-  '#32CD32', // lime green
-  '#4169E1', // royal blue
-  '#9370DB', // medium purple
-  '#FF69B4', // hot pink
+  "#FF7F50", // coral
+  "#32CD32", // lime green
+  "#4169E1", // royal blue
+  "#9370DB", // medium purple
+  "#FF69B4", // hot pink
 ];
 const generatePieChartConfig = (vehicleTypes: VehicleType[]) => {
-  return vehicleTypes.reduce((config: ChartConfig, type: VehicleType, index: number) => {
-    config[type.name.toLowerCase()] = {
-      label: type.name,
-      color: chartColors[index % chartColors.length],
-    };
-    return config;
-  }, {} as ChartConfig);
+  return vehicleTypes.reduce(
+    (config: ChartConfig, type: VehicleType, index: number) => {
+      config[type.name.toLowerCase()] = {
+        label: type.name,
+        color: chartColors[index % chartColors.length],
+      };
+      return config;
+    },
+    {} as ChartConfig
+  );
 };
 
 const Dashboard = () => {
   // Get current year
-const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-const { data: ordersData, isLoading: ordersLoading } = useQuery({
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
-      const { data } = await axios.get("/api/orders");
+      const { data } = await axios.get("/api/orders?noPagination=true");
       return data;
     },
   });
@@ -102,10 +105,16 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
 
     ordersData.data.forEach((order: Order) => {
       let departureDate: string | undefined;
-      
-      if (order.orderType === "TRANSPORT" && order.transportation?.destinations?.[0]?.departureDate) {
+
+      if (
+        order.orderType === "TRANSPORT" &&
+        order.transportation?.destinations?.[0]?.departureDate
+      ) {
         departureDate = order.transportation.destinations[0].departureDate;
-      } else if (order.orderType === "TOUR" && order.packageOrder?.departureDate) {
+      } else if (
+        order.orderType === "TOUR" &&
+        order.packageOrder?.departureDate
+      ) {
         departureDate = order.packageOrder.departureDate;
       }
 
@@ -144,20 +153,31 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
       const vehicleTypeName = order.vehicleType?.name?.toLowerCase();
       if (!vehicleTypeName) return; // skip jika tidak ada vehicle type
 
-      vehicleCounts[vehicleTypeName] = (vehicleCounts[vehicleTypeName] || 0) + 1;
+      vehicleCounts[vehicleTypeName] =
+        (vehicleCounts[vehicleTypeName] || 0) + 1;
       total++;
     });
 
     return vehicleTypesData.data.map((type: VehicleType, index: number) => ({
       vehicle: type.name.toLowerCase(),
       count: vehicleCounts[type.name.toLowerCase()] || 0,
-      percentage: Math.round(((vehicleCounts[type.name.toLowerCase()] || 0) / total) * 100),
+      percentage: Math.round(
+        ((vehicleCounts[type.name.toLowerCase()] || 0) / total) * 100
+      ),
       fill: chartColors[index % chartColors.length], // Use chartColors directly
     }));
   };
 
   // Custom tooltip content
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { vehicle: string; percentage: number; count: number } }> }) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{
+      payload: { vehicle: string; percentage: number; count: number };
+    }>;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background p-2 rounded-lg border shadow-sm">
@@ -233,18 +253,16 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
             >
               <PieChart>
                 <ChartTooltip content={<CustomTooltip />} />
-                <Pie
-                  data={pieChartData}
-                  dataKey="percentage"
-                  nameKey="vehicle"
-                >
+                <Pie data={pieChartData} dataKey="percentage" nameKey="vehicle">
                   <LabelList
                     dataKey="percentage"
                     position="inside"
                     className="fill-background"
                     stroke="none"
                     fontSize={14}
-                    formatter={(value: number) => value > 0 ? `${value}%` : ''}
+                    formatter={(value: number) =>
+                      value > 0 ? `${value}%` : ""
+                    }
                   />
                 </Pie>
               </PieChart>
@@ -252,15 +270,23 @@ const { data: ordersData, isLoading: ordersLoading } = useQuery({
           </CardContent>
           <CardFooter className="flex items-center">
             <div className="w-full grid grid-cols-2 gap-1.5">
-              {vehicleTypesData?.data.map((type: VehicleType, index: number) => (
-                <div key={type.name} className="inline-flex items-center gap-x-1.5">
+              {vehicleTypesData?.data.map(
+                (type: VehicleType, index: number) => (
                   <div
-                    className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
-                    style={{ backgroundColor: chartColors[index % chartColors.length] }}
-                  ></div>
-                  <span className="text-xs">{type.name}</span>
-                </div>
-              ))}
+                    key={type.name}
+                    className="inline-flex items-center gap-x-1.5"
+                  >
+                    <div
+                      className="min-w-5 min-h-5 w-5 h-5 rounded-sm"
+                      style={{
+                        backgroundColor:
+                          chartColors[index % chartColors.length],
+                      }}
+                    ></div>
+                    <span className="text-xs">{type.name}</span>
+                  </div>
+                )
+              )}
             </div>
           </CardFooter>
         </Card>
