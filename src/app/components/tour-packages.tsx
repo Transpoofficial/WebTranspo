@@ -52,11 +52,11 @@ const TourPackages = () => {
   if (error) return <p>Error loading tour packages.</p>;
 
   return (
-    <div className="flex items-strech gap-x-2 overflow-x-auto p-4">
+    <div className="grid grid-cols-1 md:flex items-strech gap-2 md:overflow-x-auto p-4">
       {data?.data.map((pkg) => (
         <Link key={pkg.id} href={`/tour-package/${pkg.is_private === true ? "private-trip" : "open-trip"}/detail/${pkg.id}`}>
         <Card
-          className="w-full min-w-full max-w-full md:min-w-md md:max-w-md overflow-hidden bg-white shadow-lg cursor-pointer !pt-0"
+          className="w-full min-w-full max-w-full md:min-w-md md:max-w-md h-full overflow-hidden bg-white shadow-lg cursor-pointer !pt-0"
           onClick={() => handlePackageClick(pkg.id)}
         >
           {/* Hero Image */}
