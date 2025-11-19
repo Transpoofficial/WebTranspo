@@ -101,7 +101,7 @@ const OrderAnalysis = () => {
     queryKey: ["orders", dateFilter, dateRange, vehicleType, orderStatus, orderType, tourType],
     queryFn: async () => {
       const queryParams = buildQueryParams();
-      const { data } = await axios.get<OrdersResponse>(`/api/orders?${queryParams}`);
+      const { data } = await axios.get<OrdersResponse>(`/api/orders?noPagination=true&${queryParams}`);
       return data;
     },
   });
